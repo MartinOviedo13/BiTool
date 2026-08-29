@@ -1,0 +1,28 @@
+# Backend (Go)
+backend/.env
+backend/api.exe
+backend/api
+backend/bin/
+*.exe
+*.test
+*.out
+vendor/
+
+# Frontend (Node / Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/settings.json
+.idea/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
