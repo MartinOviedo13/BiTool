@@ -1,127 +1,144 @@
-# Lavadero BI — Sistema de Business Intelligence e IA
+# Lavadero BI — Sistema de Business Intelligence, Portal B2B y Control Operativo
 
-Sistema de Business Intelligence + IA desarrollado como proyecto de tesis de Analista de Sistemas. Permite digitalizar la operatoria diaria del lavadero industrial *Poseidón Servicio de Lavandería SRL* y proveer diagnósticos inteligentes y predicción de demanda mediante Inteligencia Artificial.
+Sistema de Business Intelligence, Auditoría y Portal B2B desarrollado para la digitalización y optimización operativa de la lavandería industrial **Poseidón Servicio de Lavandería SRL**. 
 
-## Contexto del Proyecto
-La operatoria actual del lavadero (clientes tipo hoteles y empresas) se registra físicamente en planillas cuadriculadas de papel: hoteles en las filas y tipos de prendas en las columnas. El sistema permite realizar la carga digital diaria respetando esta misma disposición matricial, y consolida la información para ofrecer análisis avanzados y lenguaje natural mediante IA, superando alternativas genéricas como Power BI en simplicidad y adaptabilidad para PyMEs.
-
----
-
-## Estado del proyecto
-
-| | |
-|---|---|
-| **Fase actual** | Fase 2 — Integración y Frontend |
-| **Hito en curso** | Hito 1 · Importación desde Excel/CSV y Reconciliación |
-| **Inicio del proyecto** | 27/08/2026 |
-| **Estado de API** | Online (`http://localhost:8000`) |
+El proyecto reemplaza el manejo físico de planillas de papel y remitos manuales por una plataforma integral que conecta la recepción de ropa de los hoteles clientes, el procesamiento en planta y el análisis gerencial de datos.
 
 ---
 
-## Estructura del repositorio
+## 📌 Estado Actual del Proyecto
+
+| Módulo / Funcionalidad | Estado | Detalle |
+|---|---|---|
+| **Arquitectura Base & DB** | ✅ **Completado** | PostgreSQL, migraciones con Goose, conexión optimizada con `pgxpool`. |
+| **Autenticación & Roles** | ✅ **Completado** | Seguridad JWT con roles (`admin`, `operario`, `cliente`) y aislamiento de datos por hotel. |
+| **Importador Masivo de Excel** | ✅ **Completado** | Des-pivote matricial automático vía `excelize`, validación fila por fila y UPSERT transaccional. |
+| **Portal B2B Clientes (Mobile-First)** | ✅ **Completado** | Diseñado para mucamas/personal de lencería en celular: botones táctiles grandes, atajos rápidos (`+5`, `+10`, `+25`), barra fija de guardado y emisión de remitos. |
+| **Trazabilidad QR & WhatsApp** | ✅ **Completado** | Generación de etiquetas con Códigos QR únicos (`ENV-...`) para escanear en bolsas y compartir remito por WhatsApp con el chofer. |
+| **Auditoría & Cruce Automático** | ✅ **Completado** | Cruce en tiempo real: Declarado por Hotel vs. Procesado en Lavadero. Discriminación de **Limpias (OK)**, **En Relavado (en planta)** y **Rotas/Bajas**. |
+| **Dashboard BI & Métricas** | ✅ **Completado** | KPIs interactivos con Recharts: prendas procesadas, facturables, tasas de relavado, roturas y gasto acumulado. |
+| **Asistente IA (RAG & Tool Use)** | ⏳ **En Preparación** | Agente de consulta en lenguaje natural sobre métricas y tendencias de producción. |
+
+---
+
+## 🏗️ Arquitectura y Estructura del Repositorio
 
 ```text
 lavadero-bi/
-├── backend/                             ← API REST en Go
-│   ├── cmd/api/                         ← Punto de entrada (main.go, env.go)
+├── backend/                             ← API REST en Go + PostgreSQL
+│   ├── cmd/api/                         ← Entrypoint (main.go, env.go)
+│   ├── cmd/hashpwd/                     ← Utilidad para generación de hashes bcrypt
 │   ├── internal/                        
-│   │   ├── database/                    ← Conexión e inicialización del pool (pgxpool)
-│   │   ├── handlers/                    ← Controladores HTTP (hoteles, items, registros, analisis)
-│   │   ├── models/                      ← Estructuras de datos Go
-│   │   ├── routes/                      ← Router chi
-│   │   └── services/                    ← Lógica de negocio e IA
-│   ├── migrations/                      ← Migraciones de DB (goose)
-│   │   ├── 001_init.sql                 ← Esquema de base de datos relacional
-│   │   └── 002_seed_catalogos.sql       ← Carga inicial de 44 hoteles y 14 prendas
-│   └── .env                             ← Configuración de base de datos
-├── frontend/                            ← Dashboard en React (Vite)
+│   │   ├── database/                    ← Configuración y conexión de pool (pgxpool)
+│   │   ├── handlers/                    ← Controladores HTTP (auth, b2b, auditoria, imports, bi)
+│   │   ├── models/                      ← Estructuras de datos Go (DTOs y entidades)
+│   │   ├── routes/                      ← Configuración del router Chi y middlewares de roles
+│   │   └── services/                    ← Servicios de importación Excel y lógica de negocio
+│   ├── migrations/                      ← Migraciones SQL versionadas con Goose (001 a 008)
+│   │   ├── 001_init.sql                 ← Tablas iniciales (hoteles, items, registros)
+│   │   ├── 002_seed_catalogos.sql       ← Semilla de 44 hoteles y 14 tipos de prendas
+│   │   ├── 003_usuarios.sql             ← Tabla de usuarios con roles y passwords bcrypt
+│   │   ├── 004_imports.sql              ← Tablas para importaciones masivas y staging
+│   │   ├── 005_import_errores.sql       ← Almacenamiento JSONB de reportes de error
+│   │   ├── 006_portal_b2b.sql           ← Remitos digitales (`envios`, `envio_detalles`) y vínculos a hoteles
+│   │   ├── 007_rol_cliente.sql          ← Soporte de rol 'cliente' y usuario demo
+│   │   └── 008_relavado_roturas.sql     ← Columnas de seguimiento para relavado y prendas rotas
+│   └── .env.example                     ← Plantilla de variables de entorno
+├── frontend/                            ← Single Page Application en React + Vite + Tailwind CSS
 │   ├── src/
-│   │   ├── api/                         ← Cliente de API tipado para Go
-│   │   ├── components/                  ← Vistas y Layouts (Dashboard, Matrix, Catalog, AI)
-│   │   ├── types/                       ← Tipos e interfaces de TypeScript
-│   │   └── utils/                       ← Formateadores y utilidades de fecha
+│   │   ├── api/                         ← Cliente HTTP tipado con resolución automática de host (LAN/Local)
+│   │   ├── components/                  
+│   │   │   ├── auth/                    ← Formulario de Login adaptativo
+│   │   │   ├── layout/                  ← Navbar responsive con colapso móvil
+│   │   │   ├── portal/                  ← Portal B2B para hoteles (`PortalHotelView`) y Auditoría (`AuditoriaView`)
+│   │   │   ├── dashboard/               ← Panel analítico gerencial y alertas automáticas
+│   │   │   ├── matrix/                  ← Grilla matricial de carga diaria e importación
+│   │   │   └── catalog/                 ← Catálogos de prendas y hoteles
+│   │   ├── contexts/                    ← AuthContext y gestión de sesión JWT
+│   │   ├── types/                       ← Definición de interfaces TypeScript
+│   │   └── utils/                       ← Formateadores de moneda, números y fechas
 │   ├── package.json
-│   ├── vite.config.ts
+│   ├── vite.config.ts                   ← Configurado con server.host = true para acceso LAN
 │   └── tsconfig.json
-├── README.md                            ← Presentación general del proyecto
-└── propuesta_ia_integracion.md          ← Documentación de diseño del módulo de IA
+├── README.md                            ← Documentación técnica y funcional
+└── PLAN_MEJORAS.md                      ← Roadmap de mejoras operativas y de producto
 ```
 
 ---
 
-## Plan de desarrollo — 3 fases
-
-| Fase | Hitos | Objetivo | Estado |
-|---|---|---|---|
-| **1 — Base & API** | Hito 0 | Base de datos PostgreSQL local, migraciones y endpoints REST básicos. | **Completado** |
-| **2 — Integración & Front** | Hitos 1–2 | Dashboard BI con Recharts, Grilla de Carga Matricial e Importación/Reconciliación desde Excel. | **En Curso** |
-| **3 — Inteligencia Artificial** | Hitos 3–4 | Asistente de IA (Chat RAG SQL) y predicción de demanda de personal (*Staffing*). | **Pendiente** |
-
----
-
-## Cómo levantar el proyecto localmente
+## 🚀 Cómo ejecutar el proyecto localmente
 
 ### Requisitos previos
-* **Go** (v1.27+)
-* **Node.js** (v24+) y **npm**
-* **PostgreSQL** corriendo en el puerto 5432
+* **Go** (v1.22 o superior)
+* **Node.js** (v18 o superior) y **npm**
+* **PostgreSQL** (v14 o superior) corriendo en el puerto `5432`
 
-### 1. Levantar el Backend
+---
+
+### 1. Backend (API en Go)
+
 ```powershell
-# Ingresar a la carpeta de backend
 cd backend
 
-# Copiar configuración y ajustar credenciales (de ser necesario)
+# 1. Configurar variables de entorno (ajustar credenciales de PostgreSQL si corresponde)
 cp .env.example .env
 
-# Correr migraciones SQL
-C:\Users\marti\go\bin\goose.exe -dir .\migrations postgres "postgresql://postgres:Conan13343@localhost:5432/lavadero_bi?sslmode=disable" up
+# 2. Ejecutar las migraciones de base de datos
+goose -dir ./migrations postgres "postgres://postgres:tu_password@localhost:5432/lavadero_bi?sslmode=disable" up
 
-# Compilar e iniciar servidor API
-go run -buildvcs=false .\cmd\api
+# 3. Compilar e iniciar el servidor
+go run ./cmd/api
 ```
-La API estará disponible en [http://localhost:8000](http://localhost:8000).
+> La API quedará disponible en: `http://localhost:8000` (y escuchando en todas las interfaces de red para acceso móvil).
 
-### 2. Levantar el Frontend
+---
+
+### 2. Frontend (React + Vite)
+
 ```powershell
-# Ingresar a la carpeta de frontend
 cd frontend
 
-# Instalar dependencias
-npm install --legacy-peer-deps
+# 1. Instalar dependencias
+npm install
 
-# Levantar el servidor de desarrollo Vite
+# 2. Iniciar el servidor de desarrollo
 npm run dev
 ```
-La aplicación web estará disponible en [http://localhost:5173](http://localhost:5173).
+> La aplicación estará disponible en: `http://localhost:5173`.
 
 ---
 
-## Stack tecnológico
+## 📱 Acceso desde Dispositivos Móviles (Celulares / Tablets)
 
-| Capa | Tecnología | Detalle |
-|---|---|---|
-| **Base de datos** | PostgreSQL | Almacenamiento relacional optimizado |
-| **Backend / API** | Go + chi | Router ultraligero y alto rendimiento |
-| **Conector DB** | pgxpool | Driver moderno con manejo de pool de conexiones |
-| **Migraciones** | goose | Control de versiones de esquema en SQL puro |
-| **Frontend** | React (v18+) | Single Page Application rápida e interactiva |
-| **Tipado** | TypeScript | Tipado fuerte de datos en el cliente |
-| **Estilos** | Tailwind CSS | Utility-first CSS para UI responsiva y moderna |
-| **Gráficos** | Recharts | Visualización interactiva de KPIs y tendencias |
-| **IA** | OpenAI / Gemini | Integración multimodal y Structured Outputs |
+El sistema está configurado para que cualquier dispositivo conectado a la misma red Wi-Fi pueda acceder al sistema:
+
+1. Conectá el teléfono a la misma red Wi-Fi de la computadora.
+2. Ingresá desde el navegador del celular a:
+   `http://<TU_IP_LOCAL>:5173` (ejemplo: `http://192.168.0.152:5173`).
+3. El frontend detecta automáticamente la IP de la máquina y redirige las llamadas API al backend en el puerto `8000`.
 
 ---
 
-## Equipo
-* **Oviedo Martín** — Desarrollo / Práctica Profesionalizante
-* **Tesis de Analista de Sistemas** — IRESM
+## 👥 Cuentas de Acceso para Pruebas
+
+| Rol | Usuario | Contraseña | Perfil y Acceso |
+|---|---|---|---|
+| **Administrador** | `admin` | `admin1234` | Acceso total: Dashboard BI, Auditoría, Carga Diaria, Importador Excel, Catálogos e IA. |
+| **Operario Planta** | `operario` | `operario1234` | Operación diaria: Grilla de Carga y Auditoría con lector de QR de remitos. |
+| **Cliente Hotel** | `kingdavid` | `hotel1234` | Portal B2B: Emisión de remitos con QR, métricas de prendas en tránsito, relavados y roturas. |
 
 ---
 
-## Para agentes de IA
+## 🛠️ Stack Tecnológico
 
-Antes de comenzar cualquier tarea:
-1. Leer [propuesta_ia_integracion.md](file:///c:/Users/marti/OneDrive/Documentos/BI%20Tool/lavadero-bi/propuesta_ia_integracion.md) para comprender la arquitectura de los módulos de IA a implementar.
-2. Asegurar que el backend local esté corriendo (`GET http://localhost:8000/health`) antes de testear la integración.
-3. No introducir BOM (Byte Order Mark) al crear o modificar archivos de configuración en el frontend.
+* **Backend:** Go 1.22+, Router Chi, Driver `pgx/v5` (`pgxpool`), JWT (`golang-jwt/v5`), Hashing `bcrypt`, Manipulación de planillas `excelize/v2`.
+* **Base de Datos:** PostgreSQL 18+, Migraciones versionadas con `goose`.
+* **Frontend:** React 18, TypeScript, Vite 6, Tailwind CSS, Lucide Icons, Recharts.
+* **Redes & Trazabilidad:** Código QR (`qrserver` / SVG), deep-linking para WhatsApp, diseño Mobile-First con touch targets de 44px+.
+
+---
+
+## 🎓 Proyecto
+* **Autor:** Martín Oviedo
+* **Carrera:** Analista de Sistemas
+* **Organización:** IRESM &bull; Poseidón Servicio de Lavandería SRL

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -42,4 +43,37 @@ func parseDateParam(r *http.Request, key string) (*time.Time, error) {
 func isUniqueViolation(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "23505"
+}
+
+func isFKViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23503"
+}
+
+func isNotFound(err error) bool {
+	// pgx devuelve ErrNoRows cuando no hay filas que coincidan con el WHERE.
+	return errors.Is(err, pgx.ErrNoRows)
+}
+
+// fkConstraintName extrae el nombre de la constraint involucrada en un error
+// de violacion de Foreign Key (util para mensajes claros).
+func fkConstraintName(err error) string {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.ConstraintName
+	}
+	return ""
+}
+
+// fkMessage devuelve un mensaje claro segun la constraint de Foreign Key que
+// se violo (hoteles vs items).
+func fkMessage(constraint string) string {
+	switch constraint {
+	case "registros_hotel_id_fkey":
+		return "El hotel indicado no existe."
+	case "registros_item_id_fkey":
+		return "El item/prenda indicado no existe."
+	default:
+		return "Referencia invalida: el hotel o el item indicado no existe."
+	}
 }

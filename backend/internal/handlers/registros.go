@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"io"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/xuri/excelize/v2"
 	"lavadero-bi/backend/internal/models"
+	"lavadero-bi/backend/internal/services"
 )
 
 type registroPayload struct {
@@ -29,14 +31,20 @@ type batchRegistroItem struct {
 }
 
 func (a *App) listRegistros(w http.ResponseWriter, r *http.Request) {
-	fechaDesde, err := parseDateParam(r, "fecha_desde")
+	fechaDesde, fechaHasta, err := requiredDateRangeParams(r)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "fecha_desde debe tener formato YYYY-MM-DD.")
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	fechaHasta, err := parseDateParam(r, "fecha_hasta")
+
+	hotelID, err := optionalIntQuery(r, "hotel_id")
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "fecha_hasta debe tener formato YYYY-MM-DD.")
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	itemID, err := optionalIntQuery(r, "item_id")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -51,8 +59,9 @@ func (a *App) listRegistros(w http.ResponseWriter, r *http.Request) {
 		WHERE ($1::date IS NULL OR r.fecha >= $1)
 			AND ($2::date IS NULL OR r.fecha <= $2)
 			AND ($3::int IS NULL OR r.hotel_id = $3)
+			AND ($4::int IS NULL OR r.item_id = $4)
 		ORDER BY r.fecha DESC, r.id DESC
-	`, fechaDesde, fechaHasta, optionalIntQuery(r, "hotel_id"))
+	`, fechaDesde, fechaHasta, hotelID, itemID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "No se pudieron listar los registros.")
 		return
@@ -122,6 +131,10 @@ func (a *App) createRegistro(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusConflict, "Ya existe un registro para esa fecha, hotel e item.")
 			return
 		}
+		if isFKViolation(err) {
+			writeError(w, http.StatusBadRequest, fkMessage(fkConstraintName(err)))
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "No se pudo crear el registro.")
 		return
 	}
@@ -170,7 +183,22 @@ func (a *App) createRegistrosBatch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if item.Cantidad == 0 {
+			if _, err := tx.Exec(r.Context(), `
+				DELETE FROM registros
+				WHERE fecha = $1 AND hotel_id = $2 AND item_id = $3
+			`, fecha, item.HotelID, item.ItemID); err != nil {
+				writeError(w, http.StatusInternalServerError, "Error guardando registros en lote.")
+				return
+			}
+			continue
+		}
+
 		if _, err := tx.Exec(r.Context(), stmt, fecha, item.HotelID, item.ItemID, item.Cantidad); err != nil {
+			if isFKViolation(err) {
+				writeError(w, http.StatusBadRequest, fkMessage(fkConstraintName(err)))
+				return
+			}
 			writeError(w, http.StatusInternalServerError, "Error guardando registros en lote.")
 			return
 		}
@@ -232,11 +260,19 @@ func (a *App) updateRegistro(w http.ResponseWriter, r *http.Request) {
 		&registro.Cantidad,
 	)
 	if err != nil {
+		if isNotFound(err) {
+			writeError(w, http.StatusNotFound, "Registro no encontrado.")
+			return
+		}
 		if isUniqueViolation(err) {
 			writeError(w, http.StatusConflict, "Ya existe un registro para esa fecha, hotel e item.")
 			return
 		}
-		writeError(w, http.StatusNotFound, "Registro no encontrado.")
+		if isFKViolation(err) {
+			writeError(w, http.StatusBadRequest, fkMessage(fkConstraintName(err)))
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "No se pudo actualizar el registro.")
 		return
 	}
 
@@ -343,7 +379,7 @@ func parseImportDate(val string) string {
 
 func (a *App) importPreview(w http.ResponseWriter, r *http.Request) {
 	// Parse multipart form
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
+	if err := r.ParseMultipartForm(15 << 20); err != nil {
 		writeError(w, http.StatusBadRequest, "No se pudo procesar el formulario.")
 		return
 	}
@@ -355,60 +391,174 @@ func (a *App) importPreview(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	rows, errMsg := parseUploadedFile(file, header.Filename)
+	if errMsg != "" {
+		writeError(w, http.StatusBadRequest, errMsg)
+		return
+	}
+
+	dateCol, hotelCol, itemCol, qtyCol := detectColumns(rows)
+	records := rowsToRecords(rows, dateCol, hotelCol, itemCol, qtyCol)
+	response := a.buildPreviewResponse(r.Context(), records)
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+// importExtract es el mismo flujo que importPreview pero usa la IA multimodal
+// (Gemini) para leer la planilla: soporta fotos de la planilla en papel (.jpg,
+// .png, .webp, .heic), PDF y tambien Excel/CSV. Para xlsx/csv, si la IA falla,
+// se hace fallback al parser clasico.
+func (a *App) importExtract(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(15 << 20); err != nil {
+		writeError(w, http.StatusBadRequest, "No se pudo procesar el formulario.")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "El archivo 'file' es requerido.")
+		return
+	}
+	defer file.Close()
+
+	client := services.NewGeminiClient()
+	if client.APIKey == "" {
+		writeError(w, http.StatusServiceUnavailable, "Modulo de IA no configurado: falta GEMINI_API_KEY en backend/.env.")
+		return
+	}
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "No se pudo leer el archivo.")
+		return
+	}
+
 	ext := strings.ToLower(filepath.Ext(header.Filename))
+	result, err := client.ExtractFile(r.Context(), data, mimeTypeForExt(ext), header.Filename)
+	if err != nil {
+		// Fallback al parser clasico para planillas Excel/CSV tradicionales.
+		if ext == ".xlsx" || ext == ".csv" {
+			if _, seekErr := file.Seek(0, io.SeekStart); seekErr == nil {
+				rows, errMsg := parseUploadedFile(file, header.Filename)
+				if errMsg == "" {
+					dateCol, hotelCol, itemCol, qtyCol := detectColumns(rows)
+					records := rowsToRecords(rows, dateCol, hotelCol, itemCol, qtyCol)
+					writeJSON(w, http.StatusOK, a.buildPreviewResponse(r.Context(), records))
+					return
+				}
+			}
+		}
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+
+	fecha := strings.TrimSpace(result.Fecha)
+	if fecha == "" {
+		fecha = parseImportDate("")
+	}
+	records := make([]previewRecord, 0, len(result.Filas))
+	for _, fila := range result.Filas {
+		if fila.Cantidad < 0 {
+			continue
+		}
+		records = append(records, previewRecord{
+			fecha: fecha,
+			hotel: strings.TrimSpace(fila.Hotel),
+			item:  strings.TrimSpace(fila.Item),
+			qty:   fila.Cantidad,
+		})
+	}
+
+	response := a.buildPreviewResponse(r.Context(), records)
+	writeJSON(w, http.StatusOK, response)
+}
+
+// previewRecord es una fila ya descompuesta en sus columnas semanticas.
+type previewRecord struct {
+	fecha string
+	hotel string
+	item  string
+	qty   int
+}
+
+// mimeTypeForExt devuelve el MIME type para enviar el archivo al modelo.
+func mimeTypeForExt(ext string) string {
+	switch ext {
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	case ".webp":
+		return "image/webp"
+	case ".heic":
+		return "image/heic"
+	case ".pdf":
+		return "application/pdf"
+	case ".xlsx":
+		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	case ".csv":
+		return "text/csv"
+	}
+	return "application/octet-stream"
+}
+
+// parseUploadedFile lee un archivo xlsx o csv y devuelve las filas (o un mensaje de error).
+func parseUploadedFile(file io.Reader, filename string) ([][]string, string) {
+	ext := strings.ToLower(filepath.Ext(filename))
 	var rows [][]string
 
-	if ext == ".xlsx" {
+	switch ext {
+	case ".xlsx":
 		f, err := excelize.OpenReader(file)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "No se pudo abrir el archivo Excel.")
-			return
+			return nil, "No se pudo abrir el archivo Excel."
 		}
 		defer f.Close()
 
 		sheets := f.GetSheetList()
 		if len(sheets) == 0 {
-			writeError(w, http.StatusBadRequest, "El archivo Excel no tiene hojas.")
-			return
+			return nil, "El archivo Excel no tiene hojas."
 		}
 
 		rows, err = f.GetRows(sheets[0])
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "No se pudieron leer las celdas del Excel.")
-			return
+			return nil, "No se pudieron leer las celdas del Excel."
 		}
-	} else if ext == ".csv" {
+	case ".csv":
 		reader := csv.NewReader(file)
 		reader.LazyQuotes = true
 		reader.FieldsPerRecord = -1
-		
+
 		allRows, err := reader.ReadAll()
 		if err != nil {
+			if seeker, ok := file.(io.Seeker); ok {
+				_, _ = seeker.Seek(0, io.SeekStart)
+			}
 			// Try with semicolon separator
-			file.Seek(0, io.SeekStart)
 			reader = csv.NewReader(file)
 			reader.Comma = ';'
 			reader.LazyQuotes = true
 			reader.FieldsPerRecord = -1
 			allRows, err = reader.ReadAll()
 			if err != nil {
-				writeError(w, http.StatusBadRequest, "No se pudo leer el archivo CSV.")
-				return
+				return nil, "No se pudo leer el archivo CSV."
 			}
 		}
 		rows = allRows
-	} else {
-		writeError(w, http.StatusBadRequest, "Extension de archivo no soportada (solo .xlsx o .csv).")
-		return
+	default:
+		return nil, "Extension de archivo no soportada (solo .xlsx o .csv)."
 	}
 
 	if len(rows) < 2 {
-		writeError(w, http.StatusBadRequest, "El archivo debe tener al menos una fila de cabecera y una fila de datos.")
-		return
+		return nil, "El archivo debe tener al menos una fila de cabecera y una fila de datos."
 	}
 
-	// Detect columns based on headers
-	dateCol, hotelCol, itemCol, qtyCol := -1, -1, -1, -1
+	return rows, ""
+}
+
+// detectColumns infiere las columnas de fecha, hotel, prenda y cantidad desde la cabecera.
+func detectColumns(rows [][]string) (dateCol, hotelCol, itemCol, qtyCol int) {
+	dateCol, hotelCol, itemCol, qtyCol = -1, -1, -1, -1
 	for colIdx, val := range rows[0] {
 		valClean := cleanImportName(val)
 		if strings.Contains(valClean, "fecha") {
@@ -423,14 +573,75 @@ func (a *App) importPreview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fallback to default indices if not found
-	if dateCol == -1 { dateCol = 0 }
-	if hotelCol == -1 { hotelCol = 1 }
-	if itemCol == -1 { itemCol = 2 }
-	if qtyCol == -1 { qtyCol = 3 }
+	if dateCol == -1 {
+		dateCol = 0
+	}
+	if hotelCol == -1 {
+		hotelCol = 1
+	}
+	if itemCol == -1 {
+		itemCol = 2
+	}
+	if qtyCol == -1 {
+		qtyCol = 3
+	}
 
+	return
+}
+
+// rowsToRecords transforma las filas crudas del archivo en registros semanticos.
+func rowsToRecords(rows [][]string, dateCol, hotelCol, itemCol, qtyCol int) []previewRecord {
+	records := []previewRecord{}
+	for i := 1; i < len(rows); i++ {
+		row := rows[i]
+		if len(row) == 0 {
+			continue
+		}
+
+		maxCol := dateCol
+		if hotelCol > maxCol {
+			maxCol = hotelCol
+		}
+		if itemCol > maxCol {
+			maxCol = itemCol
+		}
+		if qtyCol > maxCol {
+			maxCol = qtyCol
+		}
+
+		if len(row) <= maxCol {
+			continue
+		}
+
+		rawHotel := row[hotelCol]
+		rawItem := row[itemCol]
+		rawQty := row[qtyCol]
+
+		if strings.TrimSpace(rawHotel) == "" || strings.TrimSpace(rawItem) == "" {
+			continue
+		}
+
+		qty := 0
+		if q, err := strconv.Atoi(strings.TrimSpace(rawQty)); err == nil {
+			qty = q
+		}
+
+		records = append(records, previewRecord{
+			fecha: parseImportDate(row[dateCol]),
+			hotel: strings.TrimSpace(rawHotel),
+			item:  strings.TrimSpace(rawItem),
+			qty:   qty,
+		})
+	}
+	return records
+}
+
+// buildPreviewResponse mapea los registros semanticos contra el catalogo de la
+// base de datos (fuzzy matching) y arma la respuesta de previsualizacion.
+func (a *App) buildPreviewResponse(ctx context.Context, records []previewRecord) ImportPreviewResponse {
 	// Fetch database catalog of hotels
 	hotelesCatalog := make(map[string]int)
-	hRows, err := a.db.Query(r.Context(), "SELECT id, nombre FROM hoteles WHERE activo = true")
+	hRows, err := a.db.Query(ctx, "SELECT id, nombre FROM hoteles WHERE activo = true")
 	if err == nil {
 		defer hRows.Close()
 		for hRows.Next() {
@@ -444,7 +655,7 @@ func (a *App) importPreview(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch database catalog of items
 	itemsCatalog := make(map[string]int)
-	iRows, err := a.db.Query(r.Context(), "SELECT id, nombre FROM items")
+	iRows, err := a.db.Query(ctx, "SELECT id, nombre FROM items")
 	if err == nil {
 		defer iRows.Close()
 		for iRows.Next() {
@@ -497,39 +708,9 @@ func (a *App) importPreview(w http.ResponseWriter, r *http.Request) {
 	mapeadosOk := 0
 	pendientes := 0
 
-	for i := 1; i < len(rows); i++ {
-		row := rows[i]
-		if len(row) == 0 {
-			continue
-		}
-
-		maxCol := dateCol
-		if hotelCol > maxCol { maxCol = hotelCol }
-		if itemCol > maxCol { maxCol = itemCol }
-		if qtyCol > maxCol { maxCol = qtyCol }
-
-		if len(row) <= maxCol {
-			continue
-		}
-
-		rawFecha := row[dateCol]
-		rawHotel := row[hotelCol]
-		rawItem := row[itemCol]
-		rawQty := row[qtyCol]
-
-		if strings.TrimSpace(rawHotel) == "" || strings.TrimSpace(rawItem) == "" {
-			continue
-		}
-
-		fechaParsed := parseImportDate(rawFecha)
-		
-		qty := 0
-		if q, err := strconv.Atoi(strings.TrimSpace(rawQty)); err == nil {
-			qty = q
-		}
-
-		hotelID := findHotelID(rawHotel)
-		itemID := findItemID(rawItem)
+	for _, rec := range records {
+		hotelID := findHotelID(rec.hotel)
+		itemID := findItemID(rec.item)
 
 		isMapped := hotelID != nil && itemID != nil
 
@@ -541,12 +722,12 @@ func (a *App) importPreview(w http.ResponseWriter, r *http.Request) {
 		}
 
 		response.Registros = append(response.Registros, ImportRecordPreview{
-			Fecha:            fechaParsed,
-			HotelNombreLeido: strings.TrimSpace(rawHotel),
+			Fecha:            rec.fecha,
+			HotelNombreLeido: rec.hotel,
 			HotelID:          hotelID,
-			ItemNombreLeido:  strings.TrimSpace(rawItem),
+			ItemNombreLeido:  rec.item,
 			ItemID:           itemID,
-			Cantidad:         qty,
+			Cantidad:         rec.qty,
 			Mapeado:          isMapped,
 		})
 	}
@@ -555,5 +736,5 @@ func (a *App) importPreview(w http.ResponseWriter, r *http.Request) {
 	response.Resumen.MapeadosOk = mapeadosOk
 	response.Resumen.PendientesReconciliar = pendientes
 
-	writeJSON(w, http.StatusOK, response)
+	return response
 }

@@ -1,11 +1,17 @@
-﻿export function getTodayDateString(): string {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
+﻿function toLocalDateStr(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getTodayDateString(): string {
+  return toLocalDateStr(new Date());
 }
 
 export function getDateRange(period: 'today' | 'last7' | 'month' | 'all' | 'custom', customFrom?: string, customTo?: string): { from?: string; to?: string } {
   const now = new Date();
-  const to = now.toISOString().split('T')[0];
+  const to = toLocalDateStr(now);
 
   if (period === 'today') {
     return { from: to, to };
@@ -14,12 +20,12 @@ export function getDateRange(period: 'today' | 'last7' | 'month' | 'all' | 'cust
   if (period === 'last7') {
     const past = new Date();
     past.setDate(now.getDate() - 7);
-    return { from: past.toISOString().split('T')[0], to };
+    return { from: toLocalDateStr(past), to };
   }
 
   if (period === 'month') {
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    return { from: firstDay.toISOString().split('T')[0], to };
+    return { from: toLocalDateStr(firstDay), to };
   }
 
   if (period === 'custom') {

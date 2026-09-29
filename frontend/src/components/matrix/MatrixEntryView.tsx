@@ -8,7 +8,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { api } from '../../api/client';
-import { Hotel, Item, BatchRegistroItem } from '../../types';
+import { Hotel, Item, Registro, BatchRegistroItem } from '../../types';
 import { getTodayDateString, formatDateDisplay } from '../../utils/date';
 import { formatNumber } from '../../utils/formatters';
 
@@ -17,8 +17,10 @@ export const MatrixEntryView: React.FC = () => {
   const [hoteles, setHoteles] = useState<Hotel[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   
-  // Matrix data structure: grid[hotelId][itemId] = quantity
+// Matrix data structure: grid[hotelId][itemId] = quantity
   const [grid, setGrid] = useState<Record<number, Record<number, number>>>({});
+  // Registros preexistentes de la fecha, para detectar celdas que se vaciaron
+  const [existingRegistros, setExistingRegistros] = useState<Registro[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -55,7 +57,8 @@ export const MatrixEntryView: React.FC = () => {
         }
       });
 
-      setGrid(newGrid);
+setGrid(newGrid);
+      setExistingRegistros(registrosData);
     } catch (err) {
       console.error('Error cargando matriz:', err);
       setStatusMessage({ type: 'error', text: 'No se pudieron cargar los datos de la fecha.' });
@@ -87,7 +90,7 @@ export const MatrixEntryView: React.FC = () => {
     try {
       const batchItems: BatchRegistroItem[] = [];
 
-      Object.entries(grid).forEach(([hotelIdStr, row]) => {
+Object.entries(grid).forEach(([hotelIdStr, row]) => {
         const hotelId = parseInt(hotelIdStr, 10);
         Object.entries(row).forEach(([itemIdStr, qty]) => {
           const itemId = parseInt(itemIdStr, 10);
@@ -102,6 +105,18 @@ export const MatrixEntryView: React.FC = () => {
         });
       });
 
+      existingRegistros.forEach((r) => {
+        const qty = grid[r.hotel_id]?.[r.item_id] ?? 0;
+        if (qty === 0) {
+          batchItems.push({
+            fecha: selectedDate,
+            hotel_id: r.hotel_id,
+            item_id: r.item_id,
+            cantidad: 0,
+          });
+        }
+      });
+
       if (batchItems.length === 0) {
         setStatusMessage({ type: 'error', text: 'No hay cantidades mayores a 0 para guardar.' });
         setSaving(false);
@@ -109,9 +124,10 @@ export const MatrixEntryView: React.FC = () => {
       }
 
       const res = await api.createRegistrosBatch(batchItems);
+      await loadMatrix(selectedDate);
       setStatusMessage({
         type: 'success',
-        text: `¡Planilla guardada con éxito! Se sincronizaron ${res.count} registros para el día ${formatDateDisplay(selectedDate)}.`,
+        text: `¡Planilla guardada con éxito! Se sincronizaron ${res.count} valores para el día ${formatDateDisplay(selectedDate)}.`,
       });
     } catch (err: any) {
       console.error('Error guardando registros:', err);

@@ -27,3 +27,12 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* Slide-in para el panel lateral del asistente */
+@keyframes slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in {
+  animation: slide-in 0.25s ease-out;
+}

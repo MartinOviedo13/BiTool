@@ -127,11 +127,15 @@ func (a *App) updateItem(w http.ResponseWriter, r *http.Request) {
 		&item.SeFactura,
 	)
 	if err != nil {
+		if isNotFound(err) {
+			writeError(w, http.StatusNotFound, "Item no encontrado.")
+			return
+		}
 		if isUniqueViolation(err) {
 			writeError(w, http.StatusConflict, "Ya existe un item con ese nombre.")
 			return
 		}
-		writeError(w, http.StatusNotFound, "Item no encontrado.")
+		writeError(w, http.StatusInternalServerError, "No se pudo actualizar el item.")
 		return
 	}
 

@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState, useMemo } from 'react';
 import {
   TrendingUp,
+  TrendingDown,
   DollarSign,
   Package,
   RotateCcw,
@@ -9,7 +10,9 @@ import {
   Building2,
   PieChart as PieChartIcon,
   BarChart3,
+  LineChart as LineChartIcon,
   Search,
+  Download,
 } from 'lucide-react';
 import {
   BarChart,
@@ -22,40 +25,91 @@ import {
   Pie,
   Cell,
   Legend,
+  LineChart,
+  Line,
+  CartesianGrid,
 } from 'recharts';
 import { api } from '../../api/client';
-import { ResumenGeneral, RankingHotel, PeriodOption, Registro } from '../../types';
+import { ResumenGeneral, RankingHotel, PeriodOption, Registro, ComparacionPeriodo, TendenciaRegistro, Hotel, Item, Alerta } from '../../types';
 import { formatCurrency, formatNumber, formatPercent } from '../../utils/formatters';
 import { getDateRange, formatDateDisplay, getTodayDateString } from '../../utils/date';
+import { AlertasPanel } from './AlertasPanel';
 
 const COLORS = ['#0c8fe9', '#38bdf8', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b'];
+
+// Badge de variacion: muestra %Δ con flecha verde/roja.
+const DeltaBadge: React.FC<{ delta: number | null; invert?: boolean; label?: string }> = ({ delta, invert, label }) => {
+  if (delta == null || !isFinite(delta)) return <span className="text-[10px] text-slate-500">sin comparación</span>;
+  const up = delta >= 0;
+  const good = invert ? !up : up;
+  const Icon = up ? TrendingUp : TrendingDown;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+        good ? 'bg-emerald-950 text-emerald-300' : 'bg-rose-950 text-rose-300'
+      }`}
+      title={label}
+    >
+      <Icon className="h-3 w-3" />
+      {up ? '+' : ''}
+      {delta.toFixed(1)}%
+    </span>
+  );
+};
 
 export const DashboardView: React.FC = () => {
   const [period, setPeriod] = useState<PeriodOption>('month');
   const [customFrom, setCustomFrom] = useState<string>(getTodayDateString());
   const [customTo, setCustomTo] = useState<string>(getTodayDateString());
 
+  // Filtros
+  const [hoteles, setHoteles] = useState<Hotel[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
+  const [hotelFilter, setHotelFilter] = useState<number | ''>('');
+  const [itemFilter, setItemFilter] = useState<number | ''>('');
+
   const [loading, setLoading] = useState<boolean>(true);
   const [resumen, setResumen] = useState<ResumenGeneral | null>(null);
   const [ranking, setRanking] = useState<RankingHotel[]>([]);
   const [registros, setRegistros] = useState<Registro[]>([]);
+  const [comparacion, setComparacion] = useState<ComparacionPeriodo | null>(null);
+  const [tendencia, setTendencia] = useState<TendenciaRegistro[]>([]);
+  const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   const dateFilter = useMemo(() => {
     return getDateRange(period, customFrom, customTo);
   }, [period, customFrom, customTo]);
 
+  const loadCatalogs = async () => {
+    try {
+      const [h, it] = await Promise.all([api.getHoteles(), api.getItems()]);
+      setHoteles(h.filter((x) => x.activo));
+      setItems(it);
+    } catch {
+      /* silencioso */
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
+    const f = { fecha_desde: dateFilter.from, fecha_hasta: dateFilter.to };
+    const filtros = { ...f, hotel_id: hotelFilter === '' ? undefined : hotelFilter, item_id: itemFilter === '' ? undefined : itemFilter };
     try {
-      const [resumenData, rankingData, registrosData] = await Promise.all([
-        api.getResumen({ fecha_desde: dateFilter.from, fecha_hasta: dateFilter.to }),
-        api.getRankingHoteles({ fecha_desde: dateFilter.from, fecha_hasta: dateFilter.to, limit: 10 }),
-        api.getRegistros({ fecha_desde: dateFilter.from, fecha_hasta: dateFilter.to }),
+      const [resumenData, rankingData, registrosData, tendenciaData, comparacionData, alertasData] = await Promise.all([
+        api.getResumen(filtros),
+        api.getRankingHoteles({ ...f, item_id: itemFilter === '' ? undefined : itemFilter, limit: 10 }),
+        api.getRegistros(filtros),
+        api.getTendencia({ ...f, hotel_id: hotelFilter === '' ? undefined : hotelFilter, item_id: itemFilter === '' ? undefined : itemFilter, periodo: 'diario' }),
+        api.getComparacion(f),
+        api.getAlertas(f),
       ]);
       setResumen(resumenData);
-      setRanking(rankingData);
+      setRanking(hotelFilter === '' ? rankingData : []);
       setRegistros(registrosData);
+      setTendencia(tendenciaData);
+      setComparacion(comparacionData);
+      setAlertas(alertasData);
     } catch (err) {
       console.error('Error cargando datos del dashboard:', err);
     } finally {
@@ -64,8 +118,33 @@ export const DashboardView: React.FC = () => {
   };
 
   useEffect(() => {
+    loadCatalogs();
+  }, []);
+
+  useEffect(() => {
     loadData();
-  }, [dateFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFilter, hotelFilter, itemFilter]);
+
+  // Variaciones respecto al periodo anterior (para KPI cards)
+  const ctx = useMemo(() => {
+    if (!comparacion) return null;
+    const deltas = {
+      cantidad_total: comparacion.cantidad_total_anterior
+        ? ((comparacion.cantidad_total_actual - comparacion.cantidad_total_anterior) / comparacion.cantidad_total_anterior) * 100
+        : null,
+      cantidad_facturable: comparacion.cantidad_facturable_anterior
+        ? ((comparacion.cantidad_facturable_actual - comparacion.cantidad_facturable_anterior) / comparacion.cantidad_facturable_anterior) * 100
+        : null,
+      facturacion: comparacion.facturacion_anterior
+        ? ((comparacion.facturacion_actual - comparacion.facturacion_anterior) / comparacion.facturacion_anterior) * 100
+        : null,
+      relavado: comparacion.cantidad_total_anterior
+        ? ((comparacion.cantidad_relavado_actual - comparacion.cantidad_relavado_anterior) / comparacion.cantidad_total_anterior) * 100
+        : null,
+    };
+    return deltas;
+  }, [comparacion]);
 
   // Breakdown by item for Pie Chart
   const itemDistribution = useMemo(() => {
@@ -90,6 +169,8 @@ export const DashboardView: React.FC = () => {
     if (!searchTerm) return ranking;
     return ranking.filter((h) => h.hotel.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [ranking, searchTerm]);
+
+  const selHotel = hotelFilter === '' ? undefined : hoteles.find((h) => h.id === hotelFilter);
 
   return (
     <div className="space-y-6">
@@ -141,6 +222,30 @@ export const DashboardView: React.FC = () => {
           </div>
         )}
 
+        {/* Filtros por hotel y prenda */}
+        <div className="flex items-center gap-2 text-xs">
+          <select
+            value={hotelFilter}
+            onChange={(e) => setHotelFilter(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+          >
+            <option value="">Todos los hoteles</option>
+            {hoteles.map((h) => (
+              <option key={h.id} value={h.id}>{h.nombre}</option>
+            ))}
+          </select>
+          <select
+            value={itemFilter}
+            onChange={(e) => setItemFilter(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+          >
+            <option value="">Todas las prendas</option>
+            {items.map((i) => (
+              <option key={i.id} value={i.id}>{i.nombre}{!i.se_factura ? ' (relav)' : ''}</option>
+            ))}
+          </select>
+        </div>
+
         <button
           onClick={loadData}
           disabled={loading}
@@ -148,6 +253,20 @@ export const DashboardView: React.FC = () => {
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin text-brand-400' : ''}`} />
           <span>Actualizar</span>
+        </button>
+
+        <button
+          onClick={() =>
+            api.exportarCSV({
+              fecha_desde: dateFilter.from,
+              fecha_hasta: dateFilter.to,
+              item_id: itemFilter === '' ? undefined : itemFilter,
+            })
+          }
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-medium transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" />
+          <span>Exportar CSV</span>
         </button>
       </div>
 
@@ -163,6 +282,10 @@ export const DashboardView: React.FC = () => {
           </div>
           <div className="text-3xl font-extrabold text-white tracking-tight">
             {loading ? '...' : formatNumber(resumen?.cantidad_total || 0)}
+          </div>
+          <div className="mt-1.5 flex items-center gap-2">
+            {ctx && <DeltaBadge delta={ctx.cantidad_total} label="vs período anterior" />}
+            <span className="text-[10px] text-slate-500">vs anterior</span>
           </div>
           <div className="mt-2 text-xs text-slate-400 flex items-center gap-1">
             <span className="text-slate-300 font-medium">{formatDateDisplay(dateFilter.from)}</span>
@@ -182,8 +305,12 @@ export const DashboardView: React.FC = () => {
           <div className="text-3xl font-extrabold text-white tracking-tight">
             {loading ? '...' : formatNumber(resumen?.cantidad_facturable || 0)}
           </div>
+          <div className="mt-1.5 flex items-center gap-2">
+            {ctx && <DeltaBadge delta={ctx.cantidad_facturable} label="vs período anterior" />}
+            <span className="text-[10px] text-slate-500">vs anterior</span>
+          </div>
           <div className="mt-2 text-xs text-emerald-400 font-medium flex items-center gap-1">
-            <span>{resumen?.cantidad_total ? formatPercent((resumen.cantidad_facturable / resumen.cantidad_total)) : '0%'}</span>
+            <span>{resumen?.cantidad_total ? formatPercent(resumen.cantidad_facturable / resumen.cantidad_total) : '0%'}</span>
             <span className="text-slate-400 font-normal">del total de prendas</span>
           </div>
         </div>
@@ -198,6 +325,10 @@ export const DashboardView: React.FC = () => {
           </div>
           <div className="text-3xl font-extrabold text-white tracking-tight">
             {loading ? '...' : formatNumber(resumen?.cantidad_relavado || 0)}
+          </div>
+          <div className="mt-1.5 flex items-center gap-2">
+            {ctx && <DeltaBadge delta={ctx.relavado} invert label="vs período anterior" />}
+            <span className="text-[10px] text-slate-500">vs anterior</span>
           </div>
           <div className="mt-2 flex items-center gap-2">
             <span
@@ -224,42 +355,49 @@ export const DashboardView: React.FC = () => {
           <div className="text-3xl font-extrabold text-white tracking-tight">
             {loading ? '...' : formatCurrency(resumen?.facturacion_estimada || 0)}
           </div>
+          <div className="mt-1.5 flex items-center gap-2">
+            {ctx && <DeltaBadge delta={ctx.facturacion} label="vs período anterior" />}
+            <span className="text-[10px] text-slate-500">vs anterior</span>
+          </div>
           <div className="mt-2 text-xs text-slate-400">
             Calculado con precios unitarios activos
           </div>
         </div>
       </div>
 
-      {/* Charts Row */}
+      <AlertasPanel alertas={alertas} loading={loading} />
+
+      {/* Tendencia + Distribución */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Ranking Bar Chart */}
+        {/* Tendencia Line Chart */}
         <div className="lg:col-span-2 bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-brand-400" />
-              <h3 className="font-bold text-slate-100">Top Hoteles por Volumen</h3>
+              <LineChartIcon className="h-5 w-5 text-brand-400" />
+              <h3 className="font-bold text-slate-100">Tendencia de Volumen</h3>
             </div>
-            <span className="text-xs text-slate-400">Prendas facturables</span>
+            <span className="text-xs text-slate-400">Agrupado por día</span>
           </div>
 
           <div className="h-72 w-full">
             {loading ? (
               <div className="h-full flex items-center justify-center text-slate-500 text-sm">Cargando gráfico...</div>
-            ) : ranking.length === 0 ? (
+            ) : tendencia.length === 0 ? (
               <div className="h-full flex items-center justify-center text-slate-500 text-sm">
-                No hay registros para el período seleccionado
+                No hay datos para el período seleccionado
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={ranking} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                  <XAxis type="number" stroke="#64748b" fontSize={12} />
-                  <YAxis type="category" dataKey="hotel" stroke="#94a3b8" fontSize={12} width={110} />
+                <LineChart data={tendencia} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="fecha" stroke="#64748b" fontSize={11} />
+                  <YAxis stroke="#64748b" fontSize={11} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem' }}
-                    formatter={(val: number) => [`${formatNumber(val)} prendas`, 'Volumen']}
+                    formatter={(val: number) => [formatNumber(val), 'prenda(s)']}
                   />
-                  <Bar dataKey="cantidad_total" fill="#0c8fe9" radius={[0, 6, 6, 0]} />
-                </BarChart>
+                  <Line type="monotone" dataKey="cantidad_total" stroke="#0c8fe9" strokeWidth={2} dot={false} />
+                </LineChart>
               </ResponsiveContainer>
             )}
           </div>
@@ -308,6 +446,41 @@ export const DashboardView: React.FC = () => {
         </div>
       </div>
 
+      {/* Ranking Bar Chart */}
+      <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-brand-400" />
+            <h3 className="font-bold text-slate-100">Top Hoteles por Volumen</h3>
+          </div>
+          <span className="text-xs text-slate-400">
+            {selHotel ? `Filtrado: ${selHotel.nombre}` : 'Prendas facturables'}
+          </span>
+        </div>
+
+        <div className="h-72 w-full">
+          {loading ? (
+            <div className="h-full flex items-center justify-center text-slate-500 text-sm">Cargando gráfico...</div>
+          ) : ranking.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-slate-500 text-sm">
+              No hay registros para el período seleccionado
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={ranking} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                <XAxis type="number" stroke="#64748b" fontSize={12} />
+                <YAxis type="category" dataKey="hotel" stroke="#94a3b8" fontSize={12} width={110} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem' }}
+                  formatter={(val: number) => [`${formatNumber(val)} prendas`, 'Volumen']}
+                />
+                <Bar dataKey="cantidad_total" fill="#0c8fe9" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
       {/* Ranking Detailed Table */}
       <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -346,9 +519,8 @@ export const DashboardView: React.FC = () => {
                 </tr>
               ) : (
                 filteredRanking.map((item, idx) => {
-                  const percent = resumen?.cantidad_facturable
-                    ? (item.cantidad_total / resumen.cantidad_facturable) * 100
-                    : 0;
+                  const base = hotelFilter === '' ? resumen?.cantidad_facturable : item.cantidad_total;
+                  const percent = base ? (item.cantidad_total / base) * 100 : 0;
                   return (
                     <tr key={item.hotel_id} className="hover:bg-slate-800/40 transition-colors">
                       <td className="px-4 py-3 font-semibold text-slate-400">#{idx + 1}</td>

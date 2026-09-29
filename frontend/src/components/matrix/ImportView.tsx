@@ -9,6 +9,7 @@ import {
   Building,
   Shirt,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { Hotel, Item, ImportRecordPreview } from '../../types';
@@ -22,6 +23,7 @@ export const ImportView: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
+  const [processingIA, setProcessingIA] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
@@ -59,6 +61,24 @@ export const ImportView: React.FC = () => {
       setStatusMessage({ type: 'error', text: err.message || 'Error al procesar el archivo.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExtractIA = async () => {
+    if (!file) return;
+    setProcessingIA(true);
+    setStatusMessage(null);
+    try {
+      const res = await api.importExtractIA(file);
+      setPreviewRows(res.registros);
+      setStatusMessage({
+        type: 'success',
+        text: `Extraccion con IA completada. Se detectaron ${res.resumen.total_filas} registros. Revisa y confirma antes de importar.`,
+      });
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: err.message || 'Error al extraer con la IA.' });
+    } finally {
+      setProcessingIA(false);
     }
   };
 
@@ -119,25 +139,32 @@ export const ImportView: React.FC = () => {
           <h2 className="text-xl font-bold text-white tracking-tight">Importacion desde Excel o CSV</h2>
         </div>
         <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-          Subi tu planilla de operaciones en formato Excel (.xlsx) o CSV. El sistema detectara las columnas
-          de fecha, hotel, prenda y cantidad, y te permitira corregir diferencias con el catalogo oficial antes de guardar.
+          Subi tu planilla operativa: Excel (.xlsx), CSV, PDF o una <strong className="text-slate-200">foto de la planilla de papel</strong> (.jpg/.png).
+          El sistema detecta las columnas de fecha, hotel, prenda y cantidad con el importador clasico, o extrae los datos con IA desde imagenes y archivos.
+          Despues de extraer, podras corregir diferencias con el catalogo oficial antes de guardar.
         </p>
 
         {previewRows.length === 0 ? (
           <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-800 rounded-xl p-8 bg-slate-950/40">
             <FileUp className="h-10 w-10 text-slate-500 mb-3" />
             <span className="text-xs font-semibold text-slate-300 mb-2">Selecciona tu archivo operativo</span>
-            <span className="text-[10px] text-slate-500 mb-4">Formatos soportados: .xlsx y .csv</span>
+            <span className="text-[10px] text-slate-500 mb-4">Formatos: .xlsx, .csv, .pdf y fotos (.jpg/.png)</span>
             <div className="flex items-center gap-3">
-              <input type="file" accept=".xlsx,.csv" onChange={handleFileChange} className="hidden" id="file-upload-input" />
+              <input type="file" accept=".xlsx,.csv,.pdf,image/*" onChange={handleFileChange} className="hidden" id="file-upload-input" />
               <label htmlFor="file-upload-input" className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors">
                 Buscar Archivo
               </label>
               {file && (
-                <button onClick={handleUpload} disabled={loading} className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
-                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-                  <span>{loading ? 'Procesando...' : 'Procesar Planilla'}</span>
-                </button>
+                <>
+                  <button onClick={handleUpload} disabled={loading || processingIA} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+                    <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                    <span>{loading ? 'Procesando...' : 'Procesar (Clasico)'}</span>
+                  </button>
+                  <button onClick={handleExtractIA} disabled={loading || processingIA} className="px-4 py-2 bg-gradient-to-r from-brand-600 to-cyan-500 hover:from-brand-500 hover:to-cyan-400 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg shadow-brand-600/20">
+                    <Sparkles className={`h-3.5 w-3.5 ${processingIA ? 'animate-pulse' : ''}`} />
+                    <span>{processingIA ? 'Extrayendo con IA...' : 'Extraer con IA'}</span>
+                  </button>
+                </>
               )}
             </div>
             {file && <span className="text-xs font-bold text-brand-400 mt-4">Archivo: {file.name} ({(file.size / 1024).toFixed(1)} KB)</span>}

@@ -108,11 +108,15 @@ func (a *App) updateHotel(w http.ResponseWriter, r *http.Request) {
 		RETURNING id, nombre, activo
 	`, id, nombre, payload.Activo).Scan(&hotel.ID, &hotel.Nombre, &hotel.Activo)
 	if err != nil {
+		if isNotFound(err) {
+			writeError(w, http.StatusNotFound, "Hotel no encontrado.")
+			return
+		}
 		if isUniqueViolation(err) {
 			writeError(w, http.StatusConflict, "Ya existe un hotel con ese nombre.")
 			return
 		}
-		writeError(w, http.StatusNotFound, "Hotel no encontrado.")
+		writeError(w, http.StatusInternalServerError, "No se pudo actualizar el hotel.")
 		return
 	}
 
