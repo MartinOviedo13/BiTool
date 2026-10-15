@@ -15,12 +15,17 @@ import {
   Minus,
   Search,
   Share2,
+  FileText,
 } from 'lucide-react';
+import { FichaHotel360 } from '../../types';
+import { LiquidacionPrintable } from '../hotel360/LiquidacionPrintable';
+import { RemitoPrintableModal } from '../hotel360/RemitoPrintableModal';
 
 export const PortalHotelView: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'nuevo_remito' | 'dashboard' | 'historial'>('nuevo_remito');
+  const [activeTab, setActiveTab] = useState<'nuevo_remito' | 'dashboard' | 'historial' | 'liquidacion'>('nuevo_remito');
   const [dashboard, setDashboard] = useState<PortalHotelDashboard | null>(null);
+  const [ficha, setFicha] = useState<FichaHotel360 | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [envios, setEnvios] = useState<Envio[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +36,7 @@ export const PortalHotelView: React.FC = () => {
   const [filtroPrenda, setFiltroPrenda] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [createdEnvio, setCreatedEnvio] = useState<Envio | null>(null);
+  const [selectedRemitoForModal, setSelectedRemitoForModal] = useState<Envio | null>(null);
 
   useEffect(() => {
     cargarDatos();
@@ -39,14 +45,16 @@ export const PortalHotelView: React.FC = () => {
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      const [dashData, itemsData, enviosData] = await Promise.all([
+      const [dashData, itemsData, enviosData, fichaData] = await Promise.all([
         api.getPortalDashboard(),
         api.getItems(),
         api.getEnvios(),
+        user?.hotel_id ? api.getFichaHotel360(user.hotel_id) : Promise.resolve(null),
       ]);
       setDashboard(dashData);
       setItems(itemsData);
       setEnvios(enviosData);
+      if (fichaData) setFicha(fichaData);
     } catch (err) {
       console.error('Error cargando portal:', err);
     } finally {
@@ -113,16 +121,16 @@ export const PortalHotelView: React.FC = () => {
       env.fecha
     ).toLocaleDateString('es-AR')}\nCodigo: ${env.codigo_qr}\nTotal Prendas: ${
       env.detalles?.reduce((acc, d) => acc + d.cantidad_declarada, 0) || 0
-    }\nVerificado para chofer de Poseidón SRL.`;
+    }\nVerificado para chofer de TRITÓN Lavadero Industrial.`;
     const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
     window.open(url, '_blank');
   };
 
   if (loading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-sm">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent mb-3" />
-        <p className="text-sm text-slate-500 font-medium">Cargando portal móvil...</p>
+      <div className="bg-[#0b1a33]/90 border border-[#1e3659] rounded-xl p-12 text-center shadow-lg">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-500 border-t-transparent mb-3" />
+        <p className="text-sm text-slate-300 font-medium">Cargando portal móvil...</p>
       </div>
     );
   }
@@ -130,32 +138,37 @@ export const PortalHotelView: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 pb-24 md:pb-6 max-w-5xl mx-auto">
       {/* Encabezado Mobile-Friendly */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm">
+      <div className="bg-[#0b1a33]/90 border border-[#1e3659] rounded-2xl p-4 sm:p-6 shadow-xl backdrop-blur-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                Portal Hotel B2B
-              </span>
-              <span className="text-slate-400">•</span>
-              <span className="text-slate-500 text-xs font-semibold">Poseidón Lavandería</span>
+          <div className="flex items-start gap-3.5">
+            <div className="w-12 h-12 rounded-xl overflow-hidden border border-[#1e3659] bg-[#071326] shrink-0 p-1 flex items-center justify-center shadow-inner">
+              <img src="/logo-triton.jpg" alt="TRITÓN" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-800 mt-1">
-              {user?.hotel_nombre || dashboard?.hotel_nombre || 'Mi Hotel'}
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Carga rápida de remitos de ropa sucia y control de estado.
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="bg-brand-900/60 text-brand-300 border border-brand-700/50 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Portal Hotel B2B
+                </span>
+                <span className="text-slate-500">•</span>
+                <span className="text-slate-400 text-xs font-semibold">TRITÓN Lavadero Industrial</span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black text-white mt-1">
+                {user?.hotel_nombre || dashboard?.hotel_nombre || 'Mi Hotel'}
+              </h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Carga rápida de remitos de ropa sucia y control de estado.
+              </p>
+            </div>
           </div>
 
           {/* Botones de navegación tipo Pestañas Mobile */}
-          <div className="grid grid-cols-3 bg-slate-100 p-1 rounded-xl w-full sm:w-auto mt-2 sm:mt-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-[#071326] border border-[#1e3659] p-1 rounded-xl w-full sm:w-auto mt-2 sm:mt-0">
             <button
               onClick={() => setActiveTab('nuevo_remito')}
-              className={`py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'nuevo_remito'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#132747]'
               }`}
             >
               <PlusCircle className="w-4 h-4 shrink-0" />
@@ -163,10 +176,10 @@ export const PortalHotelView: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'dashboard'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#132747]'
               }`}
             >
               <Layers className="w-4 h-4 shrink-0" />
@@ -174,14 +187,25 @@ export const PortalHotelView: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('historial')}
-              className={`py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'historial'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#132747]'
               }`}
             >
               <Clock className="w-4 h-4 shrink-0" />
               <span>Remitos ({envios.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('liquidacion')}
+              className={`py-2 px-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === 'liquidacion'
+                  ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#132747]'
+              }`}
+            >
+              <FileText className="w-4 h-4 shrink-0" />
+              <span>Liquidación</span>
             </button>
           </div>
         </div>
@@ -263,9 +287,9 @@ export const PortalHotelView: React.FC = () => {
       {activeTab === 'nuevo_remito' && (
         <div className="space-y-4">
           {/* Barra de Fecha y Buscador */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-3">
+          <div className="bg-[#0b1a33]/90 border border-[#1e3659] p-4 rounded-2xl shadow-xl flex flex-col sm:flex-row gap-3">
             <div className="sm:w-48">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Fecha de Entrega
               </label>
               <div className="relative">
@@ -274,13 +298,13 @@ export const PortalHotelView: React.FC = () => {
                   type="date"
                   value={fechaEnvio}
                   onChange={(e) => setFechaEnvio(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-9 pr-3 py-2 bg-[#071326] border border-[#1e3659] rounded-xl text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </div>
 
             <div className="flex-1">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Buscar Prenda Rápido
               </label>
               <div className="relative">
@@ -290,12 +314,12 @@ export const PortalHotelView: React.FC = () => {
                   placeholder="Ej: Sábana, Toalla, Funda..."
                   value={filtroPrenda}
                   onChange={(e) => setFiltroPrenda(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-9 pr-3 py-2 bg-[#071326] border border-[#1e3659] rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 {filtroPrenda && (
                   <button
                     onClick={() => setFiltroPrenda('')}
-                    className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-white"
                   >
                     Borrar
                   </button>
@@ -314,16 +338,16 @@ export const PortalHotelView: React.FC = () => {
                   key={it.id}
                   className={`p-4 rounded-2xl border transition-all ${
                     hasQty
-                      ? 'bg-blue-50/60 border-blue-300 shadow-sm'
-                      : 'bg-white border-slate-200 hover:border-slate-300'
+                      ? 'bg-brand-950/60 border-brand-500/70 shadow-lg shadow-brand-950/50'
+                      : 'bg-[#0b1a33]/85 border-[#1e3659] hover:border-slate-500'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <span className="font-bold text-base text-slate-800 leading-snug line-clamp-1">
+                    <span className="font-bold text-base text-white leading-snug line-clamp-1">
                       {it.nombre}
                     </span>
                     {hasQty && (
-                      <span className="bg-blue-600 text-white text-xs font-black px-2 py-0.5 rounded-full">
+                      <span className="bg-brand-600 text-white text-xs font-black px-2 py-0.5 rounded-full shadow-sm">
                         {cant}
                       </span>
                     )}
@@ -335,7 +359,7 @@ export const PortalHotelView: React.FC = () => {
                       type="button"
                       onClick={() => incrementar(it.id, -1)}
                       disabled={cant <= 0}
-                      className="w-12 h-11 bg-slate-100 active:bg-slate-200 disabled:opacity-30 disabled:pointer-events-none rounded-xl flex items-center justify-center text-slate-700 font-black text-lg transition-colors touch-manipulation"
+                      className="w-12 h-11 bg-[#132747] active:bg-[#1e3659] disabled:opacity-20 disabled:pointer-events-none rounded-xl flex items-center justify-center text-slate-200 font-black text-lg transition-colors touch-manipulation border border-[#1e3659]"
                     >
                       <Minus className="w-5 h-5" />
                     </button>
@@ -347,13 +371,13 @@ export const PortalHotelView: React.FC = () => {
                       value={cant === 0 ? '' : cant}
                       placeholder="0"
                       onChange={(e) => handleCantidadChange(it.id, e.target.value)}
-                      className="flex-1 h-11 text-center font-black text-lg text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 h-11 text-center font-black text-lg text-white bg-[#071326] border border-[#1e3659] rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
 
                     <button
                       type="button"
                       onClick={() => incrementar(it.id, 1)}
-                      className="w-12 h-11 bg-blue-600 active:bg-blue-700 text-white rounded-xl flex items-center justify-center font-black text-lg transition-colors shadow-sm touch-manipulation"
+                      className="w-12 h-11 bg-brand-600 active:bg-brand-700 text-white rounded-xl flex items-center justify-center font-black text-lg transition-colors shadow-sm touch-manipulation hover:bg-brand-500"
                     >
                       <Plus className="w-5 h-5" />
                     </button>
@@ -364,21 +388,21 @@ export const PortalHotelView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => incrementar(it.id, 5)}
-                      className="py-1 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg active:scale-95 transition-all"
+                      className="py-1 text-xs font-bold text-slate-300 bg-[#132747] hover:bg-[#1e3659] border border-[#1e3659] rounded-lg active:scale-95 transition-all"
                     >
                       +5
                     </button>
                     <button
                       type="button"
                       onClick={() => incrementar(it.id, 10)}
-                      className="py-1 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg active:scale-95 transition-all"
+                      className="py-1 text-xs font-bold text-slate-300 bg-[#132747] hover:bg-[#1e3659] border border-[#1e3659] rounded-lg active:scale-95 transition-all"
                     >
                       +10
                     </button>
                     <button
                       type="button"
                       onClick={() => incrementar(it.id, 25)}
-                      className="py-1 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg active:scale-95 transition-all"
+                      className="py-1 text-xs font-bold text-slate-300 bg-[#132747] hover:bg-[#1e3659] border border-[#1e3659] rounded-lg active:scale-95 transition-all"
                     >
                       +25
                     </button>
@@ -389,15 +413,15 @@ export const PortalHotelView: React.FC = () => {
           </div>
 
           {/* BARRA INFERIOR FLOTANTE FIJA EN MÓVIL (Sticky Bar) */}
-          <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3.5 sm:hidden shadow-2xl">
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0b1a33]/95 backdrop-blur-md border-t border-[#1e3659] p-3.5 sm:hidden shadow-2xl">
             <div className="max-w-md mx-auto flex items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Total Prendas
                 </span>
-                <p className="text-xl font-black text-blue-600 leading-tight">
+                <p className="text-xl font-black text-brand-400 leading-tight">
                   {formatNumber(totalPrendasDeclaradas)}{' '}
-                  <span className="text-xs font-medium text-slate-500">u.</span>
+                  <span className="text-xs font-medium text-slate-400">u.</span>
                 </p>
               </div>
 
@@ -405,7 +429,7 @@ export const PortalHotelView: React.FC = () => {
                 type="button"
                 onClick={() => handleSubmitRemito()}
                 disabled={submitting || totalPrendasDeclaradas === 0}
-                className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:pointer-events-none text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all"
+                className="flex-1 py-3 px-4 bg-brand-600 hover:bg-brand-500 active:bg-brand-700 disabled:opacity-40 disabled:pointer-events-none text-white font-bold text-sm rounded-xl shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2 transition-all"
               >
                 <QrCode className="w-4 h-4 shrink-0" />
                 <span>{submitting ? 'Generando...' : 'Confirmar y QR'}</span>
@@ -414,14 +438,14 @@ export const PortalHotelView: React.FC = () => {
           </div>
 
           {/* Botón flotante para pantallas grandes */}
-          <div className="hidden sm:flex bg-white p-5 rounded-2xl border border-slate-200 shadow-sm items-center justify-between">
+          <div className="hidden sm:flex bg-[#0b1a33]/90 border border-[#1e3659] p-5 rounded-2xl shadow-xl items-center justify-between">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Resumen del Remito
               </span>
-              <p className="text-2xl font-black text-blue-600">
+              <p className="text-2xl font-black text-brand-400">
                 {formatNumber(totalPrendasDeclaradas)}{' '}
-                <span className="text-sm font-semibold text-slate-500">prendas en las bolsas</span>
+                <span className="text-sm font-semibold text-slate-400">prendas en las bolsas</span>
               </p>
             </div>
 
@@ -429,7 +453,7 @@ export const PortalHotelView: React.FC = () => {
               type="button"
               onClick={() => handleSubmitRemito()}
               disabled={submitting || totalPrendasDeclaradas === 0}
-              className="py-3 px-6 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md flex items-center gap-2 transition-all"
+              className="py-3 px-6 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white font-bold text-sm rounded-xl shadow-md shadow-brand-600/30 flex items-center gap-2 transition-all"
             >
               <QrCode className="w-5 h-5" />
               <span>{submitting ? 'Generando remito...' : 'Confirmar y Generar Código QR'}</span>
@@ -443,92 +467,92 @@ export const PortalHotelView: React.FC = () => {
         <div className="space-y-4 sm:space-y-6">
           {/* Tarjetas KPI Mobile */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
-            <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-[#1e3659] shadow-lg">
               <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-400">Total Mes</span>
-              <p className="text-xl sm:text-2xl font-black text-slate-800 mt-1">
+              <p className="text-xl sm:text-2xl font-black text-white mt-1">
                 {formatNumber(dashboard?.total_prendas_mes || 0)}
               </p>
               <p className="text-[10px] text-slate-400">Prendas procesadas</p>
             </div>
 
-            <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-emerald-200 bg-emerald-50/20 shadow-sm">
-              <span className="text-[10px] sm:text-xs font-bold uppercase text-emerald-700">Limpias</span>
-              <p className="text-xl sm:text-2xl font-black text-emerald-700 mt-1">
+            <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-emerald-800/60 bg-emerald-950/20 shadow-lg">
+              <span className="text-[10px] sm:text-xs font-bold uppercase text-emerald-400">Limpias</span>
+              <p className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">
                 {formatNumber(dashboard?.prendas_facturables || 0)}
               </p>
-              <p className="text-[10px] text-emerald-600">Entregadas OK</p>
+              <p className="text-[10px] text-emerald-500/80">Entregadas OK</p>
             </div>
 
-            <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-amber-200 bg-amber-50/40 shadow-sm">
-              <span className="text-[10px] sm:text-xs font-bold uppercase text-amber-700">En Lavadero</span>
-              <p className="text-xl sm:text-2xl font-black text-amber-800 mt-1">
+            <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-amber-800/60 bg-amber-950/20 shadow-lg">
+              <span className="text-[10px] sm:text-xs font-bold uppercase text-amber-400">En Lavadero</span>
+              <p className="text-xl sm:text-2xl font-black text-amber-400 mt-1">
                 {formatNumber(dashboard?.prendas_relavadas || 0)}
               </p>
-              <p className="text-[10px] text-amber-600">En relavado</p>
+              <p className="text-[10px] text-amber-500/80">En relavado</p>
             </div>
 
-            <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-red-200 bg-red-50/30 shadow-sm">
-              <span className="text-[10px] sm:text-xs font-bold uppercase text-red-700">Bajas</span>
-              <p className="text-xl sm:text-2xl font-black text-red-700 mt-1">
+            <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-rose-800/60 bg-rose-950/20 shadow-lg">
+              <span className="text-[10px] sm:text-xs font-bold uppercase text-rose-400">Bajas</span>
+              <p className="text-xl sm:text-2xl font-black text-rose-400 mt-1">
                 {formatNumber(dashboard?.prendas_rotas || 0)}
               </p>
-              <p className="text-[10px] text-red-600">Por rotura</p>
+              <p className="text-[10px] text-rose-500/80">Por rotura</p>
             </div>
           </div>
 
           {/* TABLA PRINCIPAL: ESTADO DE PRENDAS EN LAVADERO */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-              <h3 className="font-bold text-sm sm:text-base text-slate-800 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-blue-600" />
+          <div className="bg-[#0b1a33]/90 rounded-2xl border border-[#1e3659] shadow-xl overflow-hidden">
+            <div className="p-4 border-b border-[#1e3659] bg-[#071326]/60">
+              <h3 className="font-bold text-sm sm:text-base text-white flex items-center gap-2">
+                <Layers className="w-4 h-4 text-brand-400" />
                 Ropa en Tránsito y Estado en Lavadero
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Prendas limpias devueltas vs. las que quedaron en relavado o rotas.
               </p>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs sm:text-sm text-slate-600">
-                <thead className="bg-slate-50 text-slate-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+              <table className="w-full text-left text-xs sm:text-sm text-slate-300">
+                <thead className="bg-[#071326] text-slate-300 text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b border-[#1e3659]">
                   <tr>
                     <th className="px-3 sm:px-4 py-3">Prenda</th>
-                    <th className="px-2 sm:px-4 py-3 text-right text-emerald-700">Limpias (OK)</th>
-                    <th className="px-2 sm:px-4 py-3 text-right text-amber-700">En Relavado</th>
-                    <th className="px-2 sm:px-4 py-3 text-right text-red-700">Rotas</th>
+                    <th className="px-2 sm:px-4 py-3 text-right text-emerald-400">Limpias (OK)</th>
+                    <th className="px-2 sm:px-4 py-3 text-right text-amber-400">En Relavado</th>
+                    <th className="px-2 sm:px-4 py-3 text-right text-rose-400">Rotas</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#1e3659]">
                   {dashboard?.ropa_en_lavadero && dashboard.ropa_en_lavadero.length > 0 ? (
                     dashboard.ropa_en_lavadero.map((row) => (
-                      <tr key={row.item_id} className="hover:bg-slate-50/50">
-                        <td className="px-3 sm:px-4 py-3 font-bold text-slate-800">{row.item_nombre}</td>
-                        <td className="px-2 sm:px-4 py-3 text-right font-bold text-emerald-700">
+                      <tr key={row.item_id} className="hover:bg-[#132747]/40 transition-colors">
+                        <td className="px-3 sm:px-4 py-3 font-bold text-white">{row.item_nombre}</td>
+                        <td className="px-2 sm:px-4 py-3 text-right font-bold text-emerald-400">
                           {formatNumber(row.limpias_devueltas)}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 text-right font-bold text-amber-700">
+                        <td className="px-2 sm:px-4 py-3 text-right font-bold text-amber-400">
                           {row.en_relavado > 0 ? (
-                            <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[11px] font-black">
+                            <span className="bg-amber-950/80 text-amber-300 border border-amber-800/60 px-2 py-0.5 rounded text-[11px] font-black">
                               {row.en_relavado} en lavadero
                             </span>
                           ) : (
-                            <span className="text-slate-300">0</span>
+                            <span className="text-slate-500">0</span>
                           )}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 text-right font-bold text-red-700">
+                        <td className="px-2 sm:px-4 py-3 text-right font-bold text-rose-400">
                           {row.dadas_de_baja > 0 ? (
-                            <span className="bg-red-100 text-red-800 px-1.5 py-0.5 rounded text-[11px]">
+                            <span className="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-1.5 py-0.5 rounded text-[11px]">
                               {row.dadas_de_baja}
                             </span>
                           ) : (
-                            <span className="text-slate-300">0</span>
+                            <span className="text-slate-500">0</span>
                           )}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
+                      <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
                         No hay registros en tránsito este mes.
                       </td>
                     </tr>
@@ -542,20 +566,20 @@ export const PortalHotelView: React.FC = () => {
 
       {/* 3. HISTORIAL DE REMITOS */}
       {activeTab === 'historial' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100">
-            <h3 className="font-bold text-sm sm:text-base text-slate-800">Historial de Remitos Emitidos</h3>
+        <div className="bg-[#0b1a33]/90 rounded-2xl border border-[#1e3659] shadow-xl overflow-hidden">
+          <div className="p-4 border-b border-[#1e3659] bg-[#071326]/60">
+            <h3 className="font-bold text-sm sm:text-base text-white">Historial de Remitos Emitidos</h3>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[#1e3659]">
             {envios.length > 0 ? (
               envios.map((env) => (
-                <div key={env.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div key={env.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-[#132747]/30 transition-colors">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-slate-800">
+                      <span className="text-xs font-black text-white">
                         {new Date(env.fecha).toLocaleDateString('es-AR')}
                       </span>
-                      <span className="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">
+                      <span className="font-mono text-[11px] bg-[#071326] text-brand-300 border border-[#1e3659] px-2 py-0.5 rounded font-bold">
                         {env.codigo_qr}
                       </span>
                     </div>
@@ -565,34 +589,66 @@ export const PortalHotelView: React.FC = () => {
                         env.detalles.map((d) => (
                           <span
                             key={d.id}
-                            className="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium border border-blue-100"
+                            className="text-[11px] bg-brand-950/50 text-brand-300 px-2 py-0.5 rounded font-medium border border-brand-800/60"
                           >
                             {d.item?.nombre}: <b>{d.cantidad_declarada}</b>
                           </span>
                         ))
                       ) : (
-                        <span className="text-xs text-slate-400">Sin detalle</span>
+                        <span className="text-xs text-slate-500">Sin detalle</span>
                       )}
                     </div>
                   </div>
 
                   <button
-                    onClick={() => {
-                      setCreatedEnvio(env);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="w-full sm:w-auto px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                    onClick={() => setSelectedRemitoForModal(env)}
+                    className="w-full sm:w-auto px-3 py-1.5 bg-brand-600/20 hover:bg-brand-600/30 text-brand-300 border border-brand-700/50 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <QrCode className="w-3.5 h-3.5" />
-                    Ver QR / Etiqueta
+                    Ver / Imprimir Remito
                   </button>
                 </div>
               ))
             ) : (
-              <p className="text-center text-xs text-slate-400 py-8">No hay remitos registrados.</p>
+              <p className="text-center text-xs text-slate-500 py-8">No hay remitos registrados.</p>
             )}
           </div>
         </div>
+      )}
+
+      {/* 4. LIQUIDACIÓN MENSUAL B2B */}
+      {activeTab === 'liquidacion' && (
+        <div className="space-y-4">
+          {ficha ? (
+            <LiquidacionPrintable
+              hotelId={ficha.hotel_id}
+              hotelNombre={ficha.hotel_nombre}
+              fechaDesde={ficha.fecha_desde}
+              fechaHasta={ficha.fecha_hasta}
+              items={ficha.consumo_prendas}
+              facturacionTotal={ficha.facturacion_estimada}
+              onExportCSV={() =>
+                api.exportarLiquidacionCSV(ficha.hotel_id, {
+                  fecha_desde: ficha.fecha_desde,
+                  fecha_hasta: ficha.fecha_hasta,
+                })
+              }
+            />
+          ) : (
+            <div className="bg-[#0b1a33]/90 p-12 rounded-2xl border border-[#1e3659] text-center text-slate-400 text-xs">
+              No hay datos de facturación disponibles para este período.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal de Impresión de Remito */}
+      {selectedRemitoForModal && (
+        <RemitoPrintableModal
+          envio={selectedRemitoForModal}
+          hotelNombre={user?.hotel_nombre || dashboard?.hotel_nombre || ''}
+          onClose={() => setSelectedRemitoForModal(null)}
+        />
       )}
     </div>
   );

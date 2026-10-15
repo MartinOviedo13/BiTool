@@ -5,20 +5,20 @@ import {
   Upload,
   Settings2,
   Sparkles,
-  Activity,
   CheckCircle2,
   AlertCircle,
   LogOut,
   User,
   ClipboardCheck,
   Building2,
+  Truck,
   Menu,
   X,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 
-export type TabId = 'dashboard' | 'matrix' | 'import' | 'catalog' | 'ai' | 'auditoria' | 'portal';
+export type TabId = 'dashboard' | 'matrix' | 'import' | 'catalog' | 'ai' | 'auditoria' | 'portal' | 'entregas';
 
 interface NavbarProps {
   activeTab: TabId;
@@ -29,6 +29,7 @@ const ADMIN_TABS = [
   { id: 'dashboard' as TabId, label: 'Dashboard BI', icon: LayoutDashboard },
   { id: 'matrix' as TabId, label: 'Carga Diaria', icon: Table2 },
   { id: 'auditoria' as TabId, label: 'Auditoría', icon: ClipboardCheck },
+  { id: 'entregas' as TabId, label: 'Entregas', icon: Truck },
   { id: 'import' as TabId, label: 'Importar', icon: Upload },
   { id: 'catalog' as TabId, label: 'Catálogos', icon: Settings2 },
   { id: 'ai' as TabId, label: 'Asistente IA', icon: Sparkles },
@@ -37,6 +38,10 @@ const ADMIN_TABS = [
 const OPERARIO_TABS = [
   { id: 'matrix' as TabId, label: 'Carga Diaria', icon: Table2 },
   { id: 'auditoria' as TabId, label: 'Auditoría', icon: ClipboardCheck },
+];
+
+const REPARTIDOR_TABS = [
+  { id: 'entregas' as TabId, label: 'Hoja de Entregas', icon: Truck },
 ];
 
 const CLIENTE_TABS = [
@@ -67,27 +72,29 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
       ? ADMIN_TABS
       : user?.rol === 'operario'
       ? OPERARIO_TABS
+      : user?.rol === 'repartidor'
+      ? REPARTIDOR_TABS
       : CLIENTE_TABS;
 
   return (
-    <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+    <header className="sticky top-0 z-50 bg-[#0b1a33]/90 backdrop-blur-md border-b border-[#1e3659]">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+          {/* Logo Oficial TRITÓN */}
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-brand-500/20 shrink-0">
-              <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            <div className="h-10 w-10 rounded-xl bg-[#071326] border border-[#1e3659] p-0.5 flex items-center justify-center shadow-md shadow-brand-900/30 shrink-0 overflow-hidden">
+              <img src="/logo-triton.jpg" alt="Logo Tritón" className="h-full w-full object-contain rounded-lg" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-base sm:text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-brand-300">
-                  Poseidon BI
+                <span className="font-black text-base sm:text-lg tracking-tight text-white flex items-center gap-1">
+                  TRITÓN <span className="text-brand-400 text-xs font-extrabold px-1 py-0.2 bg-brand-950/80 border border-brand-700/50 rounded">BI</span>
                 </span>
-                <span className="text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-full bg-brand-950 text-brand-400 border border-brand-800/60">
-                  {user?.rol === 'cliente' ? 'B2B' : 'Tesis'}
+                <span className="text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-full bg-brand-950 text-brand-300 border border-brand-800/60">
+                  {user?.rol === 'cliente' ? 'B2B' : 'Industrial'}
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Servicio de Lavandería</p>
+              <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Lavadero Industrial</p>
             </div>
           </div>
 
@@ -148,8 +155,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
 
             {/* Usuario logueado */}
             {user && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-slate-800 bg-slate-900 text-slate-300 max-w-[130px] sm:max-w-none truncate">
-                <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-[#1e3659] bg-[#071326] text-slate-300 max-w-[130px] sm:max-w-none truncate">
+                <User className="h-3.5 w-3.5 text-brand-400 shrink-0" />
                 <span className="font-semibold text-white truncate text-xs">
                   {user.hotel_nombre || user.username}
                 </span>

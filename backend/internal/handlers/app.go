@@ -39,23 +39,39 @@ func (a *App) Routes() http.Handler {
 		r.Get("/items", a.listItems) // Catalogo de prendas necesario para todos
 	})
 
-	// ── Portal B2B Clientes (cliente + admin) ─────────────────────
+	// ── Portal B2B Clientes (cliente + admin + operario) ────────
 	router.Group(func(r chi.Router) {
 		r.Use(requireAuth)
-		r.Use(requireRole("cliente", "admin"))
+		r.Use(requireRole("cliente", "admin", "operario"))
 
 		r.Post("/api/envios", a.createEnvio)
-		r.Get("/api/envios", a.listEnvios)
 		r.Get("/api/portal/dashboard", a.portalHotelDashboard)
+
+		// Ficha 360 y Liquidacion
+		r.Get("/api/hoteles/{id}/ficha360", a.fichaHotel360)
+		r.Get("/api/hoteles/{id}/liquidacion/exportar.csv", a.exportarLiquidacionHotelCSV)
 	})
 
-	// ── Personal Lavadero (admin + operario) ──────────────────────
+	// ── Consultas Logística / Reparto y Personal (admin + operario + repartidor) ──
+	router.Group(func(r chi.Router) {
+		r.Use(requireAuth)
+		r.Use(requireRole("admin", "operario", "repartidor"))
+
+		// Hoteles: listado para filtros y hojas de ruta
+		r.Get("/hoteles", a.listHoteles)
+
+		// B2B: Auditoria de diferencias y remitos para entrega
+		r.Get("/api/auditoria", a.auditoriaComparacion)
+		r.Get("/api/envios", a.listEnvios)
+		r.Get("/api/envios/qr/{codigo_qr}", a.getEnvioByQR)
+	})
+
+	// ── Personal Lavadero con permisos de carga (admin + operario) ───
 	router.Group(func(r chi.Router) {
 		r.Use(requireAuth)
 		r.Use(requireRole("admin", "operario"))
 
-		// Hoteles: lectura y creacion para operarios y admin
-		r.Get("/hoteles", a.listHoteles)
+		// Hoteles: creacion
 		r.Post("/hoteles", a.createHotel)
 
 		// Registros: carga diaria
@@ -63,10 +79,8 @@ func (a *App) Routes() http.Handler {
 		r.Post("/registros", a.createRegistro)
 		r.Post("/registros/batch", a.createRegistrosBatch)
 
-		// B2B: Auditoria de diferencias y escaneo de QR
-		r.Get("/api/auditoria", a.auditoriaComparacion)
+		// B2B: Ajuste de conteo fisico en planta
 		r.Post("/api/auditoria/conteo", a.registrarConteoAuditoria)
-		r.Get("/api/envios/qr/{codigo_qr}", a.getEnvioByQR)
 	})
 
 	// ── Solo Admin ───────────────────────────────────────────────
@@ -94,6 +108,7 @@ func (a *App) Routes() http.Handler {
 
 		// Analisis / BI
 		r.Get("/analisis/resumen", a.resumenGeneral)
+		r.Get("/analisis/metricas-resumen", a.obtenerMetricasResumen)
 		r.Get("/analisis/ranking-hoteles", a.rankingHoteles)
 		r.Get("/analisis/comparar", a.compararPeriodo)
 		r.Get("/analisis/tendencia", a.tendencia)

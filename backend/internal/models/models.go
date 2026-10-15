@@ -46,6 +46,29 @@ type RankingHotel struct {
 	Facturacion   float64 `json:"facturacion"`
 }
 
+type MetricasResumenResponse struct {
+	FechaDesde          *time.Time       `json:"fecha_desde"`
+	FechaHasta          *time.Time       `json:"fecha_hasta"`
+	FacturacionTotal    float64          `json:"facturacion_total"`
+	DeltaFacturacion    *float64         `json:"delta_facturacion"`
+	TicketPromedio      float64          `json:"ticket_promedio"`
+	DeltaTicketPromedio *float64         `json:"delta_ticket_promedio"`
+	TotalRemitos        int              `json:"total_remitos"`
+	RemitosActivos      int              `json:"remitos_activos"`
+	TiempoMedioHoras    float64          `json:"tiempo_medio_horas"`
+	PrendasTotales      int              `json:"prendas_totales"`
+	DeltaPrendasTotales *float64         `json:"delta_prendas_totales"`
+	PrendasEstrella     []PrendaEstrella `json:"prendas_estrella"`
+}
+
+type PrendaEstrella struct {
+	ItemID      int     `json:"item_id"`
+	Nombre      string  `json:"nombre"`
+	Cantidad    int     `json:"cantidad"`
+	Facturacion float64 `json:"facturacion"`
+	Porcentaje  float64 `json:"porcentaje"`
+}
+
 // ComparacionPeriodo agrupa las metricas del periodo actual y el anterior para
 // calcular variaciones en el frontend.
 type ComparacionPeriodo struct {
@@ -178,6 +201,48 @@ type PrendaConsumoHotel struct {
 	ItemNombre string  `json:"item_nombre"`
 	Cantidad   int     `json:"cantidad"`
 	Subtotal   float64 `json:"subtotal"`
+}
+
+type FichaHotel360 struct {
+	HotelID                   int                  `json:"hotel_id"`
+	HotelNombre               string               `json:"hotel_nombre"`
+	Activo                    bool                 `json:"activo"`
+	FechaDesde                string               `json:"fecha_desde"`
+	FechaHasta                string               `json:"fecha_hasta"`
+	TotalPrendas              int                  `json:"total_prendas"`
+	PrendasFacturables        int                  `json:"prendas_facturables"`
+	PrendasRelavadas          int                  `json:"prendas_relavadas"`
+	PrendasRotas              int                  `json:"prendas_rotas"`
+	FacturacionEstimada       float64              `json:"facturacion_estimada"`
+	TasaRelavado              float64              `json:"tasa_relavado"`
+	TasaRotura                float64              `json:"tasa_rotura"`
+	TasaRelavadoPromedioTotal float64              `json:"tasa_relavado_promedio_total"`
+	ConsumoPrendas            []ItemConsumoDetalle `json:"consumo_prendas"`
+	TotalEnvios               int                  `json:"total_envios"`
+	TotalPrendasDeclaradas    int                  `json:"total_prendas_declaradas"`
+	TotalPrendasAuditadas     int                  `json:"total_prendas_auditadas"`
+	DiferenciaTotal           int                  `json:"diferencia_total"`
+	EvolucionMensual          []EvolucionMesHotel  `json:"evolucion_mensual"`
+	RopaEnLavadero            []PrendaEstadoHotel  `json:"ropa_en_lavadero"`
+	EnviosRecientes           []Envio              `json:"envios_recientes"`
+}
+
+type ItemConsumoDetalle struct {
+	ItemID             int      `json:"item_id"`
+	ItemNombre         string   `json:"item_nombre"`
+	PrecioUnitario     *float64 `json:"precio_unitario"`
+	SeFactura          bool     `json:"se_factura"`
+	CantidadFacturable int      `json:"cantidad_facturable"`
+	CantidadRelavado   int      `json:"cantidad_relavado"`
+	CantidadRota       int      `json:"cantidad_rota"`
+	Subtotal           float64  `json:"subtotal"`
+}
+
+type EvolucionMesHotel struct {
+	Mes         string  `json:"mes"`
+	Cantidad    int     `json:"cantidad"`
+	Facturacion float64 `json:"facturacion"`
+	Relavado    int     `json:"relavado"`
 }
 
 

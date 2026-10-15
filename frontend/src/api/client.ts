@@ -14,6 +14,8 @@ import {
   AuditoriaItem,
   PortalHotelDashboard,
   ConteoRequest,
+  FichaHotel360,
+  MetricasResumenResponse,
 } from '../types';
 
 const getApiBase = () => {
@@ -151,6 +153,14 @@ importPreview: (file: File) => {
     const qs = searchParams.toString();
     return request<ResumenGeneral>(`/analisis/resumen${qs ? `?${qs}` : ''}`);
   },
+  obtenerMetricasResumen: (params?: { fecha_desde?: string; fecha_hasta?: string; hotel_id?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.fecha_desde) searchParams.set('fecha_desde', params.fecha_desde);
+    if (params?.fecha_hasta) searchParams.set('fecha_hasta', params.fecha_hasta);
+    if (params?.hotel_id) searchParams.set('hotel_id', params.hotel_id.toString());
+    const qs = searchParams.toString();
+    return request<MetricasResumenResponse>(`/analisis/metricas-resumen${qs ? `?${qs}` : ''}`);
+  },
   getRankingHoteles: (params?: { fecha_desde?: string; fecha_hasta?: string; limit?: number; item_id?: number; orden?: 'cantidad' | 'facturacion' }) => {
     const searchParams = new URLSearchParams();
     if (params?.fecha_desde) searchParams.set('fecha_desde', params.fecha_desde);
@@ -252,4 +262,34 @@ importPreview: (file: File) => {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  getFichaHotel360: (hotelId: number, params?: { fecha_desde?: string; fecha_hasta?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.fecha_desde) searchParams.set('fecha_desde', params.fecha_desde);
+    if (params?.fecha_hasta) searchParams.set('fecha_hasta', params.fecha_hasta);
+    const qs = searchParams.toString();
+    return request<FichaHotel360>(`/api/hoteles/${hotelId}/ficha360${qs ? `?${qs}` : ''}`);
+  },
+  exportarLiquidacionCSV: async (hotelId: number, params?: { fecha_desde?: string; fecha_hasta?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.fecha_desde) searchParams.set('fecha_desde', params.fecha_desde);
+    if (params?.fecha_hasta) searchParams.set('fecha_hasta', params.fecha_hasta);
+    const qs = searchParams.toString();
+    const token = localStorage.getItem(TOKEN_KEY);
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/api/hoteles/${hotelId}/liquidacion/exportar.csv${qs ? `?${qs}` : ''}`, {
+      headers,
+    });
+    if (!res.ok) throw new Error('No se pudo generar la liquidación');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `liquidacion_hotel_${hotelId}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 };

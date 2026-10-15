@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 antialiased font-sans;
+    @apply bg-[#071326] text-slate-100 antialiased font-sans;
     font-family: 'Plus Jakarta Sans', sans-serif;
   }
 }
@@ -16,16 +16,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #071326;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #1e3659;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #284775;
 }
 
 /* Slide-in para el panel lateral del asistente */
@@ -35,4 +35,44 @@
 }
 .animate-slide-in {
   animation: slide-in 0.25s ease-out;
+}
+
+/* Reglas de impresión profesional para Liquidaciones y Remitos */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+  
+  html, body {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    font-size: 11pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ocultar elementos no imprimibles */
+  header, footer, aside, nav, button, .no-print {
+    display: none !important;
+  }
+
+  /* El modal o contenedor imprimible ocupa el 100% */
+  .printable-area {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .print-page-break {
+    page-break-after: always;
+  }
 }

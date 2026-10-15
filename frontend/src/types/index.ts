@@ -44,6 +44,29 @@ export interface RankingHotel {
   facturacion: number;
 }
 
+export interface PrendaEstrella {
+  item_id: number;
+  nombre: string;
+  cantidad: number;
+  facturacion: number;
+  porcentaje: number;
+}
+
+export interface MetricasResumenResponse {
+  fecha_desde: string | null;
+  fecha_hasta: string | null;
+  facturacion_total: number;
+  delta_facturacion: number | null;
+  ticket_promedio: number;
+  delta_ticket_promedio: number | null;
+  total_remitos: number;
+  remitos_activos: number;
+  tiempo_medio_horas: number;
+  prendas_totales: number;
+  delta_prendas_totales: number | null;
+  prendas_estrella: PrendaEstrella[];
+}
+
 export interface ComparacionPeriodo {
   actual_desde: string | null;
   actual_hasta: string | null;
@@ -96,7 +119,7 @@ export interface Alerta {
   accion?: string;
 }
 
-export type UserRole = 'admin' | 'operario' | 'cliente';
+export type UserRole = 'admin' | 'operario' | 'cliente' | 'repartidor';
 
 export interface User {
   id: number;
@@ -185,4 +208,46 @@ export interface PortalHotelDashboard {
   ropa_en_lavadero: PrendaEstadoHotel[];
   envios_recientes: Envio[];
   consumo_por_prenda: PrendaConsumoHotel[];
+}
+
+export interface ItemConsumoDetalle {
+  item_id: number;
+  item_nombre: string;
+  precio_unitario: number | null;
+  se_factura: boolean;
+  cantidad_facturable: number;
+  cantidad_relavado: number;
+  cantidad_rota: number;
+  subtotal: number;
+}
+
+export interface EvolucionMesHotel {
+  mes: string;
+  cantidad: number;
+  facturacion: number;
+  relavado: number;
+}
+
+export interface FichaHotel360 {
+  hotel_id: number;
+  hotel_nombre: string;
+  activo: boolean;
+  fecha_desde: string;
+  fecha_hasta: string;
+  total_prendas: number;
+  prendas_facturables: number;
+  prendas_relavadas: number;
+  prendas_rotas: number;
+  facturacion_estimada: number;
+  tasa_relavado: number;
+  tasa_rotura: number;
+  tasa_relavado_promedio_total: number;
+  consumo_prendas: ItemConsumoDetalle[];
+  total_envios: number;
+  total_prendas_declaradas: number;
+  total_prendas_auditadas: number;
+  diferencia_total: number;
+  evolucion_mensual: EvolucionMesHotel[];
+  ropa_en_lavadero: PrendaEstadoHotel[];
+  envios_recientes: Envio[];
 }
