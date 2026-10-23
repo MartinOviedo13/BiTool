@@ -62,8 +62,8 @@ export const CatalogView: React.FC = () => {
         type: 'success',
         text: `Hotel "${hotel.nombre}" ${updated.activo ? 'activado' : 'desactivado'}.`,
       });
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err.message || 'Error actualizando hotel.' });
+    } catch (err: unknown) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Error actualizando hotel.' });
     }
   };
 
@@ -76,8 +76,8 @@ export const CatalogView: React.FC = () => {
       setNewHotelName('');
       setAddingHotel(false);
       setStatusMessage({ type: 'success', text: `Hotel "${created.nombre}" creado exitosamente.` });
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err.message || 'Error creando hotel.' });
+    } catch (err: unknown) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Error creando hotel.' });
     }
   };
 
@@ -97,8 +97,8 @@ export const CatalogView: React.FC = () => {
       setNewItemSeFactura(true);
       setAddingItem(false);
       setStatusMessage({ type: 'success', text: `Prenda "${created.nombre}" agregada exitosamente.` });
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err.message || 'Error agregando prenda.' });
+    } catch (err: unknown) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Error agregando prenda.' });
     }
   };
 
@@ -109,8 +109,8 @@ export const CatalogView: React.FC = () => {
       setItems((prev) => prev.map((i) => (i.id === item.id ? updated : i)));
       setEditingItemId(null);
       setStatusMessage({ type: 'success', text: `Precio actualizado para "${item.nombre}".` });
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err.message || 'Error actualizando precio.' });
+    } catch (err: unknown) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Error actualizando precio.' });
     }
   };
 

@@ -143,8 +143,37 @@ export interface Envio {
   hotel?: Hotel;
   fecha: string;
   codigo_qr: string;
+  estado?: 'listo_para_retiro' | 'retirado' | 'en_planta' | 'entregado' | string;
+  retirado_por_id?: number | null;
+  retirado_por_username?: string | null;
+  retirado_en?: string | null;
+  observacion_retiro?: string | null;
   creado_en: string;
   detalles?: EnvioDetalle[];
+}
+
+export interface RetiroItemDTO {
+  item_nombre: string;
+  cantidad_declarada: number;
+}
+
+export interface RetiroPendienteDTO {
+  envio_id: number;
+  hotel_id: number;
+  hotel_nombre: string;
+  fecha: string;
+  codigo_qr: string;
+  estado: 'listo_para_retiro' | 'retirado' | string;
+  total_prendas: number;
+  creado_en: string;
+  retirado_en?: string | null;
+  retirado_por_username?: string | null;
+  observacion_retiro?: string | null;
+  detalles: RetiroItemDTO[];
+}
+
+export interface ConfirmarRetiroRequest {
+  observacion?: string;
 }
 
 export interface CreateEnvioItem {
@@ -251,3 +280,92 @@ export interface FichaHotel360 {
   ropa_en_lavadero: PrendaEstadoHotel[];
   envios_recientes: Envio[];
 }
+
+export type Ficha360PresetPeriod = 'month' | 'last_month' | 'quarter' | 'year' | 'custom';
+
+export type MatrixDraftGrid = Record<string, Record<string, number>>;
+
+export interface ImportErrorItem {
+  fila: number;
+  columna?: string;
+  mensaje: string;
+}
+
+export interface ImportJob {
+  id: number;
+  nombre_archivo: string;
+  estado: 'procesando' | 'completado' | 'error';
+  filas_totales: number;
+  filas_con_error: number;
+  errores?: ImportErrorItem[];
+  creado_en: string;
+}
+
+export interface IAAskResponse {
+  respuesta: string;
+  tools_usadas?: string[];
+}
+
+export type EstadoConciliacion =
+  | 'pendiente'
+  | 'validado_ok'
+  | 'validado_con_diferencia'
+  | 'entregado';
+
+export interface MuestraItemConciliacion {
+  item_id: number;
+  item_nombre: string;
+  cant_remito: number;
+  cant_procesada_prendas: number;
+  cant_procesada_kilos: number;
+  diferencia: number;
+}
+
+export interface DespachoConciliacion {
+  id: number;
+  hotel_id: number;
+  hotel_nombre: string;
+  remito_id: number | null;
+  codigo_qr?: string | null;
+  fecha: string;
+  estado: EstadoConciliacion;
+  total_remito_prendas: number;
+  total_procesado_prendas: number;
+  total_procesado_kilos: number;
+  diferencia_prendas: number;
+  muestra_procesado: MuestraItemConciliacion[];
+  validado_por_id: number | null;
+  validado_por_username?: string | null;
+  validado_en: string | null;
+  entregado_por_id: number | null;
+  entregado_por_username?: string | null;
+  entregado_en: string | null;
+  observacion_entrega: string | null;
+}
+
+export interface ValidarConciliacionRequest {
+  hotel_id: number;
+  fecha: string;
+}
+
+export interface EntregarDespachoRequest {
+  observacion_entrega?: string;
+}
+
+export interface NotificacionOperativa {
+  id: number;
+  rol_destino: 'repartidor' | 'admin' | string;
+  hotel_id: number;
+  hotel_nombre: string;
+  despacho_id?: number | null;
+  tipo: 'ALERTA_DIFERENCIA_REMITO' | 'CARGA_LISTA_REPARTO' | 'PEDIDO_ENTREGADO' | string;
+  severidad: 'info' | 'warning' | 'success';
+  titulo: string;
+  mensaje: string;
+  muestra_datos: MuestraItemConciliacion[];
+  leida: boolean;
+  leida_en: string | null;
+  created_at: string;
+}
+
+

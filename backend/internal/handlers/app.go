@@ -3,28 +3,42 @@ package handlers
 import (
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"lavadero-bi/backend/internal/mcp"
 	"lavadero-bi/backend/internal/services"
 )
 
 type App struct {
-	db *pgxpool.Pool
-	ia *services.IAService
+	db  *pgxpool.Pool
+	ia  *services.IAService
+	mcp *mcp.Server
 }
 
 func NewApp(db *pgxpool.Pool) *App {
-	app := &App{db: db}
-	if os.Getenv("GEMINI_API_KEY") != "" {
-		app.ia = services.NewIAService(db, services.NewGeminiClient())
+	mcpServer := mcp.NewServer("lavadero-bi-mcp", "1.0.0")
+	mcp.RegisterAllBITools(mcpServer, db)
+	mcp.RegisterAllResources(mcpServer, db)
+
+	app := &App{
+		db:  db,
+		mcp: mcpServer,
+	}
+	if strings.TrimSpace(os.Getenv("GEMINI_API_KEY")) != "" {
+		app.ia = services.NewIAService(db, services.NewGeminiClient(), mcpServer)
 	}
 	return app
 }
 
 func (a *App) Routes() http.Handler {
+	return a.RoutesWithAllowedOrigins(parseAllowedOrigins())
+}
+
+func (a *App) RoutesWithAllowedOrigins(allowedOrigins []string) http.Handler {
 	router := chi.NewRouter()
-	router.Use(withCORS)
+	router.Use(withCORSOrigins(allowedOrigins))
 
 	// ── Publico ──────────────────────────────────────────────────
 	router.Get("/", a.handleRoot)
@@ -36,7 +50,12 @@ func (a *App) Routes() http.Handler {
 		r.Use(requireAuth)
 
 		r.Get("/auth/me", a.me)
-		r.Get("/items", a.listItems) // Catalogo de prendas necesario para todos
+		r.Get("/items", a.listItems)               // Catalogo de prendas necesario para todos
+		r.Get("/api/envios", a.listEnvios)         // Listado de remitos (filtrado por hotel_id si es cliente)
+		r.Get("/api/realtime/stream", a.handleSSE) // Canal en tiempo real Server-Sent Events
+
+		// Endpoint estándar MCP (JSON-RPC 2.0) para clientes externos
+		r.Post("/api/mcp", a.handleMCP)
 	})
 
 	// ── Portal B2B Clientes (cliente + admin + operario) ────────
@@ -62,8 +81,22 @@ func (a *App) Routes() http.Handler {
 
 		// B2B: Auditoria de diferencias y remitos para entrega
 		r.Get("/api/auditoria", a.auditoriaComparacion)
-		r.Get("/api/envios", a.listEnvios)
 		r.Get("/api/envios/qr/{codigo_qr}", a.getEnvioByQR)
+
+		// Conciliacion de despachos, retiros y notificaciones operativas
+		r.Get("/api/conciliacion/despachos", a.listarDespachosConciliacion)
+		r.Get("/api/logistica/retiros", a.listarRetirosPendientes)
+		r.Get("/api/notificaciones", a.listarNotificacionesOperativas)
+		r.Patch("/api/notificaciones/{id}/leer", a.marcarNotificacionLeida)
+	})
+
+	// ── Operaciones de Campo (Retiro y Entrega en Destino - repartidor + admin) ──
+	router.Group(func(r chi.Router) {
+		r.Use(requireAuth)
+		r.Use(requireRole("repartidor", "admin"))
+
+		r.Post("/api/logistica/retiros/{id}/confirmar", a.confirmarRetiroEnvio)
+		r.Post("/api/conciliacion/despachos/{id}/entregar", a.entregarDespachoConciliacion)
 	})
 
 	// ── Personal Lavadero con permisos de carga (admin + operario) ───
@@ -79,8 +112,9 @@ func (a *App) Routes() http.Handler {
 		r.Post("/registros", a.createRegistro)
 		r.Post("/registros/batch", a.createRegistrosBatch)
 
-		// B2B: Ajuste de conteo fisico en planta
+		// B2B: Ajuste de conteo fisico en planta y validacion de conciliacion
 		r.Post("/api/auditoria/conteo", a.registrarConteoAuditoria)
+		r.Post("/api/conciliacion/validar", a.validarConciliacion)
 	})
 
 	// ── Solo Admin ───────────────────────────────────────────────

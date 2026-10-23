@@ -119,7 +119,9 @@ El sistema está configurado para que cualquier dispositivo conectado a la misma
 
 ---
 
-## 👥 Cuentas de Acceso para Pruebas
+## 👥 Cuentas de Acceso para Pruebas (Semillas Locales de Desarrollo)
+
+> **Nota de Seguridad:** Los usuarios y contraseñas listados a continuación corresponden **únicamente a semillas locales de prueba para el entorno de desarrollo** (`migrations/003_usuarios.sql` y `migrations/007_rol_cliente.sql`). Nunca deben utilizarse en entornos productivos.
 
 | Rol | Usuario | Contraseña | Perfil y Acceso |
 |---|---|---|---|

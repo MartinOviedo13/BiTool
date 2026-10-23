@@ -3,36 +3,94 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func withCORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+func jwtSecret() []byte {
+	return []byte(strings.TrimSpace(os.Getenv("JWT_SECRET")))
+}
 
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
+func parseAllowedOrigins() []string {
+	raw := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
+	if raw == "" {
+		return []string{"http://localhost:5173", "http://127.0.0.1:5173"}
+	}
+	parts := strings.Split(raw, ",")
+	allowed := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if trimmed := strings.TrimSpace(p); trimmed != "" {
+			allowed = append(allowed, trimmed)
 		}
+	}
+	if len(allowed) == 0 {
+		return []string{"http://localhost:5173", "http://127.0.0.1:5173"}
+	}
+	return allowed
+}
 
-		next.ServeHTTP(w, r)
-	})
+func isLocalNetworkOrigin(origin string) bool {
+	return strings.HasPrefix(origin, "http://localhost:") ||
+		strings.HasPrefix(origin, "http://127.0.0.1:") ||
+		strings.HasPrefix(origin, "http://192.168.") ||
+		strings.HasPrefix(origin, "http://10.") ||
+		strings.HasPrefix(origin, "http://172.")
+}
+
+func withCORSOrigins(allowedOrigins []string) func(http.Handler) http.Handler {
+	allowedSet := make(map[string]struct{}, len(allowedOrigins))
+	for _, o := range allowedOrigins {
+		allowedSet[strings.TrimSpace(o)] = struct{}{}
+	}
+	allowLAN := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS")) == ""
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := strings.TrimSpace(r.Header.Get("Origin"))
+			if origin != "" {
+				_, ok := allowedSet[origin]
+				if ok || (allowLAN && isLocalNetworkOrigin(origin)) {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					w.Header().Set("Access-Control-Allow-Credentials", "true")
+					w.Header().Set("Vary", "Origin")
+				}
+			}
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func withCORS(next http.Handler) http.Handler {
+	return withCORSOrigins(parseAllowedOrigins())(next)
 }
 
 // requireAuth verifica que la request tenga un JWT valido.
+// Admite el token por cabecera Authorization: Bearer <token> o por query param ?token=<token> (para EventSource / SSE).
 // Inyecta los claims en el contexto bajo claimsKey.
 func requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var tokenStr string
 		authHeader := r.Header.Get("Authorization")
-		if !strings.HasPrefix(authHeader, "Bearer ") {
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			tokenStr = strings.TrimPrefix(authHeader, "Bearer ")
+		} else if queryToken := strings.TrimSpace(r.URL.Query().Get("token")); queryToken != "" {
+			tokenStr = queryToken
+		}
+
+		if tokenStr == "" {
 			writeError(w, http.StatusUnauthorized, "Token de autenticacion requerido.")
 			return
 		}
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
 		claims := &jwtClaims{}
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (any, error) {

@@ -3,198 +3,183 @@ package services
 import (
 	"context"
 	"fmt"
-	"strings"
+	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"lavadero-bi/backend/internal/mcp"
 )
 
-// IAService orquesta las consultas de Business Intelligence que alimentan al
-// asistente de lenguaje natural. Calcula KPIs agregados y delega la redaccion
-// de la respuesta al LLMProvider desacoplado.
+// IAService orquesta el ciclo de consulta inteligente conectando la API de IA (Gemini)
+// con el catálogo de herramientas y recursos del servidor MCP.
 type IAService struct {
-	db       *pgxpool.Pool
-	provider LLMProvider
+	db        *pgxpool.Pool
+	provider  LLMProvider
+	mcpServer *mcp.Server
 }
 
-// NewIAService construye el servicio con un proveedor de IA.
-func NewIAService(db *pgxpool.Pool, provider LLMProvider) *IAService {
-	return &IAService{db: db, provider: provider}
+// NewIAService construye el servicio inyectando el pool, el LLMProvider y el servidor MCP.
+func NewIAService(db *pgxpool.Pool, provider LLMProvider, mcpServer *mcp.Server) *IAService {
+	return &IAService{
+		db:        db,
+		provider:  provider,
+		mcpServer: mcpServer,
+	}
 }
 
-// snapshot agrupa las metricas agregadas de un rango de fechas.
-type snapshot struct {
-	CantidadTotal      int
-	CantidadFacturable int
-	CantidadRelavado   int
-	Facturacion        float64
-	TopVolumen         []topEntry
+// GetMCPServer expone la instancia del servidor MCP.
+func (s *IAService) GetMCPServer() *mcp.Server {
+	return s.mcpServer
 }
 
-type topEntry struct {
-	Hotel    string
-	Cantidad int
+const iaSystemPrompt = `Sos el asistente de inteligencia de negocio y auditoría operativa del lavadero industrial Poseidón SRL (marca comercial TRITÓN).
+Tenés acceso a herramientas del protocolo MCP (Model Context Protocol) para consultar en tiempo real métricas de negocio, rankings, fichas de clientes, alertas, remitos B2B y proyecciones de personal.
+
+REGLAS DE ACTUACIÓN:
+1. Usá las herramientas MCP para responder con datos precisos. NUNCA inventes números ni nombres de clientes.
+2. Si la pregunta requiere datos que están disponibles en una herramienta (ej. qué hotel facturó menos, tasa de relavado, quién es el principal cliente, estado de remitos con diferencias, o dotación de personal), INVOCÁ la herramienta correspondiente.
+3. Respondé en español argentino, con tono profesional y ejecutivo, claro y conciso para los directores y operarios del lavadero.
+4. Cuando cites cantidades monetarias, expresalas en pesos argentinos (ARS).
+5. Si detectás tasas de relavado > 5% o roturas > 2%, mencioná la recomendación de control de calidad correspondiente.
+6. Si una pregunta no puede responderse con ninguna de las herramientas disponibles, explicalo amablemente.`
+
+// IAResponse agrupa la respuesta generada y las herramientas MCP que se utilizaron.
+type IAResponse struct {
+	Respuesta   string   `json:"respuesta"`
+	ToolsUsadas []string `json:"tools_usadas"`
 }
 
-// resumen rango principal (sin filtro).
-func (s *IAService) snapshotRango(ctx context.Context, desde, hasta *time.Time) (snapshot, error) {
-	var sn snapshot
-
-	err := s.db.QueryRow(ctx, `
-		SELECT
-			COALESCE(SUM(r.cantidad), 0)::int,
-			COALESCE(SUM(CASE WHEN i.se_factura THEN r.cantidad ELSE 0 END), 0)::int,
-			COALESCE(SUM(CASE WHEN NOT i.se_factura THEN r.cantidad ELSE 0 END), 0)::int,
-			COALESCE(SUM(CASE WHEN i.se_factura THEN r.cantidad * COALESCE(i.precio_unitario, 0) ELSE 0 END), 0)::float8
-		FROM registros r
-		JOIN items i ON i.id = r.item_id
-		WHERE ($1::date IS NULL OR r.fecha >= $1)
-			AND ($2::date IS NULL OR r.fecha <= $2)
-	`, desde, hasta).Scan(
-		&sn.CantidadTotal,
-		&sn.CantidadFacturable,
-		&sn.CantidadRelavado,
-		&sn.Facturacion,
-	)
-	if err != nil {
-		return sn, fmt.Errorf("calculando resumen para IA: %w", err)
+// AskWithMCP ejecuta el ciclo agéntico de Tool Calling con el servidor MCP.
+func (s *IAService) AskWithMCP(ctx context.Context, pregunta string, desde, hasta *time.Time, historial []Message) (*IAResponse, error) {
+	if s.provider == nil {
+		return nil, ErrNoAPIKey
 	}
 
-	return sn, nil
-}
-
-func (s *IAService) rankingTop(ctx context.Context, desde, hasta *time.Time, limit int) ([]topEntry, error) {
-	rows, err := s.db.Query(ctx, `
-		SELECT h.nombre, COALESCE(SUM(CASE WHEN i.se_factura THEN r.cantidad ELSE 0 END), 0)::int
-		FROM hoteles h
-		JOIN registros r ON r.hotel_id = h.id
-		JOIN items i ON i.id = r.item_id
-		WHERE ($1::date IS NULL OR r.fecha >= $1)
-			AND ($2::date IS NULL OR r.fecha <= $2)
-		GROUP BY h.id, h.nombre
-		ORDER BY 2 DESC
-		LIMIT $3
-	`, desde, hasta, limit)
-	if err != nil {
-		return nil, fmt.Errorf("calculando ranking para IA: %w", err)
+	// 1. Obtener herramientas disponibles desde el servidor MCP
+	var availableTools []mcp.Tool
+	if s.mcpServer != nil {
+		availableTools = s.mcpServer.ListTools()
 	}
-	defer rows.Close()
 
-	top := []topEntry{}
-	for rows.Next() {
-		var e topEntry
-		if err := rows.Scan(&e.Hotel, &e.Cantidad); err != nil {
+	// 2. Construir contexto inicial con fechas por defecto
+	periodoContext := fmt.Sprintf("Contexto temporal seleccionado por el usuario en el dashboard: desde %s hasta %s.",
+		fmtFecha(desde), fmtFecha(hasta))
+
+	systemInstruction := iaSystemPrompt + "\n\n" + periodoContext
+
+	// 3. Preparar historial de mensajes
+	conversation := make([]Message, 0, len(historial)+8)
+
+	// Agregar mensajes previos del historial si fueron provistos
+	for _, hm := range historial {
+		if hm.Role == "user" || hm.Role == "assistant" {
+			conversation = append(conversation, hm)
+		}
+	}
+
+	// Agregar la pregunta actual del usuario
+	promptActual := pregunta
+	if desde != nil && hasta != nil {
+		promptActual = fmt.Sprintf("%s\n(Rango de análisis sugerido: %s a %s)", pregunta, desde.Format("2006-01-02"), hasta.Format("2006-01-02"))
+	}
+	conversation = append(conversation, Message{Role: "user", Content: promptActual})
+
+	toolsUsadasMap := make(map[string]bool)
+	const maxRounds = 4
+
+	// 4. Ciclo agéntico (Loop de Tool Calling)
+	for round := 0; round < maxRounds; round++ {
+		resp, err := s.provider.GenerateWithTools(ctx, systemInstruction, conversation, availableTools)
+		if err != nil {
+			log.Printf("[IA Services] Error en ronda %d de Gemini: %v", round+1, err)
 			return nil, err
 		}
-		top = append(top, e)
-	}
-	return top, nil
-}
 
-// periodoAnterior devuelve el bloque de la misma duracion inmediatamente previo.
-func periodoAnterior(desde, hasta *time.Time) (time.Time, time.Time) {
-	d := time.Now()
-	h := time.Now()
-	if desde != nil {
-		d = *desde
-	}
-	if hasta != nil {
-		h = *hasta
-	}
-	days := int(h.Sub(d).Hours()/24) + 1
-	return d.AddDate(0, 0, -days), d.AddDate(0, 0, -1)
-}
+		// Si el modelo no solicitó ninguna tool call, tenemos la respuesta final
+		if len(resp.ToolCalls) == 0 {
+			toolsList := make([]string, 0, len(toolsUsadasMap))
+			for t := range toolsUsadasMap {
+				toolsList = append(toolsList, t)
+			}
+			return &IAResponse{
+				Respuesta:   resp.Text,
+				ToolsUsadas: toolsList,
+			}, nil
+		}
 
-const iaSystemPrompt = `Sos el asistente de inteligencia de negocio del lavadero industrial Poseidon SRL.
-Recibis SOLO metricas agregadas calculadas por el sistema (nunca datos crudos ni personales).
-Responde en espanol argentino, claro y conciso, orientado a un dueno de pyme.
-NO inventes ni extrapoles numeros: usa exclusivamente los datos que te dan.
-Si una pregunta no puede responderse con los datos provistos, decilo y sugeri que informacion podria ayudar.
-Compara con el periodo anterior cuando corresponda y destaca variaciones positivas o negativas con porcentajes.
-Cantidades de prendas y facturacion estimada en pesos argentinos.`
+		// Si el modelo solicitó invocar herramientas MCP:
+		assistantTurn := Message{
+			Role:      "assistant",
+			Content:   resp.Text,
+			ToolCalls: resp.ToolCalls,
+		}
+		conversation = append(conversation, assistantTurn)
 
-// Ask procesa una pregunta del usuario sobre un rango de fechas y devuelve la
-// respuesta redactada en lenguaje natural.
-func (s *IAService) Ask(ctx context.Context, pregunta string, desde, hasta *time.Time) (string, error) {
-	snActual, err := s.snapshotRango(ctx, desde, hasta)
-	if err != nil {
-		return "", err
-	}
+		// Ejecutar cada herramienta solicitada a través de MCP
+		for _, tc := range resp.ToolCalls {
+			toolsUsadasMap[tc.Name] = true
+			log.Printf("[IA MCP Host] Invocando tool: %s con args: %+v", tc.Name, tc.Arguments)
 
-	top, err := s.rankingTop(ctx, desde, hasta, 5)
-	if err != nil {
-		return "", err
-	}
-	snActual.TopVolumen = top
+			var resultContent string
+			var isError bool
 
-	antDesde, antHasta := periodoAnterior(desde, hasta)
-	snAnterior, err := s.snapshotRango(ctx, &antDesde, &antHasta)
-	if err != nil {
-		return "", err
-	}
+			if s.mcpServer != nil {
+				callRes, err := s.mcpServer.CallTool(ctx, tc.Name, tc.Arguments)
+				if err != nil {
+					isError = true
+					resultContent = fmt.Sprintf(`{"error": "%s"}`, err.Error())
+				} else if len(callRes.Content) > 0 {
+					resultContent = callRes.Content[0].Text
+					isError = callRes.IsError
+				} else {
+					resultContent = `{"resultado": "ok"}`
+				}
+			} else {
+				isError = true
+				resultContent = `{"error": "servidor MCP no inicializado"}`
+			}
 
-	periodoLabel := fmt.Sprintf("%s a %s", fmtFecha(desde), fmtFecha(hasta))
-	antPeriodoLabel := fmt.Sprintf("%s a %s", antDesde.Format("2006-01-02"), antHasta.Format("2006-01-02"))
-
-	nivelDatos := buildNivelDatos(snActual, snAnterior, periodoLabel, antPeriodoLabel)
-
-	msg := Message{Role: "user", Content: nivelDatos + "\n\nPregunta del usuario: " + pregunta}
-
-	respuesta, err := s.provider.Complete(ctx, iaSystemPrompt, []Message{msg})
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(respuesta), nil
-}
-
-// buildNivelDatos arma un bloque de texto con las metricas agregadas que el
-// modelo puede citar (solo numeros, sin filas crudas).
-func buildNivelDatos(sn, ant snapshot, periodo, antPeriodo string) string {
-	var b strings.Builder
-	b.WriteString("METRICAS DEL PERIODO ACTUAL (" + periodo + "):")
-	b.WriteString(fmt.Sprintf("\n- Volumen total procesado: %d prendas", sn.CantidadTotal))
-	b.WriteString(fmt.Sprintf("\n- Prendas facturables: %d", sn.CantidadFacturable))
-	b.WriteString(fmt.Sprintf("\n- Prendas de relavado (reproceso): %d", sn.CantidadRelavado))
-	b.WriteString(fmt.Sprintf("\n- Facturacion estimada: %s ARS", formatARS(sn.Facturacion)))
-
-	if len(sn.TopVolumen) > 0 {
-		b.WriteString("\n- Top hoteles por volumen:")
-		for i, e := range sn.TopVolumen {
-			b.WriteString(fmt.Sprintf("\n    %d. %s (%d prendas)", i+1, e.Hotel, e.Cantidad))
+			// Agregar respuesta de la herramienta al historial
+			conversation = append(conversation, Message{
+				Role: "function",
+				ToolResponse: &ToolResult{
+					Name:    tc.Name,
+					Content: resultContent,
+					IsError: isError,
+				},
+			})
 		}
 	}
 
-	b.WriteString("\n\nMETRICAS DEL PERIODO ANTERIOR (" + antPeriodo + "):")
-	b.WriteString(fmt.Sprintf("\n- Volumen total procesado: %d prendas", ant.CantidadTotal))
-	b.WriteString(fmt.Sprintf("\n- Prendas facturables: %d", ant.CantidadFacturable))
-	b.WriteString(fmt.Sprintf("\n- Prendas de relavado: %d", ant.CantidadRelavado))
-	b.WriteString(fmt.Sprintf("\n- Facturacion estimada: %s ARS", formatARS(ant.Facturacion)))
+	// Si se alcanzó el límite de rondas, forzar síntesis final
+	finalResp, err := s.provider.Complete(ctx, systemInstruction, conversation)
+	if err != nil {
+		return nil, err
+	}
 
-	return b.String()
+	toolsList := make([]string, 0, len(toolsUsadasMap))
+	for t := range toolsUsadasMap {
+		toolsList = append(toolsList, t)
+	}
+
+	return &IAResponse{
+		Respuesta:   finalResp,
+		ToolsUsadas: toolsList,
+	}, nil
+}
+
+// Ask mantiene compatibilidad con la firma anterior devolviendo solo el string de respuesta.
+func (s *IAService) Ask(ctx context.Context, pregunta string, desde, hasta *time.Time) (string, error) {
+	resp, err := s.AskWithMCP(ctx, pregunta, desde, hasta, nil)
+	if err != nil {
+		return "", err
+	}
+	return resp.Respuesta, nil
 }
 
 func fmtFecha(t *time.Time) string {
 	if t == nil {
-		return "historico"
+		return "período histórico"
 	}
 	return t.Format("2006-01-02")
-}
-
-func formatARS(v float64) string {
-	// Formato simple con separador de miles.
-	sign := ""
-	if v < 0 {
-		sign = "-"
-		v = -v
-	}
-	s := fmt.Sprintf("%.0f", v)
-	out := []rune(s)
-	var res []rune
-	for i, r := range out {
-		if i > 0 && (len(out)-i)%3 == 0 {
-			res = append(res, '.')
-		}
-		res = append(res, r)
-	}
-	return sign + string(res)
 }

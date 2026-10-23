@@ -16,6 +16,13 @@ import {
   ConteoRequest,
   FichaHotel360,
   MetricasResumenResponse,
+  IAAskResponse,
+  DespachoConciliacion,
+  ValidarConciliacionRequest,
+  EntregarDespachoRequest,
+  NotificacionOperativa,
+  RetiroPendienteDTO,
+  ConfirmarRetiroRequest,
 } from '../types';
 
 const getApiBase = () => {
@@ -44,21 +51,23 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
     headers: {
       ...headers,
-      ...(options?.headers as Record<string, string> || {}),
+      ...((options?.headers as Record<string, string>) || {}),
     },
   });
 
-  // Si el servidor rechaza el token, limpiar sesion local
-  if (res.status === 401) {
+  // Si el servidor rechaza el token (salvo en login), limpiar sesion local y notificar por evento
+  if (res.status === 401 && !path.includes('/auth/login')) {
     localStorage.removeItem(TOKEN_KEY);
-    window.location.reload();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    }
     throw new Error('Sesion expirada. Por favor ingresa nuevamente.');
   }
 
   if (!res.ok) {
     let errorMsg = 'Error en la solicitud';
     try {
-      const json = await res.json();
+      const json: { error?: string } = await res.json();
       errorMsg = json.error || errorMsg;
     } catch {
       errorMsg = res.statusText || errorMsg;
@@ -112,15 +121,20 @@ export const api = {
     const qs = searchParams.toString();
     return request<Registro[]>(`/registros${qs ? `?${qs}` : ''}`);
   },
-  createRegistro: (data: { fecha: string; hotel_id: number; item_id: number; cantidad: number }) =>
+  createRegistro: (
+    data: { fecha: string; hotel_id: number; item_id: number; cantidad: number },
+    options?: { signal?: AbortSignal }
+  ) =>
     request<Registro>('/registros', {
       method: 'POST',
       body: JSON.stringify(data),
+      signal: options?.signal,
     }),
-  createRegistrosBatch: (items: BatchRegistroItem[]) =>
+  createRegistrosBatch: (items: BatchRegistroItem[], options?: { signal?: AbortSignal }) =>
     request<{ success: boolean; count: number }>('/registros/batch', {
       method: 'POST',
       body: JSON.stringify(items),
+      signal: options?.signal,
     }),
 importPreview: (file: File) => {
     const formData = new FormData();
@@ -201,11 +215,7 @@ importPreview: (file: File) => {
   },
 
   // IA
-  askIA: (mensaje: string, rango?: { fecha_desde?: string; fecha_hasta?: string }) =>
-    request<{ respuesta: string }>('/ia/ask', {
-      method: 'POST',
-      body: JSON.stringify({ mensaje, ...rango }),
-    }),
+  askIA: (mensaje: string, rango?: { fecha_desde?: string; fecha_hasta?: string }, historial?: { role: 'user' | 'assistant'; content: string }[]) => request<IAAskResponse>('/ia/ask', { method: 'POST', body: JSON.stringify({ mensaje, ...rango, historial }), }),
 
   // ExportaciÃ³n
   exportarCSV: async (params?: { fecha_desde?: string; fecha_hasta?: string; item_id?: number; orden?: string; limit?: number }) => {
@@ -292,4 +302,43 @@ importPreview: (file: File) => {
     a.remove();
     URL.revokeObjectURL(url);
   },
+
+  // Circuito Operativo de Conciliación y Notificaciones
+  validarConciliacion: (data: ValidarConciliacionRequest) =>
+    request<DespachoConciliacion>('/api/conciliacion/validar', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getDespachosConciliacion: (params?: { fecha?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.fecha) searchParams.set('fecha', params.fecha);
+    const qs = searchParams.toString();
+    return request<DespachoConciliacion[]>(`/api/conciliacion/despachos${qs ? `?${qs}` : ''}`);
+  },
+  entregarDespachoConciliacion: (despachoId: number, data?: EntregarDespachoRequest) =>
+    request<DespachoConciliacion>(`/api/conciliacion/despachos/${despachoId}/entregar`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    }),
+  getNotificaciones: () => request<NotificacionOperativa[]>('/api/notificaciones'),
+  marcarNotificacionLeida: (notifId: number) =>
+    request<{ success: boolean; id: number }>(`/api/notificaciones/${notifId}/leer`, {
+      method: 'PATCH',
+    }),
+
+  // Hoja de Retiros (Logística / Repartidor)
+  getRetirosPendientes: (params?: { fecha?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.fecha) searchParams.set('fecha', params.fecha);
+    const qs = searchParams.toString();
+    return request<RetiroPendienteDTO[]>(`/api/logistica/retiros${qs ? `?${qs}` : ''}`);
+  },
+  confirmarRetiroEnvio: (envioId: number, data?: ConfirmarRetiroRequest) =>
+    request<{ success: boolean; envio_id: number; estado: string; retirado_en: string }>(
+      `/api/logistica/retiros/${envioId}/confirmar`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data || {}),
+      }
+    ),
 };

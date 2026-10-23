@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/client';
-import { AuditoriaItem, Envio, Hotel } from '../../types';
+import { AuditoriaItem, Envio, Hotel, DespachoConciliacion } from '../../types';
 import { formatNumber } from '../../utils/formatters';
 import {
   Truck,
@@ -20,8 +20,11 @@ import {
   AlertOctagon,
   Clock,
   ShieldCheck,
+  Eye,
+  CheckSquare,
 } from 'lucide-react';
 import { RemitoPrintableModal } from '../hotel360/RemitoPrintableModal';
+import { RetirosTab } from './RetirosTab';
 
 interface HotelEntregaGroup {
   hotel_id: number;
@@ -34,12 +37,15 @@ interface HotelEntregaGroup {
   totalContado: number;
   diferenciaTotal: number;
   envioAsociado?: Envio;
+  despachoConciliacion?: DespachoConciliacion;
 }
 
 export const EntregasView: React.FC = () => {
+  const [vistaModo, setVistaModo] = useState<'retiros' | 'entregas'>('retiros');
   const [items, setItems] = useState<AuditoriaItem[]>([]);
   const [hoteles, setHoteles] = useState<Hotel[]>([]);
   const [envios, setEnvios] = useState<Envio[]>([]);
+  const [despachos, setDespachos] = useState<DespachoConciliacion[]>([]);
   const [fechaFiltro, setFechaFiltro] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
@@ -54,6 +60,11 @@ export const EntregasView: React.FC = () => {
 
   // Acordeones abiertos por hotel
   const [expandedHotels, setExpandedHotels] = useState<Record<number, boolean>>({});
+
+  // Conciliación: Observaciones de entrega por despacho y modal de muestra procesada
+  const [observacionesEntrega, setObservacionesEntrega] = useState<Record<number, string>>({});
+  const [entregandoId, setEntregandoId] = useState<number | null>(null);
+  const [muestraModalDespacho, setMuestraModalDespacho] = useState<DespachoConciliacion | null>(null);
 
   // Modal para imprimir remito de entrega
   const [remitoParaImprimir, setRemitoParaImprimir] = useState<{
@@ -81,23 +92,51 @@ export const EntregasView: React.FC = () => {
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      const [auditoriaData, enviosData] = await Promise.all([
+      const [auditoriaData, enviosData, despachosData] = await Promise.all([
         api.getAuditoria({ fecha: fechaFiltro || undefined }),
         api.getEnvios({ fecha: fechaFiltro || undefined }).catch(() => [] as Envio[]),
+        api.getDespachosConciliacion({ fecha: fechaFiltro || undefined }).catch(
+          () => [] as DespachoConciliacion[]
+        ),
       ]);
       setItems(auditoriaData);
       setEnvios(enviosData);
+      setDespachos(despachosData);
 
       // Expandir todos los hoteles por defecto para facilitar la lectura del chofer
       const expandMap: Record<number, boolean> = {};
       auditoriaData.forEach((i) => {
         expandMap[i.hotel_id] = true;
       });
+      despachosData.forEach((d) => {
+        expandMap[d.hotel_id] = true;
+      });
       setExpandedHotels(expandMap);
     } catch (err) {
       console.error('Error cargando entregas:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmarEntrega = async (despacho: DespachoConciliacion) => {
+    if (despacho.estado === 'entregado') return;
+    setEntregandoId(despacho.id);
+    try {
+      const obs = observacionesEntrega[despacho.id] || '';
+      const actualizado = await api.entregarDespachoConciliacion(despacho.id, {
+        observacion_entrega: obs,
+      });
+      setDespachos((prev) =>
+        prev.map((d) => (d.id === actualizado.id ? actualizado : d))
+      );
+      if (muestraModalDespacho?.id === actualizado.id) {
+        setMuestraModalDespacho(actualizado);
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error al registrar entrega.');
+    } finally {
+      setEntregandoId(null);
     }
   };
 
@@ -108,6 +147,7 @@ export const EntregasView: React.FC = () => {
     items.forEach((item) => {
       if (!map.has(item.hotel_id)) {
         const envioDelHotel = envios.find((e) => e.hotel_id === item.hotel_id);
+        const despachoDelHotel = despachos.find((d) => d.hotel_id === item.hotel_id);
         map.set(item.hotel_id, {
           hotel_id: item.hotel_id,
           hotel_nombre: item.hotel_nombre,
@@ -119,6 +159,7 @@ export const EntregasView: React.FC = () => {
           totalContado: 0,
           diferenciaTotal: 0,
           envioAsociado: envioDelHotel,
+          despachoConciliacion: despachoDelHotel,
         });
       }
 
@@ -132,8 +173,28 @@ export const EntregasView: React.FC = () => {
       g.diferenciaTotal += item.diferencia;
     });
 
+    // Incluir hoteles que tengan despacho conciliado aunque aún no figuren en auditoría
+    despachos.forEach((d) => {
+      if (!map.has(d.hotel_id)) {
+        const envioDelHotel = envios.find((e) => e.hotel_id === d.hotel_id);
+        map.set(d.hotel_id, {
+          hotel_id: d.hotel_id,
+          hotel_nombre: d.hotel_nombre,
+          items: [],
+          totalDeclaradas: d.total_remito_prendas,
+          totalLimpias: d.total_procesado_prendas,
+          totalRelavado: 0,
+          totalRotas: 0,
+          totalContado: d.total_procesado_prendas,
+          diferenciaTotal: d.diferencia_prendas,
+          envioAsociado: envioDelHotel,
+          despachoConciliacion: d,
+        });
+      }
+    });
+
     return Array.from(map.values());
-  }, [items, envios]);
+  }, [items, envios, despachos]);
 
   // Filtrado de grupos
   const gruposFiltrados = useMemo(() => {
@@ -182,8 +243,8 @@ export const EntregasView: React.FC = () => {
         setHotelFiltro(envio.hotel_id);
         setExpandedHotels((prev) => ({ ...prev, [envio.hotel_id]: true }));
       }
-    } catch (err: any) {
-      setScanError(err.message || 'No se encontró remito con ese código QR.');
+    } catch (err: unknown) {
+      setScanError(err instanceof Error ? err.message : 'No se encontró remito con ese código QR.');
       setScannedEnvio(null);
     }
   };
@@ -245,6 +306,34 @@ export const EntregasView: React.FC = () => {
           </div>
         </div>
 
+        {/* Selector Retiros vs Entregas */}
+        <div className="flex items-center gap-1.5 bg-[#071326] p-1.5 rounded-xl border border-[#1e3659]">
+          <button
+            type="button"
+            onClick={() => setVistaModo('retiros')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              vistaModo === 'retiros'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <PackageCheck className="w-3.5 h-3.5" />
+            <span>Retiros en Hoteles</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setVistaModo('entregas')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              vistaModo === 'entregas'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Truck className="w-3.5 h-3.5" />
+            <span>Entregas de Ropa Limpia</span>
+          </button>
+        </div>
+
         {/* Lector / Búsqueda rápida QR para el chofer */}
         <form onSubmit={handleBuscarQR} className="flex items-center gap-2 max-w-sm w-full md:w-auto">
           <div className="relative flex-1">
@@ -267,7 +356,14 @@ export const EntregasView: React.FC = () => {
         </form>
       </div>
 
-      {/* Alerta de Error QR */}
+      {vistaModo === 'retiros' ? (
+        <RetirosTab
+          fechaFiltro={fechaFiltro}
+          onFechaChange={(f) => setFechaFiltro(f)}
+        />
+      ) : (
+        <>
+          {/* Alerta de Error QR */}
       {scanError && (
         <div className="bg-rose-950/70 border border-rose-800 text-rose-300 text-xs p-4 rounded-xl flex items-center justify-between animate-fadeIn">
           <div className="flex items-center gap-2">
@@ -299,6 +395,54 @@ export const EntregasView: React.FC = () => {
           >
             <X className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Banner de Alertas de Conciliación para el Repartidor (Diferencias vs Remito) */}
+      {despachos.some((d) => d.estado === 'validado_con_diferencia') && (
+        <div className="bg-amber-950/60 border border-amber-700/80 rounded-2xl p-4 shadow-xl space-y-3 animate-fadeIn">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <h3 className="text-sm font-black text-amber-300">
+                Alertas de Conciliación: Diferencias vs. Remito del Hotel
+              </h3>
+              <p className="text-xs text-amber-200/90">
+                Planta validó las siguientes cargas con desvío respecto a lo declarado por el hotel. Revisá la muestra procesada antes de entregar:
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {despachos
+              .filter((d) => d.estado === 'validado_con_diferencia')
+              .map((d) => (
+                <div
+                  key={d.id}
+                  className="bg-[#071326]/90 border border-amber-700/60 rounded-xl p-3 flex items-center justify-between gap-3"
+                >
+                  <div>
+                    <p className="text-xs font-black text-white">{d.hotel_nombre}</p>
+                    <p className="text-[11px] text-slate-300 mt-0.5">
+                      Cant. Remito: <strong className="text-white">{formatNumber(d.total_remito_prendas)}</strong> &bull;{' '}
+                      Cant. Procesada: <strong className="text-cyan-300">{formatNumber(d.total_procesado_prendas)}</strong> &bull;{' '}
+                      Dif.:{' '}
+                      <strong className="text-amber-400">
+                        {d.diferencia_prendas > 0 ? `+${d.diferencia_prendas}` : d.diferencia_prendas}
+                      </strong>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMuestraModalDespacho(d)}
+                    className="px-2.5 py-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/50 text-amber-200 text-[11px] font-bold flex items-center gap-1 shrink-0"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Ver Muestra</span>
+                  </button>
+                </div>
+              ))}
+          </div>
         </div>
       )}
 
@@ -473,6 +617,14 @@ export const EntregasView: React.FC = () => {
             const hayRelavados = group.totalRelavado > 0;
             const hayRoturas = group.totalRotas > 0;
             const coincideExacto = group.diferenciaTotal === 0 && !hayRelavados && !hayRoturas;
+            const despacho = group.despachoConciliacion;
+            const isEntregado = despacho?.estado === 'entregado';
+            const horaEntregado = despacho?.entregado_en
+              ? new Date(despacho.entregado_en).toLocaleTimeString('es-AR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : null;
 
             return (
               <div
@@ -493,7 +645,21 @@ export const EntregasView: React.FC = () => {
                         <h2 className="text-base sm:text-lg font-black text-white">
                           {group.hotel_nombre}
                         </h2>
-                        {coincideExacto ? (
+                        {isEntregado ? (
+                          <span className="inline-flex items-center gap-1 bg-emerald-950/90 text-emerald-300 border border-emerald-600/70 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            Entregado {horaEntregado ? `a las ${horaEntregado}` : ''}
+                          </span>
+                        ) : despacho?.estado === 'validado_con_diferencia' ? (
+                          <span className="inline-flex items-center gap-1 bg-amber-950/90 text-amber-300 border border-amber-600/70 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                            <AlertTriangle className="w-3 h-3 text-amber-400" />
+                            Alerta Diferencia vs. Remito (
+                            {despacho.diferencia_prendas > 0
+                              ? `+${despacho.diferencia_prendas}`
+                              : despacho.diferencia_prendas}
+                            )
+                          </span>
+                        ) : coincideExacto ? (
                           <span className="inline-flex items-center gap-1 bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 text-[10px] font-bold px-2 py-0.5 rounded-full">
                             <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                             Carga Exacta (OK)
@@ -511,16 +677,25 @@ export const EntregasView: React.FC = () => {
                         )}
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Declaradas por hotel: <span className="text-slate-300 font-semibold">{formatNumber(group.totalDeclaradas)}</span>
+                        Declaradas por hotel:{' '}
+                        <span className="text-slate-300 font-semibold">
+                          {formatNumber(group.totalDeclaradas)}
+                        </span>
                         {group.envioAsociado?.codigo_qr && (
-                          <> &bull; Remito: <span className="font-mono text-blue-300">{group.envioAsociado.codigo_qr}</span></>
+                          <>
+                            {' '}
+                            &bull; Remito:{' '}
+                            <span className="font-mono text-blue-300">
+                              {group.envioAsociado.codigo_qr}
+                            </span>
+                          </>
                         )}
                       </p>
                     </div>
                   </div>
 
                   {/* Resumen numérico y Acciones */}
-                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 flex-wrap">
                     <div className="text-right">
                       <div className="flex items-baseline gap-1.5 justify-end">
                         <span className="text-xl sm:text-2xl font-black text-emerald-400">
@@ -532,6 +707,21 @@ export const EntregasView: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {despacho && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMuestraModalDespacho(despacho);
+                          }}
+                          className="px-3 py-2 bg-[#132747] hover:bg-[#1e3659] border border-[#1e3659] text-cyan-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                          title="Ver Muestra de lo Procesado validada en planta"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Ver Muestra de lo Procesado</span>
+                        </button>
+                      )}
+
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -564,6 +754,99 @@ export const EntregasView: React.FC = () => {
                 {/* Contenido Desplegado */}
                 {isExpanded && (
                   <div className="border-t border-[#1e3659] bg-[#071326]/50 p-4 sm:p-5 space-y-4">
+                    {/* Panel de Conciliación y Check de Confirmación de Entrega para el Repartidor */}
+                    {despacho && (
+                      <div
+                        className={`rounded-xl p-4 border flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${
+                          isEntregado
+                            ? 'bg-emerald-950/30 border-emerald-800/70'
+                            : despacho.estado === 'validado_con_diferencia'
+                            ? 'bg-amber-950/30 border-amber-700/70'
+                            : 'bg-[#0b1a33] border-[#1e3659]'
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black text-white uppercase tracking-wider">
+                              Control de Despacho Conciliado
+                            </span>
+                            <span className="text-[11px] text-slate-300">
+                              Remito: <strong>{formatNumber(despacho.total_remito_prendas)} u.</strong> &bull;{' '}
+                              Procesado: <strong className="text-cyan-300">{formatNumber(despacho.total_procesado_prendas)} u.</strong>
+                              {despacho.total_procesado_kilos > 0 && (
+                                <> ({despacho.total_procesado_kilos.toFixed(2)} kg)</>
+                              )}{' '}
+                              &bull; Diferencia:{' '}
+                              <strong
+                                className={
+                                  despacho.diferencia_prendas === 0
+                                    ? 'text-emerald-400'
+                                    : 'text-amber-400'
+                                }
+                              >
+                                {despacho.diferencia_prendas > 0
+                                  ? `+${despacho.diferencia_prendas}`
+                                  : despacho.diferencia_prendas}
+                              </strong>
+                            </span>
+                          </div>
+                          {isEntregado ? (
+                            <p className="text-xs text-emerald-300 font-semibold">
+                              ✓ Pedido entregado en destino {horaEntregado ? `a las ${horaEntregado} hs` : ''}{' '}
+                              por {despacho.entregado_por_username || 'Repartidor'}.
+                              {despacho.observacion_entrega && (
+                                <span className="text-slate-300 font-normal">
+                                  {' '}
+                                  — Obs.: "{despacho.observacion_entrega}"
+                                </span>
+                              )}
+                            </p>
+                          ) : (
+                            <p className="text-[11px] text-slate-400">
+                              Al entregar la carga en recepción del hotel, tildá la confirmación para notificar al Administrador.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          {!isEntregado && (
+                            <input
+                              type="text"
+                              placeholder="Observación de entrega (opcional)..."
+                              value={observacionesEntrega[despacho.id] || ''}
+                              onChange={(e) =>
+                                setObservacionesEntrega((prev) => ({
+                                  ...prev,
+                                  [despacho.id]: e.target.value,
+                                }))
+                              }
+                              className="bg-[#071326] border border-[#1e3659] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 sm:w-64"
+                            />
+                          )}
+
+                          <button
+                            type="button"
+                            disabled={isEntregado || entregandoId === despacho.id}
+                            onClick={() => void handleConfirmarEntrega(despacho)}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shrink-0 ${
+                              isEntregado
+                                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 cursor-default'
+                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/25'
+                            }`}
+                          >
+                            <CheckSquare className="w-4 h-4" />
+                            <span>
+                              {isEntregado
+                                ? `Entregado a las ${horaEntregado || '--:--'}`
+                                : entregandoId === despacho.id
+                                ? 'Confirmando...'
+                                : 'Marcar como Entregado'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Alerta de novedad para el chofer si hay prendas en relavado o rotas */}
                     {(hayRelavados || hayRoturas) && (
                       <div className="bg-amber-950/40 border border-amber-800/60 rounded-xl p-3 text-xs text-amber-200 flex items-start gap-2.5">
@@ -710,6 +993,108 @@ export const EntregasView: React.FC = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Modal: Ver Muestra de lo Procesado (Detalle Ítem por Ítem + Check de Entrega) */}
+      {muestraModalDespacho && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#0b1a33] border border-[#1e3659] rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden">
+            <div className="p-4 sm:p-5 bg-[#071326] border-b border-[#1e3659] flex items-center justify-between">
+              <div>
+                <h3 className="text-base sm:text-lg font-black text-white">
+                  Muestra de lo Procesado — {muestraModalDespacho.hotel_nombre}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Remito: <strong className="text-white">{formatNumber(muestraModalDespacho.total_remito_prendas)} u.</strong> &bull;{' '}
+                  Procesado: <strong className="text-cyan-300">{formatNumber(muestraModalDespacho.total_procesado_prendas)} u.</strong> (
+                  {muestraModalDespacho.total_procesado_kilos.toFixed(2)} kg) &bull;{' '}
+                  Dif.:{' '}
+                  <strong
+                    className={
+                      muestraModalDespacho.diferencia_prendas === 0
+                        ? 'text-emerald-400'
+                        : 'text-amber-400'
+                    }
+                  >
+                    {muestraModalDespacho.diferencia_prendas > 0
+                      ? `+${muestraModalDespacho.diferencia_prendas}`
+                      : muestraModalDespacho.diferencia_prendas}
+                  </strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMuestraModalDespacho(null)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-5 max-h-[65vh] overflow-y-auto">
+              <div className="rounded-xl border border-[#1e3659] overflow-hidden">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-[#071326] text-slate-400 uppercase text-[10px] border-b border-[#1e3659]">
+                    <tr>
+                      <th className="px-4 py-2.5">Ítem</th>
+                      <th className="px-3 py-2.5 text-right">Remito</th>
+                      <th className="px-3 py-2.5 text-right text-cyan-400">
+                        Procesado (Prendas / Kg)
+                      </th>
+                      <th className="px-4 py-2.5 text-right">Diferencia</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1e3659]/50">
+                    {muestraModalDespacho.muestra_procesado.map((m) => (
+                      <tr key={m.item_id} className="hover:bg-[#132747]/30">
+                        <td className="px-4 py-2 font-bold text-white">{m.item_nombre}</td>
+                        <td className="px-3 py-2 text-right text-slate-300 font-semibold">
+                          {formatNumber(m.cant_remito)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-black text-cyan-300">
+                          {formatNumber(m.cant_procesada_prendas)} u. / {m.cant_procesada_kilos.toFixed(1)} kg
+                        </td>
+                        <td className="px-4 py-2 text-right font-bold">
+                          {m.diferencia === 0 ? (
+                            <span className="text-emerald-400">0</span>
+                          ) : m.diferencia > 0 ? (
+                            <span className="text-amber-400">+{m.diferencia}</span>
+                          ) : (
+                            <span className="text-rose-400">{m.diferencia}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="p-4 bg-[#071326] border-t border-[#1e3659] flex items-center justify-end gap-2">
+              {muestraModalDespacho.estado !== 'entregado' && (
+                <button
+                  type="button"
+                  disabled={entregandoId === muestraModalDespacho.id}
+                  onClick={() => void handleConfirmarEntrega(muestraModalDespacho)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5"
+                >
+                  <CheckSquare className="w-4 h-4" />
+                  <span>Marcar como Entregado</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setMuestraModalDespacho(null)}
+                className="px-4 py-2 bg-[#132747] hover:bg-[#1e3659] text-slate-200 text-xs font-bold rounded-xl"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+        </>
       )}
 
       {/* Modal de Impresión de Remito de Entrega */}

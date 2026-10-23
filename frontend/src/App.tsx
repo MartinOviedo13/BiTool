@@ -10,22 +10,75 @@ import { ChatWidget } from './components/ai/ChatWidget';
 import { LoginView } from './components/auth/LoginView';
 import { PortalHotelView } from './components/portal/PortalHotelView';
 import { AuditoriaView } from './components/portal/AuditoriaView';
+import { EntregasView } from './components/portal/EntregasView';
 import { useAuth } from './contexts/AuthContext';
+import { useRealtime } from './hooks/useRealtime';
+
+const VALID_TABS_BY_ROLE: Record<string, TabId[]> = {
+  admin: ['dashboard', 'matrix', 'auditoria', 'entregas', 'import', 'catalog', 'ai'],
+  operario: ['matrix', 'auditoria'],
+  cliente: ['portal'],
+  repartidor: ['entregas', 'auditoria'],
+};
+
+function getTabFromHash(rol?: string): TabId | null {
+  if (typeof window === 'undefined') return null;
+  const raw = window.location.hash.replace(/^#\/?/, '').trim() as TabId;
+  if (!raw || !rol) return null;
+  const allowed = VALID_TABS_BY_ROLE[rol] || [];
+  return allowed.includes(raw) ? raw : null;
+}
 
 export function App() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [chatOpen, setChatOpen] = useState(false);
 
-  // Redireccionar al tab correspondiente según el rol al iniciar sesión
-  useEffect(() => {
-    if (user?.rol === 'cliente') {
-      setActiveTab('portal');
-    } else if (user?.rol === 'operario') {
-      setActiveTab('matrix');
-    } else if (user?.rol === 'admin') {
-      setActiveTab('dashboard');
+  const handleTabChange = (tab: TabId) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      window.location.hash = tab;
     }
+  };
+
+  // Escucha activa global de eventos en tiempo real para todos los roles
+  useRealtime();
+
+  // Sincronizar con window.location.hash o redireccionar al tab por defecto según el rol
+  useEffect(() => {
+    if (!user?.rol) return;
+    const hashTab = getTabFromHash(user.rol);
+    if (hashTab) {
+      setActiveTab(hashTab);
+      return;
+    }
+
+    let defaultTab: TabId = 'dashboard';
+    if (user.rol === 'cliente') {
+      defaultTab = 'portal';
+    } else if (user.rol === 'operario') {
+      defaultTab = 'matrix';
+    } else if (user.rol === 'repartidor') {
+      defaultTab = 'entregas';
+    } else if (user.rol === 'admin') {
+      defaultTab = 'dashboard';
+    }
+    setActiveTab(defaultTab);
+    if (typeof window !== 'undefined') {
+      window.location.hash = defaultTab;
+    }
+  }, [user?.rol]);
+
+  useEffect(() => {
+    if (!user?.rol) return;
+    const onHashChange = () => {
+      const hashTab = getTabFromHash(user.rol);
+      if (hashTab) {
+        setActiveTab(hashTab);
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, [user?.rol]);
 
   if (loading) {
@@ -45,18 +98,20 @@ export function App() {
   const isAdmin = user.rol === 'admin';
   const isOperario = user.rol === 'operario';
   const isCliente = user.rol === 'cliente';
+  const isRepartidor = user.rol === 'repartidor';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#071326] text-slate-100">
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navbar activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         {/* Vistas exclusivas de clientes */}
         {isCliente && activeTab === 'portal' && <PortalHotelView />}
 
-        {/* Vistas operativas y auditoría */}
+        {/* Vistas operativas, auditoría y logística de entregas */}
         {(isAdmin || isOperario) && activeTab === 'matrix' && <MatrixEntryView />}
-        {(isAdmin || isOperario) && activeTab === 'auditoria' && <AuditoriaView />}
+        {(isAdmin || isOperario || isRepartidor) && activeTab === 'auditoria' && <AuditoriaView />}
+        {(isAdmin || isRepartidor) && activeTab === 'entregas' && <EntregasView />}
 
         {/* Vistas administrativas */}
         {isAdmin && activeTab === 'dashboard' && <DashboardView />}

@@ -16,8 +16,8 @@ export const LoginView: React.FC = () => {
     setLoading(true);
     try {
       await login(username.trim(), password);
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesion.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al iniciar sesion.');
     } finally {
       setLoading(false);
     }

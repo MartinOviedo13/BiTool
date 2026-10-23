@@ -62,8 +62,7 @@ export const AIInsightsView: React.FC = () => {
               Diagnóstico Automatizado & Análisis en Lenguaje Natural
             </h2>
             <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-              La IA procesa los indicadores calculados de la base de datos PostgreSQL sin exponer datos crudos ni personales.
-              Hacé preguntas en lenguaje natural y obtené respuestas claras para tomar decisiones.
+              El Asistente opera mediante el estándar Model Context Protocol (MCP) conectando Gemini a 9 herramientas de auditoría en tiempo real (KPIs, Ficha 360, remitos, calidad, tarifas y proyección de personal). Hacé preguntas en lenguaje natural para auditar la operatoria.
             </p>
           </div>
           <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 backdrop-blur-sm">

@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 	"time"
 
 	"lavadero-bi/backend/internal/database"
@@ -21,13 +25,24 @@ func main() {
 func run() error {
 	loadDotEnv(".env")
 
-	addr := getEnv("SERVER_ADDR", ":8000")
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		databaseURL = "postgresql://postgres:tu_password@localhost:5432/lavadero_bi"
+	databaseURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	jwtSecret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+	if databaseURL == "" || len(jwtSecret) < 32 {
+		log.Fatal("Configuración inválida: DATABASE_URL y JWT_SECRET (>= 32 caracteres) son obligatorios")
 	}
 
-	ctx := context.Background()
+	addr := getEnv("SERVER_ADDR", "")
+	if addr == "" {
+		if port := os.Getenv("PORT"); port != "" {
+			addr = ":" + port
+		} else {
+			addr = ":8000"
+		}
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	db, err := database.Open(ctx, databaseURL)
 	if err != nil {
 		return err
@@ -39,10 +54,29 @@ func run() error {
 		Addr:              addr,
 		Handler:           routes.New(app),
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
-	log.Printf("Lavadero BI API escuchando en http://127.0.0.1%s", addr)
-	return server.ListenAndServe()
+	errCh := make(chan error, 1)
+	go func() {
+		log.Printf("Lavadero BI API escuchando en http://127.0.0.1%s", addr)
+		if serveErr := server.ListenAndServe(); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			errCh <- serveErr
+		}
+		close(errCh)
+	}()
+
+	select {
+	case serveErr := <-errCh:
+		return serveErr
+	case <-ctx.Done():
+		log.Println("Señal de apagado recibida, cerrando servidor HTTP de forma elegante...")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		return server.Shutdown(shutdownCtx)
+	}
 }
 
 func getEnv(key string, fallback string) string {
@@ -52,3 +86,4 @@ func getEnv(key string, fallback string) string {
 	}
 	return value
 }
+

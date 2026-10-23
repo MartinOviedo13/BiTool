@@ -77,10 +77,10 @@ func (a *App) createEnvio(w http.ResponseWriter, r *http.Request) {
 
 	var envioID int
 	err = tx.QueryRow(r.Context(), `
-		INSERT INTO envios (hotel_id, fecha, codigo_qr)
-		VALUES ($1, $2, $3)
+		INSERT INTO envios (hotel_id, fecha, codigo_qr, estado)
+		VALUES ($1, $2, $3, 'listo_para_retiro')
 		ON CONFLICT (hotel_id, fecha)
-		DO UPDATE SET codigo_qr = EXCLUDED.codigo_qr
+		DO UPDATE SET codigo_qr = EXCLUDED.codigo_qr, estado = 'listo_para_retiro'
 		RETURNING id, codigo_qr
 	`, hotelID, fecha, codigoQR).Scan(&envioID, &codigoQR)
 	if err != nil {
@@ -110,10 +110,37 @@ func (a *App) createEnvio(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var hotelNombre string
+	_ = tx.QueryRow(r.Context(), "SELECT nombre FROM hoteles WHERE id = $1", hotelID).Scan(&hotelNombre)
+	if hotelNombre == "" {
+		hotelNombre = fmt.Sprintf("Hotel #%d", hotelID)
+	}
+
+	totalPrendasDeclaradas := 0
+	for _, d := range req.Detalles {
+		totalPrendasDeclaradas += d.CantidadDeclarada
+	}
+
+	notifTitulo := fmt.Sprintf("%s: Pedido listo para retiro", hotelNombre)
+	notifMensaje := fmt.Sprintf("Remito %s generado con %d prendas para el %s. Ya se encuentra listo para retirar.", codigoQR, totalPrendasDeclaradas, fecha.Format("02/01/2006"))
+	_, _ = tx.Exec(r.Context(), `
+		INSERT INTO notificaciones_operativas (rol_destino, hotel_id, despacho_id, tipo, severidad, titulo, mensaje, muestra_datos)
+		VALUES ('repartidor', $1, NULL, 'REMITO_LISTO_RETIRO', 'info', $2, $3, '[]'::jsonb)
+	`, hotelID, notifTitulo, notifMensaje)
+
 	if err := tx.Commit(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, "Error al confirmar envio.")
 		return
 	}
+
+	// Notificar en tiempo real por SSE
+	GetBroker().Broadcast("REMITO_LISTO_RETIRO", hotelID, notifTitulo, notifMensaje, map[string]any{
+		"envio_id":      envioID,
+		"codigo_qr":     codigoQR,
+		"total_prendas": totalPrendasDeclaradas,
+		"fecha":         fecha.Format("2006-01-02"),
+		"hotel_nombre":  hotelNombre,
+	})
 
 	envioCompleto, err := a.getEnvioByIDInternal(r.Context(), envioID)
 	if err != nil {
@@ -147,9 +174,11 @@ func (a *App) listEnvios(w http.ResponseWriter, r *http.Request) {
 	fechaParam := r.URL.Query().Get("fecha")
 
 	query := `
-		SELECT e.id, e.hotel_id, h.nombre, e.fecha, e.codigo_qr, e.creado_en
+		SELECT e.id, e.hotel_id, h.nombre, e.fecha, e.codigo_qr, e.creado_en,
+		       COALESCE(e.estado, 'listo_para_retiro'), e.retirado_por_id, u.username, e.retirado_en, e.observacion_retiro
 		FROM envios e
 		JOIN hoteles h ON h.id = e.hotel_id
+		LEFT JOIN usuarios u ON u.id = e.retirado_por_id
 		WHERE ($1::int IS NULL OR e.hotel_id = $1)
 		  AND ($2::date IS NULL OR e.fecha = $2::date)
 		ORDER BY e.fecha DESC, e.creado_en DESC
@@ -167,7 +196,8 @@ func (a *App) listEnvios(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var e models.Envio
 		var h models.Hotel
-		if err := rows.Scan(&e.ID, &e.HotelID, &h.Nombre, &e.Fecha, &e.CodigoQR, &e.CreadoEn); err != nil {
+		if err := rows.Scan(&e.ID, &e.HotelID, &h.Nombre, &e.Fecha, &e.CodigoQR, &e.CreadoEn,
+			&e.Estado, &e.RetiradoPorID, &e.RetiradoPorUsername, &e.RetiradoEn, &e.ObservacionRetiro); err != nil {
 			writeError(w, http.StatusInternalServerError, "Error leyendo envios.")
 			return
 		}
@@ -178,6 +208,34 @@ func (a *App) listEnvios(w http.ResponseWriter, r *http.Request) {
 
 	if lista == nil {
 		lista = []models.Envio{}
+	} else {
+		envioIDs := make([]int, len(lista))
+		idxMap := make(map[int]int, len(lista))
+		for i := range lista {
+			envioIDs[i] = lista[i].ID
+			lista[i].Detalles = []models.EnvioDetalle{}
+			idxMap[lista[i].ID] = i
+		}
+		detRows, detErr := a.db.Query(r.Context(), `
+			SELECT ed.id, ed.envio_id, ed.item_id, i.nombre, ed.cantidad_declarada
+			FROM envio_detalles ed
+			JOIN items i ON i.id = ed.item_id
+			WHERE ed.envio_id = ANY($1)
+			ORDER BY i.nombre ASC
+		`, envioIDs)
+		if detErr == nil {
+			defer detRows.Close()
+			for detRows.Next() {
+				var d models.EnvioDetalle
+				var itemNombre string
+				if err := detRows.Scan(&d.ID, &d.EnvioID, &d.ItemID, &itemNombre, &d.CantidadDeclarada); err == nil {
+					d.Item = &models.Item{ID: d.ItemID, Nombre: itemNombre}
+					if idx, ok := idxMap[d.EnvioID]; ok {
+						lista[idx].Detalles = append(lista[idx].Detalles, d)
+					}
+				}
+			}
+		}
 	}
 
 	writeJSON(w, http.StatusOK, lista)
@@ -211,11 +269,14 @@ func (a *App) getEnvioByIDInternal(ctx context.Context, envioID int) (*models.En
 	var e models.Envio
 	var h models.Hotel
 	err := a.db.QueryRow(ctx, `
-		SELECT e.id, e.hotel_id, h.nombre, e.fecha, e.codigo_qr, e.creado_en
+		SELECT e.id, e.hotel_id, h.nombre, e.fecha, e.codigo_qr, e.creado_en,
+		       COALESCE(e.estado, 'listo_para_retiro'), e.retirado_por_id, u.username, e.retirado_en, e.observacion_retiro
 		FROM envios e
 		JOIN hoteles h ON h.id = e.hotel_id
+		LEFT JOIN usuarios u ON u.id = e.retirado_por_id
 		WHERE e.id = $1
-	`, envioID).Scan(&e.ID, &e.HotelID, &h.Nombre, &e.Fecha, &e.CodigoQR, &e.CreadoEn)
+	`, envioID).Scan(&e.ID, &e.HotelID, &h.Nombre, &e.Fecha, &e.CodigoQR, &e.CreadoEn,
+		&e.Estado, &e.RetiradoPorID, &e.RetiradoPorUsername, &e.RetiradoEn, &e.ObservacionRetiro)
 	if err != nil {
 		return nil, err
 	}

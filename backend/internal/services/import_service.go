@@ -66,12 +66,12 @@ func (s *ImportService) ProcessExcel(ctx context.Context, file io.Reader, filena
 		return s.GetImport(ctx, imp.ID)
 	}
 
-	// 3. Obtener diccionarios de base de datos (hoteles e items)
-	hotelMap, err := s.getHotelMap(ctx)
+	// 3. Construir matchers O(1) en memoria (hoteles e items)
+	hotelMatcher, err := s.getHotelMatcher(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cargando hoteles: %w", err)
 	}
-	itemMap, err := s.getItemMap(ctx)
+	itemMatcher, err := s.getItemMatcher(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cargando items: %w", err)
 	}
@@ -90,7 +90,7 @@ func (s *ImportService) ProcessExcel(ctx context.Context, file io.Reader, filena
 		if h == "" {
 			continue
 		}
-		itemID, ok := itemMap[strings.ToLower(h)]
+		itemID, ok := itemMatcher.Match(h)
 		if !ok {
 			errores = append(errores, ImportError{Fila: 1, Columna: h, Mensaje: "Tipo de prenda no reconocido: " + h})
 		} else {
@@ -118,7 +118,7 @@ func (s *ImportService) ProcessExcel(ctx context.Context, file io.Reader, filena
 		}
 		filasProcesadas++
 
-		hotelID, ok := hotelMap[strings.ToLower(clienteName)]
+		hotelID, ok := hotelMatcher.Match(clienteName)
 		if !ok {
 			errores = append(errores, ImportError{Fila: r + 1, Columna: headers[0], Mensaje: "Cliente nuevo o no reconocido: " + clienteName})
 			continue
@@ -133,7 +133,7 @@ func (s *ImportService) ProcessExcel(ctx context.Context, file io.Reader, filena
 			if !mapped {
 				continue
 			}
-			
+
 			qty, err := strconv.Atoi(valStr)
 			if err != nil {
 				errores = append(errores, ImportError{Fila: r + 1, Columna: headers[c], Mensaje: "Cantidad no es un numero valido: " + valStr})
@@ -149,7 +149,7 @@ func (s *ImportService) ProcessExcel(ctx context.Context, file io.Reader, filena
 	}
 
 	if len(errores) > 0 {
-		s.updateImport(ctx, imp.ID, "error", filasProcesadas, len(errores), errores)
+		_ = s.updateImport(ctx, imp.ID, "error", filasProcesadas, len(errores), errores)
 		return s.GetImport(ctx, imp.ID)
 	}
 
@@ -179,8 +179,8 @@ func (s *ImportService) ProcessExcel(ctx context.Context, file io.Reader, filena
 		SELECT fecha, hotel_id, item_id, cantidad, import_id 
 		FROM staging_registros 
 		WHERE import_id = $1
-		ON CONFLICT (fecha, hotel_id, item_id) 
-		DO UPDATE SET cantidad = EXCLUDED.cantidad, import_id = EXCLUDED.import_id
+		ON CONFLICT (hotel_id, item_id, fecha) 
+		DO UPDATE SET cantidad = EXCLUDED.cantidad, import_id = EXCLUDED.import_id, updated_at = now()
 	`
 	_, err = tx.Exec(ctx, upsertQuery, imp.ID)
 	if err != nil {
@@ -191,7 +191,7 @@ func (s *ImportService) ProcessExcel(ctx context.Context, file io.Reader, filena
 		return nil, fmt.Errorf("commit transaccion: %w", err)
 	}
 
-	s.updateImport(ctx, imp.ID, "completado", filasProcesadas, 0, nil)
+	_ = s.updateImport(ctx, imp.ID, "completado", filasProcesadas, 0, nil)
 
 	return s.GetImport(ctx, imp.ID)
 }
@@ -252,38 +252,39 @@ func (s *ImportService) ListImports(ctx context.Context) ([]models.Import, error
 	return list, nil
 }
 
-func (s *ImportService) getHotelMap(ctx context.Context) (map[string]int, error) {
+func (s *ImportService) getHotelMatcher(ctx context.Context) (*CatalogMatcher, error) {
 	rows, err := s.db.Query(ctx, "SELECT id, nombre FROM hoteles")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	m := make(map[string]int)
+	var entries []CatalogEntry
 	for rows.Next() {
 		var id int
 		var nom string
 		if err := rows.Scan(&id, &nom); err != nil {
 			return nil, err
 		}
-		m[strings.ToLower(strings.TrimSpace(nom))] = id
+		entries = append(entries, CatalogEntry{ID: id, Nombre: nom})
 	}
-	return m, nil
+	return NewCatalogMatcher(entries), nil
 }
 
-func (s *ImportService) getItemMap(ctx context.Context) (map[string]int, error) {
+func (s *ImportService) getItemMatcher(ctx context.Context) (*CatalogMatcher, error) {
 	rows, err := s.db.Query(ctx, "SELECT id, nombre FROM items")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	m := make(map[string]int)
+	var entries []CatalogEntry
 	for rows.Next() {
 		var id int
 		var nom string
 		if err := rows.Scan(&id, &nom); err != nil {
 			return nil, err
 		}
-		m[strings.ToLower(strings.TrimSpace(nom))] = id
+		entries = append(entries, CatalogEntry{ID: id, Nombre: nom})
 	}
-	return m, nil
+	return NewCatalogMatcher(entries), nil
 }
+

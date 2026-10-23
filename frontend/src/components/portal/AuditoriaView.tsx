@@ -182,8 +182,8 @@ export const AuditoriaView: React.FC = () => {
         setExpandedHotels((prev) => ({ ...prev, [envio.hotel_id]: true }));
         setActiveHotelTab(envio.hotel_id);
       }
-    } catch (err: any) {
-      setScanError(err.message || 'No se encontró ningún remito con ese código QR.');
+    } catch (err: unknown) {
+      setScanError(err instanceof Error ? err.message : 'No se encontró ningún remito con ese código QR.');
       setScannedEnvio(null);
     } finally {
       setScanning(false);
@@ -213,8 +213,8 @@ export const AuditoriaView: React.FC = () => {
       });
       setSelectedItemForConteo(null);
       await cargarAuditoria();
-    } catch (err: any) {
-      alert(err.message || 'Error guardando conteo');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error guardando conteo');
     } finally {
       setSavingConteo(false);
     }

@@ -220,16 +220,18 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
             <Calendar className="w-4 h-4 text-brand-400" />
             <span className="font-semibold text-slate-300">Período:</span>
             <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800">
-              {[
-                { id: 'month', label: 'Mes Actual' },
-                { id: 'last_month', label: 'Mes Anterior' },
-                { id: 'quarter', label: 'Último Trimestre' },
-                { id: 'year', label: 'Año Corriente' },
-                { id: 'custom', label: 'Personalizado' },
-              ].map((opt) => (
+              {(
+                [
+                  { id: 'month', label: 'Mes Actual' },
+                  { id: 'last_month', label: 'Mes Anterior' },
+                  { id: 'quarter', label: 'Último Trimestre' },
+                  { id: 'year', label: 'Año Corriente' },
+                  { id: 'custom', label: 'Personalizado' },
+                ] as const
+              ).map((opt) => (
                 <button
                   key={opt.id}
-                  onClick={() => handlePresetChange(opt.id as any)}
+                  onClick={() => handlePresetChange(opt.id)}
                   className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
                     periodoPreset === opt.id
                       ? 'bg-brand-600 text-white font-bold'

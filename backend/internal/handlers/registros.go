@@ -11,9 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xuri/excelize/v2"
 	"lavadero-bi/backend/internal/models"
 	"lavadero-bi/backend/internal/services"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/xuri/excelize/v2"
 )
 
 type registroPayload struct {
@@ -63,7 +65,7 @@ func (a *App) listRegistros(w http.ResponseWriter, r *http.Request) {
 		ORDER BY r.fecha DESC, r.id DESC
 	`, fechaDesde, fechaHasta, hotelID, itemID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "No se pudieron listar los registros.")
+		writeDBError(w, err, "No se pudieron listar los registros.")
 		return
 	}
 	defer rows.Close()
@@ -116,10 +118,12 @@ func (a *App) createRegistro(w http.ResponseWriter, r *http.Request) {
 
 	var registro models.Registro
 	err := a.db.QueryRow(r.Context(), `
-		INSERT INTO registros (fecha, hotel_id, item_id, cantidad)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO registros (hotel_id, item_id, fecha, cantidad, updated_at)
+		VALUES ($1, $2, $3, $4, now())
+		ON CONFLICT (hotel_id, item_id, fecha)
+		DO UPDATE SET cantidad = EXCLUDED.cantidad, updated_at = now()
 		RETURNING id, fecha, hotel_id, item_id, cantidad
-	`, fecha, payload.HotelID, payload.ItemID, payload.Cantidad).Scan(
+	`, payload.HotelID, payload.ItemID, fecha, payload.Cantidad).Scan(
 		&registro.ID,
 		&registro.Fecha,
 		&registro.HotelID,
@@ -127,15 +131,7 @@ func (a *App) createRegistro(w http.ResponseWriter, r *http.Request) {
 		&registro.Cantidad,
 	)
 	if err != nil {
-		if isUniqueViolation(err) {
-			writeError(w, http.StatusConflict, "Ya existe un registro para esa fecha, hotel e item.")
-			return
-		}
-		if isFKViolation(err) {
-			writeError(w, http.StatusBadRequest, fkMessage(fkConstraintName(err)))
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "No se pudo crear el registro.")
+		writeDBError(w, err, "Registro no encontrado.")
 		return
 	}
 
@@ -154,20 +150,18 @@ func (a *App) createRegistrosBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := a.db.Begin(r.Context())
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "No se pudo iniciar la transaccion.")
-		return
-	}
-	defer tx.Rollback(r.Context())
-
-	stmt := `
-		INSERT INTO registros (fecha, hotel_id, item_id, cantidad, updated_at)
+	upsertStmt := `
+		INSERT INTO registros (hotel_id, item_id, fecha, cantidad, updated_at)
 		VALUES ($1, $2, $3, $4, now())
-		ON CONFLICT (fecha, hotel_id, item_id)
+		ON CONFLICT (hotel_id, item_id, fecha)
 		DO UPDATE SET cantidad = EXCLUDED.cantidad, updated_at = now()
 	`
+	deleteStmt := `
+		DELETE FROM registros
+		WHERE hotel_id = $1 AND item_id = $2 AND fecha = $3
+	`
 
+	batch := &pgx.Batch{}
 	for _, item := range items {
 		if item.Cantidad < 0 {
 			writeError(w, http.StatusBadRequest, "La cantidad no puede ser negativa.")
@@ -184,28 +178,35 @@ func (a *App) createRegistrosBatch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if item.Cantidad == 0 {
-			if _, err := tx.Exec(r.Context(), `
-				DELETE FROM registros
-				WHERE fecha = $1 AND hotel_id = $2 AND item_id = $3
-			`, fecha, item.HotelID, item.ItemID); err != nil {
-				writeError(w, http.StatusInternalServerError, "Error guardando registros en lote.")
-				return
-			}
+			batch.Queue(deleteStmt, item.HotelID, item.ItemID, fecha)
 			continue
 		}
 
-		if _, err := tx.Exec(r.Context(), stmt, fecha, item.HotelID, item.ItemID, item.Cantidad); err != nil {
-			if isFKViolation(err) {
-				writeError(w, http.StatusBadRequest, fkMessage(fkConstraintName(err)))
-				return
-			}
-			writeError(w, http.StatusInternalServerError, "Error guardando registros en lote.")
+		batch.Queue(upsertStmt, item.HotelID, item.ItemID, fecha, item.Cantidad)
+	}
+
+	tx, err := a.db.Begin(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "No se pudo iniciar la transaccion.")
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	br := tx.SendBatch(r.Context(), batch)
+	for i := 0; i < batch.Len(); i++ {
+		if _, err := br.Exec(); err != nil {
+			_ = br.Close()
+			writeDBError(w, err, "Registro no encontrado.")
 			return
 		}
 	}
+	if err := br.Close(); err != nil {
+		writeDBError(w, err, "Registro no encontrado.")
+		return
+	}
 
 	if err := tx.Commit(r.Context()); err != nil {
-		writeError(w, http.StatusInternalServerError, "Error al confirmar transaccion.")
+		writeDBError(w, err, "Error al confirmar transaccion.")
 		return
 	}
 
@@ -260,19 +261,7 @@ func (a *App) updateRegistro(w http.ResponseWriter, r *http.Request) {
 		&registro.Cantidad,
 	)
 	if err != nil {
-		if isNotFound(err) {
-			writeError(w, http.StatusNotFound, "Registro no encontrado.")
-			return
-		}
-		if isUniqueViolation(err) {
-			writeError(w, http.StatusConflict, "Ya existe un registro para esa fecha, hotel e item.")
-			return
-		}
-		if isFKViolation(err) {
-			writeError(w, http.StatusBadRequest, fkMessage(fkConstraintName(err)))
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "No se pudo actualizar el registro.")
+		writeDBError(w, err, "Registro no encontrado.")
 		return
 	}
 
@@ -288,11 +277,11 @@ func (a *App) deleteRegistro(w http.ResponseWriter, r *http.Request) {
 
 	tag, err := a.db.Exec(r.Context(), `DELETE FROM registros WHERE id = $1`, id)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "No se pudo borrar el registro.")
+		writeDBError(w, err, "Registro no encontrado.")
 		return
 	}
 	if tag.RowsAffected() == 0 {
-		writeError(w, http.StatusNotFound, "Registro no encontrado.")
+		writeDBError(w, pgx.ErrNoRows, "Registro no encontrado.")
 		return
 	}
 
@@ -327,19 +316,14 @@ type ImportRecordPreview struct {
 type ImportPreviewResponse struct {
 	Registros []ImportRecordPreview `json:"registros"`
 	Resumen   struct {
-		TotalFilas           int `json:"total_filas"`
-		MapeadosOk           int `json:"mapeados_ok"`
+		TotalFilas            int `json:"total_filas"`
+		MapeadosOk            int `json:"mapeados_ok"`
 		PendientesReconciliar int `json:"pendientes_reconciliar"`
 	} `json:"resumen"`
 }
 
 func cleanImportName(s string) string {
-	s = strings.ToLower(strings.TrimSpace(s))
-	replacer := strings.NewReplacer(
-		"á", "a", "é", "e", "í", "i", "ó", "o", "ú", "u",
-		"ñ", "n", ".", "", ",", "", "-", "", "_", "", " ", "",
-	)
-	return replacer.Replace(s)
+	return services.NormalizeExcelText(s)
 }
 
 func parseImportDate(val string) string {
@@ -639,8 +623,7 @@ func rowsToRecords(rows [][]string, dateCol, hotelCol, itemCol, qtyCol int) []pr
 // buildPreviewResponse mapea los registros semanticos contra el catalogo de la
 // base de datos (fuzzy matching) y arma la respuesta de previsualizacion.
 func (a *App) buildPreviewResponse(ctx context.Context, records []previewRecord) ImportPreviewResponse {
-	// Fetch database catalog of hotels
-	hotelesCatalog := make(map[string]int)
+	var hotelEntries []services.CatalogEntry
 	hRows, err := a.db.Query(ctx, "SELECT id, nombre FROM hoteles WHERE activo = true")
 	if err == nil {
 		defer hRows.Close()
@@ -648,13 +631,12 @@ func (a *App) buildPreviewResponse(ctx context.Context, records []previewRecord)
 			var id int
 			var nombre string
 			if err := hRows.Scan(&id, &nombre); err == nil {
-				hotelesCatalog[cleanImportName(nombre)] = id
+				hotelEntries = append(hotelEntries, services.CatalogEntry{ID: id, Nombre: nombre})
 			}
 		}
 	}
 
-	// Fetch database catalog of items
-	itemsCatalog := make(map[string]int)
+	var itemEntries []services.CatalogEntry
 	iRows, err := a.db.Query(ctx, "SELECT id, nombre FROM items")
 	if err == nil {
 		defer iRows.Close()
@@ -662,55 +644,32 @@ func (a *App) buildPreviewResponse(ctx context.Context, records []previewRecord)
 			var id int
 			var nombre string
 			if err := iRows.Scan(&id, &nombre); err == nil {
-				itemsCatalog[cleanImportName(nombre)] = id
+				itemEntries = append(itemEntries, services.CatalogEntry{ID: id, Nombre: nombre})
 			}
 		}
 	}
+
+	hotelMatcher := services.NewCatalogMatcher(hotelEntries)
+	itemMatcher := services.NewCatalogMatcher(itemEntries)
 
 	var response ImportPreviewResponse
-	response.Registros = []ImportRecordPreview{}
-
-	// Helper to find best hotel ID fuzzy match
-	findHotelID := func(name string) *int {
-		clean := cleanImportName(name)
-		if clean == "" {
-			return nil
-		}
-		if id, ok := hotelesCatalog[clean]; ok {
-			return &id
-		}
-		for catalogClean, id := range hotelesCatalog {
-			if strings.Contains(catalogClean, clean) || strings.Contains(clean, catalogClean) {
-				return &id
-			}
-		}
-		return nil
-	}
-
-	// Helper to find best item ID fuzzy match
-	findItemID := func(name string) *int {
-		clean := cleanImportName(name)
-		if clean == "" {
-			return nil
-		}
-		if id, ok := itemsCatalog[clean]; ok {
-			return &id
-		}
-		for catalogClean, id := range itemsCatalog {
-			if strings.Contains(catalogClean, clean) || strings.Contains(clean, catalogClean) {
-				return &id
-			}
-		}
-		return nil
-	}
+	response.Registros = make([]ImportRecordPreview, 0, len(records))
 
 	totalFilas := 0
 	mapeadosOk := 0
 	pendientes := 0
 
 	for _, rec := range records {
-		hotelID := findHotelID(rec.hotel)
-		itemID := findItemID(rec.item)
+		var hotelID *int
+		if id, ok := hotelMatcher.Match(rec.hotel); ok {
+			idCopy := id
+			hotelID = &idCopy
+		}
+		var itemID *int
+		if id, ok := itemMatcher.Match(rec.item); ok {
+			idCopy := id
+			itemID = &idCopy
+		}
 
 		isMapped := hotelID != nil && itemID != nil
 

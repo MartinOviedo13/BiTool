@@ -63,11 +63,7 @@ func (a *App) createHotel(w http.ResponseWriter, r *http.Request) {
 		RETURNING id, nombre, activo
 	`, nombre, activo).Scan(&hotel.ID, &hotel.Nombre, &hotel.Activo)
 	if err != nil {
-		if isUniqueViolation(err) {
-			writeError(w, http.StatusConflict, "Ya existe un hotel con ese nombre.")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "No se pudo crear el hotel.")
+		writeDBError(w, err, "Hotel no encontrado.")
 		return
 	}
 
@@ -108,15 +104,7 @@ func (a *App) updateHotel(w http.ResponseWriter, r *http.Request) {
 		RETURNING id, nombre, activo
 	`, id, nombre, payload.Activo).Scan(&hotel.ID, &hotel.Nombre, &hotel.Activo)
 	if err != nil {
-		if isNotFound(err) {
-			writeError(w, http.StatusNotFound, "Hotel no encontrado.")
-			return
-		}
-		if isUniqueViolation(err) {
-			writeError(w, http.StatusConflict, "Ya existe un hotel con ese nombre.")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "No se pudo actualizar el hotel.")
+		writeDBError(w, err, "Hotel no encontrado.")
 		return
 	}
 

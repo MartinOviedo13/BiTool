@@ -123,13 +123,42 @@ type LoginResponse struct {
 
 // Modelos para Portal B2B (Envios / Remitos)
 type Envio struct {
-	ID        int            `json:"id"`
-	HotelID   int            `json:"hotel_id"`
-	Hotel     *Hotel         `json:"hotel,omitempty"`
-	Fecha     time.Time      `json:"fecha"`
-	CodigoQR  string         `json:"codigo_qr"`
-	CreadoEn  time.Time      `json:"creado_en"`
-	Detalles  []EnvioDetalle `json:"detalles,omitempty"`
+	ID                  int            `json:"id"`
+	HotelID             int            `json:"hotel_id"`
+	Hotel               *Hotel         `json:"hotel,omitempty"`
+	Fecha               time.Time      `json:"fecha"`
+	CodigoQR            string         `json:"codigo_qr"`
+	Estado              string         `json:"estado"` // listo_para_retiro, retirado, en_planta, entregado
+	RetiradoPorID       *int           `json:"retirado_por_id,omitempty"`
+	RetiradoPorUsername *string        `json:"retirado_por_username,omitempty"`
+	RetiradoEn          *time.Time     `json:"retirado_en,omitempty"`
+	ObservacionRetiro   *string        `json:"observacion_retiro,omitempty"`
+	CreadoEn            time.Time      `json:"creado_en"`
+	Detalles            []EnvioDetalle `json:"detalles,omitempty"`
+}
+
+type RetiroItemDTO struct {
+	ItemNombre        string `json:"item_nombre"`
+	CantidadDeclarada int    `json:"cantidad_declarada"`
+}
+
+type RetiroPendienteDTO struct {
+	EnvioID             int             `json:"envio_id"`
+	HotelID             int             `json:"hotel_id"`
+	HotelNombre         string          `json:"hotel_nombre"`
+	Fecha               string          `json:"fecha"`
+	CodigoQR            string          `json:"codigo_qr"`
+	Estado              string          `json:"estado"` // listo_para_retiro, retirado
+	TotalPrendas        int             `json:"total_prendas"`
+	CreadoEn            time.Time       `json:"creado_en"`
+	RetiradoEn          *time.Time      `json:"retirado_en,omitempty"`
+	RetiradoPorUsername *string         `json:"retirado_por_username,omitempty"`
+	ObservacionRetiro   *string         `json:"observacion_retiro,omitempty"`
+	Detalles            []RetiroItemDTO `json:"detalles"`
+}
+
+type ConfirmarRetiroRequest struct {
+	Observacion string `json:"observacion"`
 }
 
 type EnvioDetalle struct {
@@ -264,3 +293,61 @@ type StagingRegistro struct {
 	ItemID    int       `json:"item_id"`
 	Cantidad  int       `json:"cantidad"`
 }
+
+// Modelos para Circuito Operativo de Conciliacion y Notificaciones
+type MuestraItemConciliacion struct {
+	ItemID               int     `json:"item_id"`
+	ItemNombre           string  `json:"item_nombre"`
+	CantRemito           int     `json:"cant_remito"`
+	CantProcesadaPrendas int     `json:"cant_procesada_prendas"`
+	CantProcesadaKilos   float64 `json:"cant_procesada_kilos"`
+	Diferencia           int     `json:"diferencia"`
+}
+
+type DespachoConciliacion struct {
+	ID                    int                       `json:"id"`
+	HotelID               int                       `json:"hotel_id"`
+	HotelNombre           string                    `json:"hotel_nombre"`
+	RemitoID              *int                      `json:"remito_id"`
+	CodigoQR              *string                   `json:"codigo_qr,omitempty"`
+	Fecha                 string                    `json:"fecha"`
+	Estado                string                    `json:"estado"` // pendiente, validado_ok, validado_con_diferencia, entregado
+	TotalRemitoPrendas    int                       `json:"total_remito_prendas"`
+	TotalProcesadoPrendas int                       `json:"total_procesado_prendas"`
+	TotalProcesadoKilos   float64                   `json:"total_procesado_kilos"`
+	DiferenciaPrendas     int                       `json:"diferencia_prendas"`
+	MuestraProcesado      []MuestraItemConciliacion `json:"muestra_procesado"`
+	ValidadoPorID         *int                      `json:"validado_por_id"`
+	ValidadoPorUsername   *string                   `json:"validado_por_username,omitempty"`
+	ValidadoEn            *time.Time                `json:"validado_en"`
+	EntregadoPorID        *int                      `json:"entregado_por_id"`
+	EntregadoPorUsername  *string                   `json:"entregado_por_username,omitempty"`
+	EntregadoEn           *time.Time                `json:"entregado_en"`
+	ObservacionEntrega    *string                   `json:"observacion_entrega"`
+}
+
+type ValidarConciliacionRequest struct {
+	HotelID int    `json:"hotel_id"`
+	Fecha   string `json:"fecha"` // YYYY-MM-DD
+}
+
+type EntregarDespachoRequest struct {
+	ObservacionEntrega string `json:"observacion_entrega"`
+}
+
+type NotificacionOperativa struct {
+	ID           int                       `json:"id"`
+	RolDestino   string                    `json:"rol_destino"`
+	HotelID      int                       `json:"hotel_id"`
+	HotelNombre  string                    `json:"hotel_nombre"`
+	DespachoID   *int                      `json:"despacho_id,omitempty"`
+	Tipo         string                    `json:"tipo"`      // ALERTA_DIFERENCIA_REMITO, CARGA_LISTA_REPARTO, PEDIDO_ENTREGADO
+	Severidad    string                    `json:"severidad"` // info, warning, success
+	Titulo       string                    `json:"titulo"`
+	Mensaje      string                    `json:"mensaje"`
+	MuestraDatos []MuestraItemConciliacion `json:"muestra_datos"`
+	Leida        bool                      `json:"leida"`
+	LeidaEn      *time.Time                `json:"leida_en"`
+	CreatedAt    time.Time                 `json:"created_at"`
+}
+

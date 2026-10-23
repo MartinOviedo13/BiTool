@@ -1,148 +1,62 @@
-# PLAN DE MEJORAS — Lavadero BI
+# PLAN DE MEJORAS — Lavadero BI (TRITÓN / Poseidón Servicio de Lavandería SRL)
 
-Proyecto de tesis de Analista de Sistemas (IRESM) — Sistema de BI + IA para el lavadero industrial *Poseidón Servicio de Lavandería SRL*.
-
-Este documento es el plan priorizado de mejoras. Se analizó el código completo (backend Go + frontend React) y la documentación, y se definió el diseño del módulo de IA.
-
-**Decisiones de alcance tomadas en conjunto:**
-- Chat de IA con arquitectura **KPIs pre-calculados + redacción de texto** (la IA nunca genera ni ejecuta SQL).
-- **Sin autenticación / login** en esta fase de la tesis (se documenta como evolución futura).
-- Modelo IA: **Gemini API (tier gratuito)**, proveedor desacoplado detrás de una interfaz `LLMProvider`.
+Proyecto de tesis de Analista de Sistemas (IRESM) — Sistema de Business Intelligence, Portal B2B con trazabilidad QR, Auditoría Operativa y Asistente IA para **Poseidón Servicio de Lavandería SRL (TRITÓN)**.
 
 ---
 
-## PARTE 1 — Problemas y deuda técnica (ordenados por gravedad)
+## PARTE 1 — Auditoría de Seguridad, Concurrencia y Deuda Técnica (RESUELTOS)
 
-### 🔴 Críticos / Seguridad
+### 🔴 Críticos / Seguridad (Resueltos)
 
-- **P1. La `GEMINI_API_KEY` parece un token OAuth de Google (`AQ.…`) y no una API Key de AI Studio (`AIza…`).** El endpoint público de Gemini espera una key `AIza…`. Muy probable la extracción por IA falla en producción. Acción: regenerar una key real en AI Studio. El `.env` ya está excluido de git (no hay filtración).
-- **P2. CORS abierto a `*`.** Restringir a `http://localhost:5173` (origen real del frontend) vía configuración.
-- **P3. Sin autenticación en las rutas de escritura.** Decorar como evolución futura (fuera de scope).
+- ✅ **P1. Configuración de IA y Sanitización de Secretos (`.env.example` / `ia.go` / `gemini.go`):**
+  - Se eliminaron contraseñas reales en `.env.example` (`tu_password_readonly`).
+  - Se actualizó el modelo por defecto a `gemini-2.5-flash` (modelo oficial estable).
+  - Se implementó validación Fail-Fast al inicio del servidor (`main.go`) exigiendo `DATABASE_URL` y `JWT_SECRET` de al menos 32 caracteres, eliminando todos los secretos hardcodeados de fallback en `middleware.go` y `main.go`.
+  - En `askIA` se valida que `GEMINI_API_KEY` esté definida sin espacios residuales y se registra el código de estado ante fallos del proveedor externo.
+- ✅ **P2. CORS seguro configurable por entorno (`routes.go` / `middleware.go`):**
+  - Se reemplazó el comodín inseguro `*` por lectura dinámica de `CORS_ALLOWED_ORIGINS` (separada por comas, con fallback seguro a `http://localhost:5173` y `http://127.0.0.1:5173`), habilitando `Access-Control-Allow-Credentials: true` y cabecera `Vary: Origin`.
+- ✅ **P3. Autenticación JWT y Control de Acceso Basado en Roles (RBAC):**
+  - Implementado y testeado con middlewares `requireAuth` y `requireRole` para los perfiles `admin`, `operario`, `cliente` y `repartidor`.
 
-### 🟠 Validación de datos (errores silenciosos)
+### 🟠 Integridad de Datos, Transacciones y Mapeo de Errores (Resueltos)
 
-- **P4. Sin validación de Foreign Keys en `registros`.** Insertar con `hotel_id`/`item_id` inexistentes → 500 genérico en vez de 400 claro. Batch sin validación de existencia.
-- **P5. `updateRegistro/updateHotel/updateItem` no distinguen "no existe" de violación de constraint** → mensajes erróneos.
-- **P6. Sin validación de rango de fechas** (`fecha_desde > fecha_hasta`) ni límites de longitud de strings.
-- **P7. `optionalIntQuery` devuelve `nil` silenciosamente ante `hotel_id` mal formado** en listado, en vez de 400.
+- ✅ **P4. Validación de Foreign Keys y traducción centralizada de errores PostgreSQL (`respond.go`):**
+  - Se implementó el helper centralizado `writeDBError` que inspecciona `pgx.ErrNoRows` (`404 Not Found`) y códigos `*pgconn.PgError`: `23503` (`422 Unprocessable Entity` cuando el hotel o ítem no existe), `23505` (`409 Conflict` por duplicados) y `23514` (`400 Bad Request` por violación de `CHECK`).
+- ✅ **P5. Distinción semántica en CRUD de Registros, Hoteles e Ítems (`registros.go`, `hoteles.go`, `items.go`):**
+  - Todos los handlers CRUD utilizan `writeDBError`, distinguiendo recursos inexistentes (`404`) de conflictos (`409`) y referencias inválidas (`422`).
+- ✅ **P6. Unicidad `(hotel_id, item_id, fecha)`, `UPSERT` idempotente y carga por lote transaccional (`010_registros_unique_upsert.sql`, `registros.go`):**
+  - Nueva migración `010_registros_unique_upsert.sql` que deduplica registros históricos conservando el `MAX(id)` y añade la restricción `uq_registros_hotel_item_fecha UNIQUE (hotel_id, item_id, fecha)`.
+  - `createRegistro` y `createRegistrosBatch` operan con `UPSERT` idempotente (`ON CONFLICT (hotel_id, item_id, fecha) DO UPDATE`) dentro de una transacción explícita (`tx.Begin` / `defer tx.Rollback`) combinada con `pgx.Batch` para eliminar consultas N+1.
 
-### 🟡 Deuda de arquitectura
+### 🟡 Arquitectura, Rendimiento, Tipado y Testing (Resueltos)
 
-- **P8. Toda la lógica SQL vive en handlers** (717 líneas en `registros.go`) en vez de `services/` como indica el propio README del servicio.
-- **P9. Fuzzy matching O(n²)** en importación (aceptable a esta escala).
-- **P10. Sin tests** en backend ni frontend.
-- **P11. SQL injection:** verificado — **no hay** queries crudas; todos los valores usan parámetros `$N`. ✅
-- **P12. Frontend:** consume **datos reales** en todas las vistas (sin placeholders de datos falsos). ✅
-
----
-
-## PARTE 2 — Funcionalidades BI faltantes (impacto para la tesis vs esfuerzo)
-
-- **F1. Comparación de períodos** (mes actual vs anterior, año vs año) — ⭐⭐⭐ alto impacto / bajo esfuerzo.
-- **F2. Exportar reportes (PDF/Excel)** — ⭐⭐⭐ alto impacto / medio esfuerzo.
-- **F3. Filtros más flexibles** (hotel específico, tipo de prenda, botón "mes anterior") — ⭐⭐ / bajo.
-- **F4. Alertas automáticas** (hotel que bajó consumo X%, día con facturación anormal, relavado > umbral) — ⭐⭐ / medio.
-- **F5. Serie temporal / tendencia** (gráfico de evolución diaria/semanal) — ⭐⭐ / bajo.
-- **F6. Dashboard secundario por cliente** — ⭐ / medio.
-- **F7. Precios históricos** por fecha — nota de diseño, no prioridad.
-- **F8. Autenticación:** fuera de scope (decisión).
-
----
-
-## PARTE 3 — Diseño del Chat IA (Gemini, desacoplado, KPIs + texto)
-
-### Arquitectura elegida: (a) KPIs pre-calculados + redacción de texto
-
-```
-Frontend (panel chat)
-      │  POST /api/ia/ask  { mensaje, rango }
-      ▼
-Backend Go — services/ia.go (orquesta)
-      │  1) Determina de qué KPI(s) necesita respuesta
-      │  2) Calcula KPIs del rango (+ período anterior para comparar)
-      │  3) Arma un "nivel de datos" (solo agregados) + instrucciones
-      │  4) LLM (Gemini) → responde en texto en español
-      ▼
-Interfaz LLMProvider (servicio desacoplado)
-      ├── GeminiProvider   ← implementa LLMProvider (refactor de services/gemini.go)
-      └── (futuro) OpenAIProvider / ClaudeProvider (se cambia por config)
-```
-
-Interfaz Go:
-
-```go
-type LLMProvider interface {
-    Complete(ctx context.Context, system string, userMessages []Message) (string, error)
-}
-```
-
-### Pros y contras de (a) KPIs+texto vs (b) function calling (para el caso puntual)
-
-| Criterio | (a) KPIs pre-calculados | (b) Function calling / SQL |
-|---|---|---|
-| Riesgo en defensa en vivo | Bajo (determinista sobre datos calculados; fallback si la IA falla) | Alto (la IA puede inventar consultas o fallar el JSON) |
-| Seguridad | Sin superficie: la IA nunca toca la DB | Requiere whitelist SELECT, esquema, cuenta read-only, rate limits |
-| Latencia / costo (tier gratuito) | 1 llamada LLM | 2-3 llamadas LLM |
-| Flexibilidad | Limitada a KPIs diseñados (cubre ~95% de preguntas de un dueño) | Ilimitada pero arriesgada |
-| Complejidad | Baja-media | Alta (subproyecto) |
-| "Wow" para el tribunal | Moderado | Alto pero arriesgado |
-
-**Conclusión:** se elige (a) como columna vertebral. El function calling queda documentado como evolución.
-
-### Preguntas que debe responder bien
-- "¿Qué hotel facturó menos este mes?" (ranking por facturación, no solo volumen)
-- "¿Cómo venimos comparado con el mes pasado?" (comparación de períodos — reusa F1)
-- "¿Cuál es la tasa de relavado y está alta?" (KPI relavado + umbral)
-- "¿Cuánto facturamos en total?", "¿Cuál es el volumen total?", "¿Quién es nuestro top cliente?"
-
-### Seguridad
-- La IA **nunca ejecuta SQL**.
-- A Gemini solo se envían **agregados** (sumas, conteos, top-N), nunca registros crudos ni datos personales.
-- El contexto (rango de fechas, hotel) se arma con parámetros **validados en el backend**.
-- Prompt de sistema restringe a "no inventar números; usar solo los datos provistos".
-- Timeout en el cliente HTTP + manejo de errores del tier gratuito (cuota/503) con mensaje amigable.
-
-### UI propuesta
-- Panel de chat **lateral (drawer)** accesible desde cualquier pestaña + la vista "Asistente IA" pasa a ser el chat a pantalla completa.
-- Burbujas de mensaje, selector de período en el header y "chips" con preguntas sugeridas.
+- ✅ **P7. Timeouts HTTP completos y Graceful Shutdown (`cmd/api/main.go`):**
+  - Configurados `ReadHeaderTimeout: 5s`, `ReadTimeout: 15s`, `WriteTimeout: 30s` e `IdleTimeout: 60s`.
+  - Apagado elegante (`signal.NotifyContext` con `os.Interrupt` y `syscall.SIGTERM`) drenando conexiones activas con timeout de 10 segundos antes de cerrar el pool de PostgreSQL.
+- ✅ **P8. Optimización O(1) del matcher de hoteles e ítems en importación Excel (`services/excel.go`, `import_service.go`, `registros.go`):**
+  - `CatalogMatcher` indexa nombres y códigos pre-normalizados en memoria (`map[string]int`) para búsquedas en O(1), ejecutando similitud difusa (subcadenas y distancia de Levenshtein) únicamente como fallback y cacheando el resultado en el mapa para el resto de la planilla.
+- ✅ **P9. Eliminación de Race Conditions en la Matriz de Carga (`MatrixEntryView.tsx`) y sesión SPA sin recargas (`client.ts`, `AuthContext.tsx`, `App.tsx`):**
+  - Control de timers por celda (`useRef<Map<string, ReturnType<typeof setTimeout>>>`) y cancelación de peticiones en vuelo por celda (`useRef<Map<string, AbortController>>`), limpiando recursos al desmontar.
+  - Manejo de `401 Unauthorized` mediante evento global `CustomEvent('auth:unauthorized')` sin recargar el navegador, y persistencia de la pestaña activa en `window.location.hash`.
+- ✅ **P10. Erradicación total de `any` en TypeScript (`frontend/src/`):**
+  - Tipado 100% estricto en cliente HTTP, contextos y vistas (`npx tsc --noEmit` sin errores ni usos de `any`).
+- ✅ **P11. Suite de Tests Unitarios en Go y Contenedorización Docker:**
+  - Tests automatizados en `services/excel_test.go`, `handlers/middleware_test.go`, `handlers/alertas_test.go` y `handlers/conciliacion_test.go`.
+  - Portabilidad multiplataforma en `frontend/package.json` (sin dependencias nativas `@esbuild/win32-x64`) y `backend/go.mod`.
+  - `backend/Dockerfile` multi-stage y `docker-compose.yml` con `postgres:16-alpine` (healthcheck) y backend API.
+  - Higiene de archivos de diseño y scripts en `docs/` usando rutas relativas (`pathlib.Path`).
 
 ---
 
-## PARTE 4 — Orden de implementación por etapas
+## PARTE 2 — Funcionalidades Implementadas y Operativas
 
-| Etapa | Qué | Por qué primero | Depende de |
-|---|---|---|---|
-| **E1** | Endpoints de refuerzo + validación (P4–P7) + comparación/tendencia/tendencia/filtros (F1, F3, F5) | Base de datos sólida; frontend e IA dependen de esto | — |
-| **E2** | Dashboard: %Δ vs período anterior, filtros hotel/prenda, gráfico de tendencia (F1, F3, F5) | Impacto visual para el dueño | E1 |
-| **E3** | Exportar PDF/Excel (F2) | Tangible para mostrar | E1 |
-| **E4** | Alertas automáticas + banner en dashboard (F4) | Primera "inteligencia" visible | E1 |
-| **E5** | Chat IA (Gemini, KPIs+texto, `LLMProvider`) + panel lateral (Fase 3 de la tesis) | El hit de la defensa | E1 |
-| **E6** | Refactor a `services/`, logging, CORS restringido (P2, P7, P8) | Limpieza, mejor al final | — |
-| **E7** | Tests (smoke + batch) y documentación final de defensa | Pulido | todo |
-
-**Recomendación:** arrancar por E1+E2 (core BI, resultado visible rápido), luego E5 (IA) para la defensa, y E6/E7 de pulido.
-
----
-
-## PARTE 5 — Evolución futura documentada (fuera de scope)
-- Autenticación multiusuario con roles.
-- Function calling / SQL controlado para preguntas ad-hoc.
-- Precios históricos por fecha.
-- Predicción de demanda (staffing) con ML — módulo pendiente en `propuesta_ia_integracion.md`.
-- Deploy a la nube (azd).
-
----
-
-## ESTADO DE IMPLEMENTACIÓN
-
-**E1–E5 implementadas y validadas** (backend `go build`/`go vet` OK; frontend `tsc` + `npm run build` OK; endpoints probados end-to-end con `curl`):
-
-- ✅ **E1** — Seguridad de datos: `registros.create/update/batch` validan FKs con mensajes claros (400) y distinguen "no existe" de violación de constraint (`respond.go`, `query.go`); filtro `item_id`; fecha mal formada/invertida → 400. Endpoints nuevos `/analisis/comparar` y `/analisis/tendencia`; ranking admite `orden=cantidad|facturacion` y `limit`. ✅ **P11** sin inyección (parámetros `$N`); ✅ **P12** frontend con datos reales.
-- ✅ **E2** — Dashboard: badge `%Δ` vs período anterior en KPI, filtros hotel/prenda, gráfico de tendencia, ranking por volumen y tabla detalle (`DashboardView.tsx`).
-- ✅ **E3** — `GET /analisis/exportar.csv` (resumen + ranking, BOM UTF-8) + botón **Exportar CSV** en el dashboard. Validado: 200, `Content-Disposition`, contenido correcto.
-- ✅ **E4** — `GET /alertas` evalúa heurísticas (relavado > 5%, prendas sin precio, facturación en cero, dependencia del top cliente ≥ 50%, hoteles inactivos acotados a 5) + panel **Alertas Automáticas** en dashboard (`AlertasPanel.tsx`). Validado end-to-end.
-- ✅ **E5** — Chat IA con `LLMProvider` desacoplado (`provider.go`) y `IAService.Ask` (KPIs calculados + redacción con Gemini). Endpoint `POST /ia/ask`; frontend `ChatWidget.tsx` (chat a pantalla completa en la vista AI + FAB/drawer lateral global). El flujo mantiene el punto **P1**: la key actual (`AQ.…`) está denegada por Gemini (403) → **se necesita una key real `AIza…` de AI Studio** para respuestas reales.
-
-**Pendientes (fuera del objetivo actual):** P2 (CORS restringido) y P8 (refactor a `services/`) en E6, y tests/docs finales en E7.
-
-*Documento generado en la revisión inicial. Etapas E1–E5 implementadas en iteraciones sucesivas, cada una verificable por separado.*
+- ✅ **Dashboard BI Ejecutivo:** KPIs con variación porcentual vs. período anterior, ranking de hoteles, tendencia temporal, exportación CSV y panel de alertas automáticas (relavado > 5%, roturas > 2%, tarifario sin precio, facturación cero, concentración ≥ 50% e inactividad).
+- ✅ **Matriz de Carga Diaria e Importador Excel/IA:** Grilla interactiva con auto-guardado libre de condiciones de carrera, importación masiva con `excelize` y extracción multimodal con Gemini.
+- ✅ **Circuito Operativo de Conciliación de Remitos, Notificaciones y Entregas (`011_conciliacion_despachos_notificaciones.sql`, `conciliacion.go`, `MatrixEntryView.tsx`, `EntregasView.tsx`, `Navbar.tsx`):**
+  - Validación de remito desde la Matriz de Carga comparando ítems y totales declarados en remito vs. procesados en planta (`validado_ok` o `validado_con_diferencia`).
+  - Generación transaccional de notificaciones operativas para perfiles `cliente`, `repartidor` y `admin` con muestra estructurada ítem por ítem (`muestra_procesado`).
+  - Centro de Notificaciones en tiempo real en `Navbar` (campana con contador de no leídas, tabla desplegable de diferencias y marcado de lectura).
+  - Vista de Logística / Entregas (`EntregasView`) con alerta preventiva de diferencias, inspección de muestra procesada y confirmación de entrega en destino con bloqueo automático de fila en la Matriz.
+- ✅ **Portal B2B Clientes & Trazabilidad QR:** Emisión de remitos digitales con código QR único (`ENV-...`), compartición por WhatsApp, Ficha 360 del Hotel y exportación de liquidaciones.
+- ✅ **Auditoría de Planta:** Cruce automático entre lo declarado por el hotel y lo contado en lavadero (prendas limpias, en relavado y rotas/bajas).
+- ✅ **Asistente IA (`LLMProvider`):** Consultas en lenguaje natural sobre métricas agregadas sin exposición directa de SQL.

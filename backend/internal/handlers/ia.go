@@ -3,24 +3,52 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	"lavadero-bi/backend/internal/services"
 )
 
-type iaAskPayload struct {
-	Mensaje    *string `json:"mensaje"`
-	FechaDesde *string `json:"fecha_desde"`
-	FechaHasta *string `json:"fecha_hasta"`
+const defaultGeminiModel = "gemini-3.8-flash"
+
+type iaMessagePayload struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
-// askIA recibe una pregunta en lenguaje natural y el rango de fechas de
-// contexto, y devuelve la respuesta redactada por el LLM a partir de KPIs
-// agregados (la IA nunca accede directamente a la base).
+type iaAskPayload struct {
+	Mensaje    *string            `json:"mensaje"`
+	FechaDesde *string            `json:"fecha_desde"`
+	FechaHasta *string            `json:"fecha_hasta"`
+	Historial  []iaMessagePayload `json:"historial,omitempty"`
+}
+
+type iaAskResponse struct {
+	Respuesta   string   `json:"respuesta"`
+	ToolsUsadas []string `json:"tools_usadas,omitempty"`
+}
+
+// askIA recibe una pregunta en lenguaje natural, opcionalmente con rango de fechas
+// e historial reciente, y procesa la consulta invocando herramientas MCP según se requiera.
 func (a *App) askIA(w http.ResponseWriter, r *http.Request) {
+	apiKey := strings.TrimSpace(os.Getenv("GEMINI_API_KEY"))
+	if apiKey == "" || a.ia == nil {
+		writeError(w, http.StatusServiceUnavailable, "Módulo de IA no configurado (falta GEMINI_API_KEY en backend/.env).")
+		return
+	}
+
+	model := strings.TrimSpace(os.Getenv("GEMINI_MODEL"))
+	if model == "" {
+		model = defaultGeminiModel
+	}
+
 	var payload iaAskPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, "JSON invalido.")
+		writeError(w, http.StatusBadRequest, "JSON inválido.")
 		return
 	}
 	if payload.Mensaje == nil || strings.TrimSpace(*payload.Mensaje) == "" {
@@ -34,22 +62,54 @@ func (a *App) askIA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if a.ia == nil {
-		writeError(w, http.StatusServiceUnavailable, "Modulo de IA no configurado (falta GEMINI_API_KEY en backend/.env).")
-		return
+	history := make([]services.Message, 0, len(payload.Historial))
+	for _, m := range payload.Historial {
+		if strings.TrimSpace(m.Content) != "" {
+			history = append(history, services.Message{
+				Role:    m.Role,
+				Content: m.Content,
+			})
+		}
 	}
 
-	respuesta, err := a.ia.Ask(r.Context(), strings.TrimSpace(*payload.Mensaje), desde, hasta)
+	res, err := a.ia.AskWithMCP(r.Context(), strings.TrimSpace(*payload.Mensaje), desde, hasta, history)
 	if err != nil {
+		log.Printf("[IA] Error consultando modelo %s con MCP: %v", model, err)
 		writeError(w, http.StatusBadGateway, err.Error())
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"respuesta": respuesta})
+	writeJSON(w, http.StatusOK, iaAskResponse{
+		Respuesta:   res.Respuesta,
+		ToolsUsadas: res.ToolsUsadas,
+	})
+}
+
+// handleMCP procesa solicitudes directas de clientes externos bajo el estándar JSON-RPC 2.0 (MCP).
+func (a *App) handleMCP(w http.ResponseWriter, r *http.Request) {
+	if a.mcp == nil {
+		writeError(w, http.StatusServiceUnavailable, "Servidor MCP no inicializado.")
+		return
+	}
+
+	reqBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "No se pudo leer el cuerpo de la petición.")
+		return
+	}
+
+	respBytes := a.mcp.HandleJSONRPC(r.Context(), reqBytes)
+	if respBytes == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(respBytes)
 }
 
 // parseDatesFromPayload valida y convierte las fechas opcionales del payload
-// (formato YYYY-MM-DD). El rango debe ser coherente (desde <= hasta).
 func parseDatesFromPayload(fd, fh *string) (desde, hasta *time.Time, err error) {
 	if fd != nil && *fd != "" {
 		t, e := time.Parse("2006-01-02", strings.TrimSpace(*fd))

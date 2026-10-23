@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -23,14 +22,6 @@ type jwtClaims struct {
 	HotelID     *int    `json:"hotel_id,omitempty"`
 	HotelNombre *string `json:"hotel_nombre,omitempty"`
 	jwt.RegisteredClaims
-}
-
-func jwtSecret() []byte {
-	s := os.Getenv("JWT_SECRET")
-	if s == "" {
-		s = "dev-secret-change-me"
-	}
-	return []byte(s)
 }
 
 func (a *App) login(w http.ResponseWriter, r *http.Request) {

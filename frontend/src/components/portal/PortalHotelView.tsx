@@ -46,14 +46,25 @@ export const PortalHotelView: React.FC = () => {
     setLoading(true);
     try {
       const [dashData, itemsData, enviosData, fichaData] = await Promise.all([
-        api.getPortalDashboard(),
+        api.getPortalDashboard().catch((err) => {
+          console.error('Error cargando dashboard portal:', err);
+          return null;
+        }),
         api.getItems(),
-        api.getEnvios(),
-        user?.hotel_id ? api.getFichaHotel360(user.hotel_id) : Promise.resolve(null),
+        api.getEnvios().catch((err) => {
+          console.error('Error cargando envios portal:', err);
+          return [] as Envio[];
+        }),
+        user?.hotel_id
+          ? api.getFichaHotel360(user.hotel_id).catch((err) => {
+              console.error('Error cargando ficha 360:', err);
+              return null;
+            })
+          : Promise.resolve(null),
       ]);
-      setDashboard(dashData);
-      setItems(itemsData);
-      setEnvios(enviosData);
+      if (dashData) setDashboard(dashData);
+      setItems(Array.isArray(itemsData) ? itemsData : []);
+      setEnvios(Array.isArray(enviosData) ? enviosData : []);
       if (fichaData) setFicha(fichaData);
     } catch (err) {
       console.error('Error cargando portal:', err);
@@ -105,8 +116,8 @@ export const PortalHotelView: React.FC = () => {
       setCantidades({});
       await cargarDatos();
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err: any) {
-      alert(err.message || 'Error al enviar remito');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error al enviar remito');
     } finally {
       setSubmitting(false);
     }
@@ -575,13 +586,24 @@ export const PortalHotelView: React.FC = () => {
               envios.map((env) => (
                 <div key={env.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-[#132747]/30 transition-colors">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-black text-white">
                         {new Date(env.fecha).toLocaleDateString('es-AR')}
                       </span>
                       <span className="font-mono text-[11px] bg-[#071326] text-brand-300 border border-[#1e3659] px-2 py-0.5 rounded font-bold">
                         {env.codigo_qr}
                       </span>
+                      {env.estado === 'retirado' ? (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-blue-400" />
+                          <span>Retirado - En camino al lavadero</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span>Listo para retiro (Repartidor avisado)</span>
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-1 mt-2">

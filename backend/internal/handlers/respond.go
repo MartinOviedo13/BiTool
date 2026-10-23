@@ -77,3 +77,45 @@ func fkMessage(constraint string) string {
 		return "Referencia invalida: el hotel o el item indicado no existe."
 	}
 }
+
+func uniqueMessage(constraint string) string {
+	switch constraint {
+	case "hoteles_nombre_key":
+		return "Ya existe un hotel con ese nombre."
+	case "items_nombre_key":
+		return "Ya existe un item con ese nombre."
+	case "uq_registro_fecha_hotel_item", "uq_registros_hotel_item_fecha":
+		return "Ya existe un registro para esa fecha, hotel e item."
+	default:
+		return "Ya existe un registro con esos datos (valor duplicado)."
+	}
+}
+
+// writeDBError centraliza la traduccion de errores de PostgreSQL/pgx a codigos HTTP semanticos.
+func writeDBError(w http.ResponseWriter, err error, notFoundMsg string) {
+	if errors.Is(err, pgx.ErrNoRows) {
+		if strings.TrimSpace(notFoundMsg) == "" {
+			notFoundMsg = "Recurso no encontrado."
+		}
+		writeError(w, http.StatusNotFound, notFoundMsg)
+		return
+	}
+
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case "23503": // foreign_key_violation
+			writeError(w, http.StatusUnprocessableEntity, fkMessage(pgErr.ConstraintName))
+			return
+		case "23505": // unique_violation
+			writeError(w, http.StatusConflict, uniqueMessage(pgErr.ConstraintName))
+			return
+		case "23514": // check_violation
+			writeError(w, http.StatusBadRequest, "Los datos enviados violan una restriccion de validacion.")
+			return
+		}
+	}
+
+	writeError(w, http.StatusInternalServerError, "Error interno al procesar la operacion en la base de datos.")
+}
+

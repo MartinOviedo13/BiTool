@@ -1,15 +1,17 @@
 import base64
 import subprocess
-import os
+import shutil
+from pathlib import Path
 
-img_logo_path = r"C:/Users/marti/.gemini/antigravity/brain/4a634cb0-c2db-4c17-97ed-cac11b584e52/.user_uploaded/media_1790725424655.jpg"
-img_banner_path = r"C:/Users/marti/.gemini/antigravity/brain/4a634cb0-c2db-4c17-97ed-cac11b584e52/.user_uploaded/media_1790725465619.png"
+BASE_DIR = Path(__file__).resolve().parent
+REPO_ROOT = BASE_DIR.parent if BASE_DIR.name == "docs" else BASE_DIR
+PUBLIC_DIR = REPO_ROOT / "frontend" / "public"
 
-with open(img_logo_path, "rb") as f:
-    logo_b64 = base64.b64encode(f.read()).decode("utf-8")
+img_logo_path = PUBLIC_DIR / "logo-triton.jpg"
+img_banner_path = PUBLIC_DIR / "banner-triton.png"
 
-with open(img_banner_path, "rb") as f:
-    banner_b64 = base64.b64encode(f.read()).decode("utf-8")
+logo_b64 = base64.b64encode(img_logo_path.read_bytes()).decode("utf-8") if img_logo_path.exists() else ""
+banner_b64 = base64.b64encode(img_banner_path.read_bytes()).decode("utf-8") if img_banner_path.exists() else ""
 
 html_content = f"""<!DOCTYPE html>
 <html lang="es">
@@ -591,31 +593,26 @@ html_content = f"""<!DOCTYPE html>
 </html>
 """
 
-html_path = r"c:\Users\marti\OneDrive\Documentos\BITool\lavadero-bi\propuesta_redisenio.html"
-pdf_path = r"c:\Users\marti\OneDrive\Documentos\BITool\lavadero-bi\Propuesta_Redisenio_Triton_BI.pdf"
-pdf_root_path = r"c:\Users\marti\OneDrive\Documentos\BITool\Propuesta_Redisenio_Triton_BI.pdf"
+html_path = BASE_DIR / "propuesta_redisenio.html"
+pdf_path = BASE_DIR / "Propuesta_Redisenio_Triton_BI.pdf"
 
-with open(html_path, "w", encoding="utf-8") as f:
-    f.write(html_content)
+html_path.write_text(html_content, encoding="utf-8")
 
-edge_exe = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+edge_exe = shutil.which("msedge") or shutil.which("chromium") or shutil.which("google-chrome") or "msedge"
 cmd = [
     edge_exe,
     "--headless",
     "--disable-gpu",
     "--no-pdf-header-footer",
     f"--print-to-pdf={pdf_path}",
-    html_path,
+    str(html_path),
 ]
 
 result = subprocess.run(cmd, capture_output=True, text=True)
 print("Return code:", result.returncode)
 
-if os.path.exists(pdf_path):
-    print("PDF generated successfully:", pdf_path, os.path.getsize(pdf_path), "bytes")
-    # Copiar también al directorio raíz para máxima comodidad
-    with open(pdf_path, "rb") as src, open(pdf_root_path, "wb") as dst:
-        dst.write(src.read())
-    print("Copied to root:", pdf_root_path)
+if pdf_path.exists():
+    print("PDF generated successfully:", pdf_path, pdf_path.stat().st_size, "bytes")
 else:
     print("Error generating PDF:", result.stderr)
+

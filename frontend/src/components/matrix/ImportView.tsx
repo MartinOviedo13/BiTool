@@ -57,8 +57,8 @@ export const ImportView: React.FC = () => {
         type: 'success',
         text: `Previsualizacion cargada. Se leyeron ${res.resumen.total_filas} registros. Reconcilia los pendientes antes de importar.`,
       });
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err.message || 'Error al procesar el archivo.' });
+    } catch (err: unknown) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Error al procesar el archivo.' });
     } finally {
       setLoading(false);
     }
@@ -75,8 +75,8 @@ export const ImportView: React.FC = () => {
         type: 'success',
         text: `Extraccion con IA completada. Se detectaron ${res.resumen.total_filas} registros. Revisa y confirma antes de importar.`,
       });
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err.message || 'Error al extraer con la IA.' });
+    } catch (err: unknown) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Error al extraer con la IA.' });
     } finally {
       setProcessingIA(false);
     }
@@ -118,8 +118,8 @@ export const ImportView: React.FC = () => {
       setStatusMessage({ type: 'success', text: `Importacion completada. Se guardaron ${res.count} registros.` });
       setPreviewRows([]);
       setFile(null);
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err.message || 'Error al persistir los registros.' });
+    } catch (err: unknown) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Error al persistir los registros.' });
     } finally {
       setSaving(false);
     }

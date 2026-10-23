@@ -4,6 +4,8 @@ import {
   Loader2,
   Calendar,
   Bot,
+  Wrench,
+  Sparkles,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { PeriodOption } from '../../types';
@@ -12,18 +14,20 @@ import { getDateRange, getTodayDateString, formatDateDisplay } from '../../utils
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  toolsUsadas?: string[];
 }
 
 const SUGGESTIONS = [
-  '¿Qué hotel facturó menos este mes?',
-  '¿Cómo venimos comparado con el mes pasado?',
-  '¿Cuál es la tasa de relavado y está alta?',
-  '¿Quién es nuestro top cliente por volumen?',
-  '¿Cuánto facturamos en total en el período?',
+  '¿Qué hotel facturó menos en el período?',
+  '¿Cuántos operarios y turnos necesitamos la próxima semana?',
+  '¿Hay alertas operativas o de calidad detectadas?',
+  '¿Cómo está la Ficha 360 del Hotel King David?',
+  '¿Qué remitos se validaron con diferencias?',
+  '¿Quién es nuestro cliente líder por volumen?',
 ];
 
 const WELCOME =
-  'Hola. Soy tu asistente de Business Intelligence. Preguntame sobre volumen, facturación, ranking de hoteles o tasas de relavado. Uso los datos agregados del sistema, nunca invento números.';
+  'Hola. Soy tu asistente de Business Intelligence conectado al Servidor MCP de Lavadero BI. Puedo consultar en tiempo real rankings, Fichas 360 de hoteles, alertas de planta, estado de remitos B2B y proyecciones de demanda de personal. NUNCA invento números.';
 
 export const ChatWidget: React.FC = () => {
   const [period, setPeriod] = useState<PeriodOption>('month');
@@ -46,13 +50,32 @@ export const ChatWidget: React.FC = () => {
     setInput('');
     setMensajes((m) => [...m, { role: 'user', content: pregunta }]);
     setLoading(true);
+
+    // Preparar historial multi-turno reciente (últimos 6 turnos)
+    const historial = mensajes
+      .filter((m) => m.content !== WELCOME)
+      .slice(-6)
+      .map((m) => ({ role: m.role, content: m.content }));
+
     try {
-      const res = await api.askIA(pregunta, { fecha_desde: rango.from, fecha_hasta: rango.to });
-      setMensajes((m) => [...m, { role: 'assistant', content: res.respuesta }]);
-    } catch (err: any) {
+      const res = await api.askIA(
+        pregunta,
+        { fecha_desde: rango.from, fecha_hasta: rango.to },
+        historial
+      );
       setMensajes((m) => [
         ...m,
-        { role: 'assistant', content: `No pude responder: ${err.message || 'error desconocido'}` },
+        {
+          role: 'assistant',
+          content: res.respuesta,
+          toolsUsadas: res.tools_usadas,
+        },
+      ]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'error desconocido';
+      setMensajes((m) => [
+        ...m,
+        { role: 'assistant', content: `No pude responder: ${msg}` },
       ]);
     } finally {
       setLoading(false);
@@ -62,22 +85,30 @@ export const ChatWidget: React.FC = () => {
   const periodLabel = formatDateDisplay(rango.from) + ' → ' + formatDateDisplay(rango.to);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
       {/* Header */}
       <div className="px-4 py-3 border-b border-slate-800 bg-slate-950/60">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="p-2 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
-            <Bot className="h-4 w-4" />
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
+              <Bot className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
+                Asistente IA
+                <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800/60 flex items-center gap-1">
+                  <Sparkles className="h-2.5 w-2.5" /> Gemini 3.8 + MCP
+                </span>
+              </h3>
+              <p className="text-[10px] text-slate-500">
+                Conectado al servidor Model Context Protocol de TRITÓN
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
-              Asistente IA
-              <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-brand-950 text-brand-300 border border-brand-800/60">
-                Gemini
-              </span>
-            </h3>
-            <p className="text-[10px] text-slate-500">Análisis en lenguaje natural</p>
-          </div>
+          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-full font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            9 MCP Tools Activas
+          </span>
         </div>
 
         {/* Período selector */}
@@ -121,7 +152,7 @@ export const ChatWidget: React.FC = () => {
             </span>
           )}
         </div>
-        <p className="text-[10px] text-slate-600 mt-1">Contexto: {periodLabel}</p>
+        <p className="text-[10px] text-slate-600 mt-1">Contexto temporal: {periodLabel}</p>
       </div>
 
       {/* Mensajes */}
@@ -129,21 +160,38 @@ export const ChatWidget: React.FC = () => {
         {mensajes.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${
+              className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
                 m.role === 'user'
                   ? 'bg-brand-600 text-white rounded-br-sm'
-                  : 'bg-slate-800 text-slate-200 rounded-bl-sm border border-slate-700'
+                  : 'bg-slate-800/90 text-slate-200 rounded-bl-sm border border-slate-700/80 shadow-md'
               }`}
             >
-              {m.content}
+              <div className="whitespace-pre-wrap">{m.content}</div>
+
+              {/* Trazabilidad de Herramientas MCP Invocadas */}
+              {m.toolsUsadas && m.toolsUsadas.length > 0 && (
+                <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex flex-wrap items-center gap-1.5 text-[10px]">
+                  <span className="font-semibold text-cyan-400 flex items-center gap-1">
+                    <Wrench className="h-3 w-3" /> MCP Tools:
+                  </span>
+                  {m.toolsUsadas.map((tool) => (
+                    <span
+                      key={tool}
+                      className="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700 text-cyan-300 font-mono text-[9px] shadow-inner"
+                    >
+                      {tool}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-800 text-slate-300 rounded-2xl rounded-bl-sm px-3 py-2 text-xs border border-slate-700 flex items-center gap-2">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-400" />
-              Pensando…
+            <div className="bg-slate-800 text-slate-300 rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-xs border border-slate-700 flex items-center gap-2 shadow-md">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" />
+              <span>Consultando herramientas MCP y generando análisis…</span>
             </div>
           </div>
         )}
@@ -158,7 +206,7 @@ export const ChatWidget: React.FC = () => {
               key={s}
               onClick={() => enviar(s)}
               disabled={loading}
-              className="px-2.5 py-1 rounded-full text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors disabled:opacity-50 text-left"
+              className="px-2.5 py-1 rounded-full text-[10px] bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors disabled:opacity-50 text-left"
             >
               {s}
             </button>
@@ -167,14 +215,14 @@ export const ChatWidget: React.FC = () => {
       )}
 
       {/* Input */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950/40">
+      <div className="p-3 border-t border-slate-800 bg-slate-950/50">
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && enviar()}
-            placeholder="Hacé una pregunta sobre el negocio…"
+            placeholder="Hacé una pregunta sobre clientes, remitos, calidad o personal…"
             disabled={loading}
             className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 disabled:opacity-50"
           />
@@ -182,6 +230,7 @@ export const ChatWidget: React.FC = () => {
             onClick={() => enviar()}
             disabled={loading || !input.trim()}
             className="p-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl transition-colors disabled:opacity-40"
+            title="Enviar consulta"
           >
             <Send className="h-4 w-4" />
           </button>
