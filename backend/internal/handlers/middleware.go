@@ -51,7 +51,9 @@ func withCORSOrigins(allowedOrigins []string) func(http.Handler) http.Handler {
 			origin := strings.TrimSpace(r.Header.Get("Origin"))
 			if origin != "" {
 				_, ok := allowedSet[origin]
-				if ok || (allowLAN && isLocalNetworkOrigin(origin)) {
+				_, allowAll := allowedSet["*"]
+				isVercel := strings.HasSuffix(origin, ".vercel.app")
+				if ok || allowAll || isVercel || (allowLAN && isLocalNetworkOrigin(origin)) {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 					w.Header().Set("Access-Control-Allow-Credentials", "true")
 					w.Header().Set("Vary", "Origin")
