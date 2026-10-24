@@ -111,7 +111,7 @@ export const LoginView: React.FC = () => {
         </div>
 
         <p className="text-center text-xs text-slate-600 mt-6">
-          Tesis de Analista de Sistemas &bull; IRESM
+          TRITÓN &bull; Poseidón Servicio de Lavandería SRL
         </p>
       </div>
     </div>

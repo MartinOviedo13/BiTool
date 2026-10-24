@@ -132,7 +132,7 @@ export function App() {
             {new Date().getFullYear()} &mdash; Lavadero Industrial SRL
           </p>
           <p className="text-slate-500">
-            Tesis de Analista de Sistemas &bull; Go + PostgreSQL + React + Recharts
+            Sistema de Gestión y Business Intelligence &bull; TRITÓN
           </p>
         </div>
       </footer>
