@@ -45,6 +45,9 @@ func (a *App) RoutesWithAllowedOrigins(allowedOrigins []string) http.Handler {
 	router.Get("/health", a.handleHealth)
 	router.Post("/auth/login", a.login)
 
+	// Endpoint estándar MCP (JSON-RPC 2.0) para Gemini y clientes externos
+	router.Post("/api/mcp", a.handleMCP)
+
 	// ── Autenticado general (todos los roles) ─────────────────────
 	router.Group(func(r chi.Router) {
 		r.Use(requireAuth)
@@ -53,9 +56,6 @@ func (a *App) RoutesWithAllowedOrigins(allowedOrigins []string) http.Handler {
 		r.Get("/items", a.listItems)               // Catalogo de prendas necesario para todos
 		r.Get("/api/envios", a.listEnvios)         // Listado de remitos (filtrado por hotel_id si es cliente)
 		r.Get("/api/realtime/stream", a.handleSSE) // Canal en tiempo real Server-Sent Events
-
-		// Endpoint estándar MCP (JSON-RPC 2.0) para clientes externos
-		r.Post("/api/mcp", a.handleMCP)
 	})
 
 	// ── Portal B2B Clientes (cliente + admin + operario) ────────

@@ -86,10 +86,24 @@ func (a *App) askIA(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleMCP procesa solicitudes directas de clientes externos bajo el estándar JSON-RPC 2.0 (MCP).
+// Si MCP_API_KEY está configurada en el entorno, valida la clave por Authorization: Bearer, header x-mcp-api-key o query ?key=.
 func (a *App) handleMCP(w http.ResponseWriter, r *http.Request) {
 	if a.mcp == nil {
 		writeError(w, http.StatusServiceUnavailable, "Servidor MCP no inicializado.")
 		return
+	}
+
+	expectedKey := strings.TrimSpace(os.Getenv("MCP_API_KEY"))
+	if expectedKey != "" {
+		authHeader := r.Header.Get("Authorization")
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		queryKey := r.URL.Query().Get("key")
+		customHeader := r.Header.Get("x-mcp-api-key")
+
+		if token != expectedKey && queryKey != expectedKey && customHeader != expectedKey {
+			writeError(w, http.StatusUnauthorized, "Clave MCP inválida o no provista (se requiere MCP_API_KEY).")
+			return
+		}
 	}
 
 	reqBytes, err := io.ReadAll(r.Body)
