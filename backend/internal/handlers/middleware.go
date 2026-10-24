@@ -49,17 +49,24 @@ func withCORSOrigins(allowedOrigins []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := strings.TrimSpace(r.Header.Get("Origin"))
+			isMCP := strings.HasPrefix(r.URL.Path, "/api/mcp")
+
 			if origin != "" {
 				_, ok := allowedSet[origin]
 				_, allowAll := allowedSet["*"]
 				isVercel := strings.HasSuffix(origin, ".vercel.app")
-				if ok || allowAll || isVercel || (allowLAN && isLocalNetworkOrigin(origin)) {
+				isGoogle := strings.HasSuffix(origin, ".google.com") || origin == "https://gemini.google.com"
+
+				if ok || allowAll || isVercel || isGoogle || isMCP || (allowLAN && isLocalNetworkOrigin(origin)) {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 					w.Header().Set("Access-Control-Allow-Credentials", "true")
 					w.Header().Set("Vary", "Origin")
 				}
+			} else if isMCP {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
 			}
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, mcp-session-id, mcp-protocol-version, x-goog-api-key, x-mcp-api-key")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
 
 			if r.Method == http.MethodOptions {
@@ -95,12 +102,13 @@ func requireAuth(next http.Handler) http.Handler {
 		}
 
 		claims := &jwtClaims{}
-		token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (any, error) {
+		token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
 			return jwtSecret(), nil
 		})
+
 		if err != nil || !token.Valid {
 			writeError(w, http.StatusUnauthorized, "Token invalido o expirado.")
 			return
@@ -111,10 +119,8 @@ func requireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// requireRole devuelve un middleware que verifica el rol del usuario autenticado.
-// Permite pasar uno o mas roles autorizados.
-// Debe usarse siempre despues de requireAuth.
-func requireRole(roles ...string) func(http.Handler) http.Handler {
+// requireRole valida que el usuario autenticado posea alguno de los roles permitidos.
+func requireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			claims, ok := r.Context().Value(claimsKey).(*jwtClaims)
@@ -122,18 +128,15 @@ func requireRole(roles ...string) func(http.Handler) http.Handler {
 				writeError(w, http.StatusUnauthorized, "No autenticado.")
 				return
 			}
-			permitido := false
-			for _, rol := range roles {
-				if claims.Rol == rol {
-					permitido = true
-					break
+
+			for _, role := range allowedRoles {
+				if claims.Rol == role {
+					next.ServeHTTP(w, r)
+					return
 				}
 			}
-			if !permitido {
-				writeError(w, http.StatusForbidden, "Acceso denegado para tu rol.")
-				return
-			}
-			next.ServeHTTP(w, r)
+
+			writeError(w, http.StatusForbidden, "No tienes permisos para acceder a este recurso.")
 		})
 	}
 }
