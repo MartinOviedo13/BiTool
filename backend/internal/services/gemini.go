@@ -199,12 +199,20 @@ func (c *GeminiClient) GenerateWithTools(ctx context.Context, system string, his
 				parts = append(parts, map[string]any{"text": m.Content})
 			}
 			for _, tc := range m.ToolCalls {
-				parts = append(parts, map[string]any{
-					"functionCall": map[string]any{
-						"name": tc.Name,
-						"args": tc.Arguments,
-					},
-				})
+				fc := map[string]any{
+					"name": tc.Name,
+					"args": tc.Arguments,
+				}
+				if tc.ID != "" {
+					fc["id"] = tc.ID
+				}
+				part := map[string]any{
+					"functionCall": fc,
+				}
+				if tc.ThoughtSignature != "" {
+					part["thoughtSignature"] = tc.ThoughtSignature
+				}
+				parts = append(parts, part)
 			}
 		} else if role == "function" || m.ToolResponse != nil {
 			role = "function"
@@ -276,35 +284,63 @@ func (c *GeminiClient) GenerateWithTools(ctx context.Context, system string, his
 		return nil, fmt.Errorf("error serializando request Gemini: %w", err)
 	}
 
-	url := fmt.Sprintf(geminiBaseURL, c.Model) + "?key=" + c.APIKey
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
-	if err != nil {
-		return nil, fmt.Errorf("error construyendo request Gemini: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-goog-api-key", c.APIKey)
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error de red llamando a Gemini: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error leyendo respuesta de Gemini: %w", err)
+	modelsToTry := []string{c.Model}
+	for _, fallback := range []string{"gemini-3-flash-preview", "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"} {
+		if fallback != c.Model {
+			modelsToTry = append(modelsToTry, fallback)
+		}
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("el proveedor de IA respondio %d: %s", resp.StatusCode, firstN(string(respBytes), 300))
+	var respBytes []byte
+	var lastErr error
+	for _, modelName := range modelsToTry {
+		url := fmt.Sprintf(geminiBaseURL, modelName) + "?key=" + c.APIKey
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+		if err != nil {
+			return nil, fmt.Errorf("error construyendo request Gemini: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("x-goog-api-key", c.APIKey)
+
+		resp, err := c.HTTP.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("error de red llamando a Gemini (%s): %w", modelName, err)
+			continue
+		}
+		bodyBytes, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if readErr != nil {
+			lastErr = fmt.Errorf("error leyendo respuesta de Gemini (%s): %w", modelName, readErr)
+			continue
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			respBytes = bodyBytes
+			lastErr = nil
+			break
+		}
+
+		lastErr = fmt.Errorf("el proveedor de IA (%s) respondio %d: %s", modelName, resp.StatusCode, firstN(string(bodyBytes), 300))
+		// Si es 503 (sobrecarga), 429 (rate limit) o 404 (modelo deprecado), probamos con el siguiente modelo fallback
+		if resp.StatusCode == http.StatusServiceUnavailable || resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusNotFound {
+			continue
+		}
+		return nil, lastErr
+	}
+
+	if lastErr != nil {
+		return nil, lastErr
 	}
 
 	var geminiResp struct {
 		Candidates []struct {
 			Content struct {
 				Parts []struct {
-					Text         string `json:"text"`
-					FunctionCall *struct {
+					Text             string `json:"text"`
+					Thought          bool   `json:"thought"`
+					ThoughtSignature string `json:"thoughtSignature"`
+					FunctionCall     *struct {
+						ID   string         `json:"id"`
 						Name string         `json:"name"`
 						Args map[string]any `json:"args"`
 					} `json:"functionCall"`
@@ -325,13 +361,15 @@ func (c *GeminiClient) GenerateWithTools(ctx context.Context, system string, his
 	var toolCalls []ToolCall
 
 	for _, p := range geminiResp.Candidates[0].Content.Parts {
-		if p.Text != "" {
+		if p.Text != "" && !p.Thought {
 			textParts = append(textParts, p.Text)
 		}
 		if p.FunctionCall != nil {
 			toolCalls = append(toolCalls, ToolCall{
-				Name:      p.FunctionCall.Name,
-				Arguments: p.FunctionCall.Args,
+				ID:               p.FunctionCall.ID,
+				Name:             p.FunctionCall.Name,
+				Arguments:        p.FunctionCall.Args,
+				ThoughtSignature: p.ThoughtSignature,
 			})
 		}
 	}

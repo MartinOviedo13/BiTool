@@ -15,9 +15,10 @@ type Message struct {
 
 // ToolCall representa la solicitud del modelo para ejecutar una herramienta.
 type ToolCall struct {
-	ID        string         `json:"id,omitempty"`
-	Name      string         `json:"name"`
-	Arguments map[string]any `json:"arguments"`
+	ID               string         `json:"id,omitempty"`
+	Name             string         `json:"name"`
+	Arguments        map[string]any `json:"arguments"`
+	ThoughtSignature string         `json:"thought_signature,omitempty"`
 }
 
 // ToolResult contiene el resultado de ejecutar una herramienta.
