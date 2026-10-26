@@ -90,12 +90,12 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onClose }) => {
   const periodLabel = formatDateDisplay(rango.from) + ' → ' + formatDateDisplay(rango.to);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/95 sm:bg-slate-900/80 sm:rounded-2xl border-0 sm:border border-slate-800 overflow-hidden shadow-xl">
+    <div className="flex flex-col h-full bg-triton-navy/95 sm:bg-triton-navy/90 sm:rounded-2xl border-0 sm:border border-triton-slate/50 overflow-hidden shadow-xl">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-800 bg-slate-950/80">
+      <div className="px-4 py-3 border-b border-triton-slate/50 bg-triton-deep/90">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="p-2 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 shrink-0">
+            <div className="p-2 rounded-xl bg-triton-teal/20 text-triton-aqua border border-triton-teal/40 shrink-0">
               <Bot className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -119,7 +119,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                className="p-1.5 rounded-xl bg-triton-deep/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
                 aria-label="Cerrar asistente"
               >
                 <X className="h-4 w-4" />
@@ -144,8 +144,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onClose }) => {
               onClick={() => setPeriod(opt.id)}
               className={`px-2 py-0.5 rounded-lg text-[10px] font-medium transition-all ${
                 period === opt.id
-                  ? 'bg-brand-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  ? 'bg-triton-aqua text-triton-navy font-bold'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-triton-deep'
               }`}
             >
               {opt.label}
@@ -157,14 +157,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onClose }) => {
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-[10px] text-slate-200"
+                className="bg-triton-deep border border-triton-slate/50 rounded px-1.5 py-0.5 text-[10px] text-slate-200"
               />
               <span className="text-slate-500">→</span>
               <input
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-[10px] text-slate-200"
+                className="bg-triton-deep border border-triton-slate/50 rounded px-1.5 py-0.5 text-[10px] text-slate-200"
               />
             </span>
           )}
@@ -179,8 +179,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onClose }) => {
             <div
               className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
                 m.role === 'user'
-                  ? 'bg-brand-600 text-white rounded-br-sm'
-                  : 'bg-slate-800/90 text-slate-200 rounded-bl-sm border border-slate-700/80 shadow-md'
+                  ? 'bg-triton-aqua text-triton-navy font-bold rounded-br-sm'
+                  : 'bg-triton-deep/90 text-slate-200 rounded-bl-sm border border-slate-700/80 shadow-md'
               }`}
             >
               <div className="whitespace-pre-wrap">{m.content}</div>
@@ -206,7 +206,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onClose }) => {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-800 text-slate-300 rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-xs border border-slate-700 flex items-center gap-2 shadow-md">
+            <div className="bg-triton-deep text-slate-300 rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-xs border border-slate-700 flex items-center gap-2 shadow-md">
               <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" />
               <span>Consultando herramientas MCP y generando análisis…</span>
             </div>
@@ -223,7 +223,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onClose }) => {
               key={s}
               onClick={() => enviar(s)}
               disabled={loading}
-              className="px-2.5 py-1 rounded-full text-[10px] bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors disabled:opacity-50 text-left"
+              className="px-2.5 py-1 rounded-full text-[10px] bg-triton-deep/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors disabled:opacity-50 text-left"
             >
               {s}
             </button>
@@ -232,7 +232,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onClose }) => {
       )}
 
       {/* Input */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950/50">
+      <div className="p-3 border-t border-triton-slate/50 bg-triton-deep/50">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -241,7 +241,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onClose }) => {
             onKeyDown={(e) => e.key === 'Enter' && enviar()}
             placeholder="Hacé una pregunta sobre clientes, remitos, calidad o personal…"
             disabled={loading}
-            className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 disabled:opacity-50"
+            className="flex-1 bg-triton-deep border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 disabled:opacity-50"
           />
           <button
             onClick={() => enviar()}

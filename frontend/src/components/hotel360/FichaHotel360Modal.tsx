@@ -141,16 +141,16 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl max-w-5xl w-full max-h-[94dvh] flex flex-col shadow-2xl overflow-hidden animate-fade-in">
+      <div className="bg-triton-navy border border-triton-slate/50 rounded-2xl sm:rounded-3xl max-w-5xl w-full max-h-[94dvh] flex flex-col shadow-2xl overflow-hidden animate-fade-in">
         {/* Header Modal */}
-        <div className="no-print bg-slate-900/90 border-b border-slate-800 p-3.5 sm:p-6 flex flex-wrap items-center justify-between gap-3 sm:gap-4 shrink-0">
+        <div className="no-print bg-triton-deep/90 border-b border-triton-slate/50 p-3.5 sm:p-6 flex flex-wrap items-center justify-between gap-3 sm:gap-4 shrink-0">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="p-2.5 sm:p-3 bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded-2xl shrink-0">
+            <div className="p-2.5 sm:p-3 bg-brand-500/10 text-triton-aqua border border-brand-500/20 rounded-2xl shrink-0">
               <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-brand-400">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-triton-aqua">
                   Ficha 360° del Cliente
                 </span>
                 <span
@@ -171,19 +171,19 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
 
           <button
             onClick={onClose}
-            className="sm:order-3 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors shrink-0"
+            className="sm:order-3 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-triton-deep transition-colors shrink-0"
             aria-label="Cerrar Ficha 360"
           >
             <X className="w-5 h-5" />
           </button>
 
           {/* Navegación por pestañas */}
-          <div className="sm:order-2 flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto overflow-x-auto no-scrollbar">
+          <div className="sm:order-2 flex items-center gap-1 bg-triton-navy p-1 rounded-xl border border-triton-slate/50 w-full sm:w-auto overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'dashboard'
-                  ? 'bg-brand-600 text-white shadow'
+                  ? 'bg-triton-aqua text-triton-navy font-bold shadow-md shadow-triton-aqua/20'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -194,7 +194,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
               onClick={() => setActiveTab('liquidacion')}
               className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'liquidacion'
-                  ? 'bg-brand-600 text-white shadow'
+                  ? 'bg-triton-aqua text-triton-navy font-bold shadow-md shadow-triton-aqua/20'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -205,7 +205,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
               onClick={() => setActiveTab('remitos')}
               className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'remitos'
-                  ? 'bg-brand-600 text-white shadow'
+                  ? 'bg-triton-aqua text-triton-navy font-bold shadow-md shadow-triton-aqua/20'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -216,11 +216,11 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
         </div>
 
         {/* Barra de Filtros de Período (común para Dashboard y Liquidación) */}
-        <div className="no-print bg-slate-900/40 border-b border-slate-800/80 px-3.5 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 text-xs shrink-0">
+        <div className="no-print bg-triton-deep/40 border-b border-triton-slate/50 px-3.5 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 text-xs shrink-0">
           <div className="flex items-center gap-2 max-w-full overflow-x-auto no-scrollbar">
-            <Calendar className="w-4 h-4 text-brand-400 shrink-0" />
+            <Calendar className="w-4 h-4 text-triton-aqua shrink-0" />
             <span className="font-semibold text-slate-300 hidden sm:inline">Período:</span>
-            <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+            <div className="flex items-center gap-1 bg-triton-navy p-0.5 rounded-lg border border-triton-slate/50">
               {(
                 [
                   { id: 'month', label: 'Mes Actual' },
@@ -235,7 +235,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                   onClick={() => handlePresetChange(opt.id)}
                   className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all whitespace-nowrap ${
                     periodoPreset === opt.id
-                      ? 'bg-brand-600 text-white font-bold'
+                      ? 'bg-triton-teal text-white font-bold'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -251,14 +251,14 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                 type="date"
                 value={fechaDesde}
                 onChange={(e) => setFechaDesde(e.target.value)}
-                className="flex-1 sm:flex-initial bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200"
+                className="flex-1 sm:flex-initial bg-triton-navy border border-triton-slate/50 rounded px-2 py-1 text-slate-200"
               />
               <span className="text-slate-500">a</span>
               <input
                 type="date"
                 value={fechaHasta}
                 onChange={(e) => setFechaHasta(e.target.value)}
-                className="flex-1 sm:flex-initial bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200"
+                className="flex-1 sm:flex-initial bg-triton-navy border border-triton-slate/50 rounded px-2 py-1 text-slate-200"
               />
               <button
                 type="submit"
@@ -276,10 +276,10 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
             <button
               onClick={() => loadFicha(fechaDesde, fechaHasta)}
               disabled={loading}
-              className="p-1.5 text-slate-400 hover:text-white bg-slate-800 rounded-lg hover:bg-slate-700"
+              className="p-1.5 text-slate-400 hover:text-white bg-triton-deep rounded-lg hover:bg-slate-700"
               title="Refrescar datos"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-brand-400' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-triton-aqua' : ''}`} />
             </button>
           </div>
         </div>
@@ -303,10 +303,10 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                   {/* KPI Cards Grid */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Volumen Procesado */}
-                    <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-1">
+                    <div className="bg-triton-deep/70 border border-triton-slate/50 rounded-2xl p-4 space-y-1">
                       <div className="flex items-center justify-between text-slate-400">
                         <span className="text-[10px] font-bold uppercase tracking-wider">Total Procesado</span>
-                        <Package className="w-4 h-4 text-brand-400" />
+                        <Package className="w-4 h-4 text-triton-aqua" />
                       </div>
                       <p className="text-2xl font-black text-white">{formatNumber(ficha.total_prendas)}</p>
                       <p className="text-[11px] text-slate-500">
@@ -315,7 +315,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                     </div>
 
                     {/* Facturación Estimada */}
-                    <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-1">
+                    <div className="bg-triton-deep/70 border border-triton-slate/50 rounded-2xl p-4 space-y-1">
                       <div className="flex items-center justify-between text-slate-400">
                         <span className="text-[10px] font-bold uppercase tracking-wider">Facturación Estimada</span>
                         <DollarSign className="w-4 h-4 text-cyan-400" />
@@ -327,7 +327,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                     </div>
 
                     {/* Tasa de Relavado vs Promedio General del Lavadero */}
-                    <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-1">
+                    <div className="bg-triton-deep/70 border border-triton-slate/50 rounded-2xl p-4 space-y-1">
                       <div className="flex items-center justify-between text-slate-400">
                         <span className="text-[10px] font-bold uppercase tracking-wider">Tasa de Relavado</span>
                         <RotateCcw className="w-4 h-4 text-amber-400" />
@@ -352,7 +352,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                     </div>
 
                     {/* Remitos y Discrepancias */}
-                    <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-1">
+                    <div className="bg-triton-deep/70 border border-triton-slate/50 rounded-2xl p-4 space-y-1">
                       <div className="flex items-center justify-between text-slate-400">
                         <span className="text-[10px] font-bold uppercase tracking-wider">Balance Remitos</span>
                         <AlertTriangle className="w-4 h-4 text-rose-400" />
@@ -372,10 +372,10 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                   {/* Gráficos: Estacionalidad + Mix de Prendas */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Evolución Mensual / Estacionalidad */}
-                    <div className="lg:col-span-2 bg-slate-900/70 border border-slate-800 rounded-2xl p-5">
+                    <div className="lg:col-span-2 bg-triton-deep/70 border border-triton-slate/50 rounded-2xl p-5">
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-bold text-sm text-slate-200 flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-brand-400" />
+                          <TrendingUp className="w-4 h-4 text-triton-aqua" />
                           Curva de Demanda y Estacionalidad (Últimos 12 Meses)
                         </h4>
                         <span className="text-[11px] text-slate-500">Prendas por mes</span>
@@ -398,7 +398,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                                   name === 'Facturacion' ? 'Facturado' : 'Prendas',
                                 ]}
                               />
-                              <Bar dataKey="cantidad" name="Prendas" fill="#0c8fe9" radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="cantidad" name="Prendas" fill="#48c0b0" radius={[4, 4, 0, 0]} />
                             </BarChart>
                           </ResponsiveContainer>
                         )}
@@ -406,7 +406,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                     </div>
 
                     {/* Mix de Prendas Donut */}
-                    <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5">
+                    <div className="bg-triton-deep/70 border border-triton-slate/50 rounded-2xl p-5">
                       <h4 className="font-bold text-sm text-slate-200 flex items-center gap-2 mb-4">
                         <PieChartIcon className="w-4 h-4 text-cyan-400" />
                         Composición de Ropa (Mix)
@@ -446,7 +446,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                   </div>
 
                   {/* Stock en Lavadero / Prendas Retenidas */}
-                  <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5">
+                  <div className="bg-triton-deep/70 border border-triton-slate/50 rounded-2xl p-5">
                     <h4 className="font-bold text-sm text-slate-200 flex items-center gap-2 mb-3">
                       <Layers className="w-4 h-4 text-amber-400" />
                       Ropa Retenida en Lavadero (Pendiente de Entrega)
@@ -458,7 +458,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-950 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-800">
+                          <thead className="bg-triton-navy text-slate-400 font-bold uppercase text-[10px] border-b border-triton-slate/50">
                             <tr>
                               <th className="py-2 px-3">Prenda</th>
                               <th className="py-2 px-3 text-right text-amber-400">En Relavado (en planta)</th>
@@ -468,7 +468,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                           </thead>
                           <tbody className="divide-y divide-slate-800/60">
                             {ficha.ropa_en_lavadero.map((r) => (
-                              <tr key={r.item_id} className="hover:bg-slate-800/30">
+                              <tr key={r.item_id} className="hover:bg-triton-deep/30">
                                 <td className="py-2 px-3 font-semibold text-slate-300">{r.item_nombre}</td>
                                 <td className="py-2 px-3 text-right font-bold text-amber-400">
                                   {r.en_relavado > 0 ? formatNumber(r.en_relavado) : '-'}
@@ -515,7 +515,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                   </div>
 
                   {ficha.envios_recientes.length === 0 ? (
-                    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center text-slate-500 text-xs">
+                    <div className="bg-triton-deep/60 border border-triton-slate/50 rounded-2xl p-8 text-center text-slate-500 text-xs">
                       No hay remitos registrados en este período.
                     </div>
                   ) : (
@@ -525,7 +525,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                         return (
                           <div
                             key={env.id}
-                            className="bg-slate-900/70 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all"
+                            className="bg-triton-deep/70 border border-triton-slate/50 hover:border-slate-700 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all"
                           >
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
@@ -544,7 +544,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                                 {env.detalles?.map((d) => (
                                   <span
                                     key={d.id}
-                                    className="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700"
+                                    className="text-[11px] bg-triton-deep text-slate-300 px-2 py-0.5 rounded border border-slate-700"
                                   >
                                     {d.item?.nombre}: <b className="text-white">{d.cantidad_declarada}</b>
                                   </span>
@@ -554,7 +554,7 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
 
                             <button
                               onClick={() => setSelectedRemitoForPrint(env)}
-                              className="px-3.5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-brand-600/20 transition-all shrink-0 w-full sm:w-auto justify-center"
+                              className="px-3.5 py-2 bg-triton-aqua hover:bg-triton-aqua-hover text-triton-navy font-black shadow-md shadow-triton-aqua/20 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-brand-600/20 transition-all shrink-0 w-full sm:w-auto justify-center"
                             >
                               <QrCode className="w-4 h-4" />
                               <span>Ver / Imprimir Remito</span>

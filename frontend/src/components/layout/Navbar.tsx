@@ -18,9 +18,12 @@ import {
   AlertTriangle,
   Check,
   Eye,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { NotificacionOperativa } from '../../types';
 import { formatNumber } from '../../utils/formatters';
 
@@ -57,6 +60,7 @@ const CLIENTE_TABS = [
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -146,29 +150,29 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
       : CLIENTE_TABS;
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0b1a33]/95 backdrop-blur-md border-b border-[#1e3659]">
+    <header className="sticky top-0 z-50 bg-triton-navy/95 backdrop-blur-md border-b border-triton-slate/40">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
           {/* Logo Oficial TRITÓN */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-[#071326] border border-[#1e3659] p-0.5 flex items-center justify-center shadow-md shadow-brand-900/30 shrink-0 overflow-hidden">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-triton-deep border border-triton-teal/40 p-0.5 flex items-center justify-center shadow-md shadow-black/40 shrink-0 overflow-hidden">
               <img src="/logo-triton.jpg" alt="Logo Tritón" className="h-full w-full object-contain rounded-lg" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="font-black text-sm sm:text-lg tracking-tight text-white flex items-center gap-1 truncate">
-                  TRITÓN <span className="text-brand-400 text-[11px] sm:text-xs font-extrabold px-1 py-0.2 bg-brand-950/80 border border-brand-700/50 rounded">BI</span>
+                  TRITÓN <span className="text-triton-aqua text-[11px] sm:text-xs font-black px-1.5 py-0.2 bg-triton-deep border border-triton-teal/50 rounded">BI</span>
                 </span>
-                <span className="hidden sm:inline-block text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-full bg-brand-950 text-brand-300 border border-brand-800/60">
+                <span className="hidden sm:inline-block text-[9px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-triton-deep text-triton-aqua-light border border-triton-teal/40">
                   {user?.rol === 'cliente' ? 'B2B' : 'Industrial'}
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium truncate">Lavadero Industrial</p>
+              <p className="text-[10px] sm:text-xs text-slate-300 font-medium truncate">Lavadero Industrial</p>
             </div>
           </div>
 
           {/* Navigation Tabs (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
+          <nav className="hidden lg:flex items-center gap-1 bg-triton-deep/60 p-1 rounded-xl border border-triton-slate/50">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -178,11 +182,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                   onClick={() => onTabChange(item.id)}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
                     isActive
-                      ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      ? 'bg-triton-aqua text-triton-navy font-bold shadow-md shadow-triton-aqua/25'
+                      : 'text-slate-300 hover:text-white hover:bg-triton-deep/90'
                   }`}
                 >
-                  <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-triton-navy' : 'text-slate-400'}`} />
                   {item.label}
                   {item.id === 'ai' && (
                     <span className="flex h-2 w-2 relative">
@@ -197,7 +201,22 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
 
           {/* Right side: notifications + status + user + logout */}
           <div className="flex items-center gap-1 sm:gap-2 relative shrink-0">
-            {/* Campana de Notificaciones Operativas */}
+                        {/* Selector de Modo Claro / Modo Oscuro */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
+              aria-label={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
+              className="p-2 rounded-xl border border-triton-slate/50 bg-triton-deep text-slate-300 hover:text-white transition-all shadow-sm active:scale-95 shrink-0"
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-4 w-4 text-amber-400" />
+              ) : (
+                <Moon className="h-4 w-4 text-triton-teal" />
+              )}
+            </button>
+
+{/* Campana de Notificaciones Operativas */}
             {canReceiveNotifs && (
               <div className="relative" ref={notifContainerRef}>
                 <button
@@ -209,8 +228,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                   title="Centro de Notificaciones Operativas"
                   className={`relative p-2 rounded-xl border transition-all ${
                     unreadCount > 0
-                      ? 'bg-brand-950/90 border-brand-500/60 text-brand-300 hover:bg-brand-900'
-                      : 'bg-[#071326] border-[#1e3659] text-slate-400 hover:text-white'
+                      ? 'bg-triton-deep border-triton-aqua/60 text-triton-aqua hover:bg-triton-deep/90'
+                      : 'bg-triton-deep border-triton-slate/50 text-slate-300 hover:text-white'
                   }`}
                 >
                   <Bell className="h-4 w-4" />
@@ -231,13 +250,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                     />
 
                     {/* Ventana de notificaciones: centrada en mobile (fixed) y anclada a la derecha en desktop (sm:absolute) */}
-                    <div className="fixed inset-x-3 top-16 mt-1 max-w-lg mx-auto sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[420px] sm:max-w-none sm:mx-0 max-h-[80dvh] overflow-y-auto bg-[#0b1a33] border border-[#1e3659] rounded-2xl shadow-2xl z-50 divide-y divide-[#1e3659] animate-fade-in">
-                      <div className="p-3.5 bg-[#071326] flex items-center justify-between sticky top-0 z-10 border-b border-[#1e3659]">
+                    <div className="fixed inset-x-3 top-16 mt-1 max-w-lg mx-auto sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[420px] sm:max-w-none sm:mx-0 max-h-[80dvh] overflow-y-auto bg-triton-navy border border-triton-slate/60 rounded-2xl shadow-2xl z-50 divide-y divide-triton-slate/50 animate-fade-in">
+                      <div className="p-3.5 bg-triton-deep flex items-center justify-between sticky top-0 z-10 border-b border-triton-slate/50">
                         <div>
                           <h4 className="text-xs font-black text-white uppercase tracking-wider">
                             Notificaciones Operativas
                           </h4>
-                          <p className="text-[10px] text-slate-400">
+                          <p className="text-[10px] text-slate-300">
                             {unreadCount > 0
                               ? `${unreadCount} sin leer (${user?.rol})`
                               : 'Todas las notificaciones al día'}
@@ -257,7 +276,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                           No hay notificaciones operativas registradas.
                         </div>
                       ) : (
-                        <div className="divide-y divide-[#1e3659]/60">
+                        <div className="divide-y divide-triton-slate/40">
                           {notificaciones.map((n) => {
                             const isExpanded = expandedNotifId === n.id;
                             const hora = new Date(n.created_at).toLocaleTimeString('es-AR', {
@@ -268,7 +287,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                               <div
                                 key={n.id}
                                 className={`p-3.5 text-xs transition-colors ${
-                                  !n.leida ? 'bg-brand-950/30' : 'bg-transparent opacity-75'
+                                  !n.leida ? 'bg-triton-deep/40' : 'bg-transparent opacity-75'
                                 }`}
                               >
                                 <div className="flex items-start justify-between gap-2">
@@ -278,7 +297,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                                     ) : n.severidad === 'success' ? (
                                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                                     ) : (
-                                      <Truck className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                                      <Truck className="w-4 h-4 text-triton-aqua shrink-0 mt-0.5" />
                                     )}
                                     <div>
                                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -299,7 +318,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                                       onClick={() =>
                                         setExpandedNotifId(isExpanded ? null : n.id)
                                       }
-                                      className="px-2.5 py-1.5 rounded-lg bg-[#071326] hover:bg-[#132747] text-cyan-300 border border-[#1e3659] text-[10px] font-bold flex items-center gap-1"
+                                      className="px-2.5 py-1.5 rounded-lg bg-triton-deep hover:bg-triton-slate/50 text-triton-aqua border border-triton-teal/40 text-[10px] font-bold flex items-center gap-1"
                                     >
                                       <Eye className="w-3 h-3" />
                                       <span>
@@ -321,17 +340,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                                 </div>
 
                                 {isExpanded && n.muestra_datos && n.muestra_datos.length > 0 && (
-                                  <div className="mt-2.5 rounded-xl border border-[#1e3659] bg-[#071326] overflow-x-auto">
+                                  <div className="mt-2.5 rounded-xl border border-triton-slate/50 bg-triton-deep/80 overflow-x-auto">
                                     <table className="w-full text-left text-[11px]">
-                                      <thead className="bg-[#0b1a33] text-slate-400 uppercase text-[9px] border-b border-[#1e3659]">
+                                      <thead className="bg-triton-navy text-slate-400 uppercase text-[9px] border-b border-triton-slate/50">
                                         <tr>
                                           <th className="px-2.5 py-1.5">Ítem</th>
                                           <th className="px-2 py-1.5 text-right">Remito</th>
-                                          <th className="px-2 py-1.5 text-right text-cyan-400">Procesado</th>
+                                          <th className="px-2 py-1.5 text-right text-triton-aqua">Procesado</th>
                                           <th className="px-2.5 py-1.5 text-right">Dif.</th>
                                         </tr>
                                       </thead>
-                                      <tbody className="divide-y divide-[#1e3659]/40">
+                                      <tbody className="divide-y divide-triton-slate/40">
                                         {n.muestra_datos.map((m) => (
                                           <tr key={m.item_id}>
                                             <td className="px-2.5 py-1 font-semibold text-white">
@@ -340,7 +359,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                                             <td className="px-2 py-1 text-right text-slate-300">
                                               {formatNumber(m.cant_remito)}
                                             </td>
-                                            <td className="px-2 py-1 text-right font-bold text-cyan-300">
+                                            <td className="px-2 py-1 text-right font-bold text-triton-aqua">
                                               {formatNumber(m.cant_procesada_prendas)}
                                             </td>
                                             <td className="px-2.5 py-1 text-right font-bold">
@@ -376,7 +395,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                   ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300'
                   : backendOnline === false
                   ? 'bg-rose-950/60 border-rose-800 text-rose-300'
-                  : 'bg-slate-800 border-slate-700 text-slate-400'
+                  : 'bg-triton-deep border-triton-slate/50 text-slate-400'
               }`}
             >
               {backendOnline === true ? (
@@ -396,18 +415,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
 
             {/* Usuario logueado */}
             {user && (
-              <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium border border-[#1e3659] bg-[#071326] text-slate-300 max-w-[105px] sm:max-w-none truncate">
-                <User className="h-3.5 w-3.5 text-brand-400 shrink-0" />
+              <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium border border-triton-slate/50 bg-triton-deep text-slate-200 max-w-[105px] sm:max-w-none truncate">
+                <User className="h-3.5 w-3.5 text-triton-aqua shrink-0" />
                 <span className="font-semibold text-white truncate text-[11px] sm:text-xs">
                   {user.hotel_nombre || user.username}
                 </span>
                 <span
                   className={`hidden sm:inline px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${
                     user.rol === 'admin'
-                      ? 'bg-brand-950 text-brand-400'
+                      ? 'bg-triton-navy text-triton-aqua border border-triton-teal/40'
                       : user.rol === 'cliente'
-                      ? 'bg-blue-950 text-blue-400'
-                      : 'bg-slate-800 text-slate-400'
+                      ? 'bg-triton-navy text-blue-300 border border-blue-800'
+                      : 'bg-triton-deep text-slate-400'
                   }`}
                 >
                   {user.rol}
@@ -419,7 +438,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             <button
               onClick={logout}
               title="Cerrar sesión"
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+              className="p-2 rounded-xl bg-triton-deep border border-triton-slate/50 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-400/50 transition-colors shrink-0"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -428,7 +447,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             {navItems.length > 1 && (
               <button
                 onClick={() => setMobileMenuOpen((v) => !v)}
-                className="lg:hidden p-2 rounded-xl text-slate-300 hover:text-white bg-[#071326] border border-[#1e3659]"
+                className="lg:hidden p-2 rounded-xl text-slate-200 hover:text-white bg-triton-deep border border-triton-slate/50"
                 aria-label="Abrir menú de navegación"
               >
                 {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -441,7 +460,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
         {navItems.length > 1 && (
           <nav
             aria-label="Navegación rápida móvil"
-            className="lg:hidden flex items-center gap-1.5 overflow-x-auto py-2 no-scrollbar border-t border-[#1e3659]/60"
+            className="lg:hidden flex items-center gap-1.5 overflow-x-auto py-2 no-scrollbar border-t border-triton-slate/40"
           >
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -455,11 +474,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all ${
                     isActive
-                      ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
-                      : 'bg-[#071326] text-slate-300 border border-[#1e3659] hover:text-white'
+                      ? 'bg-triton-aqua text-triton-navy font-extrabold shadow-md shadow-triton-aqua/25'
+                      : 'bg-triton-deep text-slate-200 border border-triton-slate/50 hover:text-white'
                   }`}
                 >
-                  <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-triton-navy' : 'text-slate-400'}`} />
                   <span>{item.label}</span>
                   {item.id === 'ai' && (
                     <span className="flex h-2 w-2 relative">
@@ -475,7 +494,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
 
         {/* Menu móvil desplegable en grilla */}
         {mobileMenuOpen && navItems.length > 1 && (
-          <div className="lg:hidden py-3 border-t border-[#1e3659] grid grid-cols-2 gap-2 animate-fade-in">
+          <div className="lg:hidden py-3 border-t border-triton-slate/50 grid grid-cols-2 gap-2 animate-fade-in">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -487,7 +506,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                     setMobileMenuOpen(false);
                   }}
                   className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold ${
-                    isActive ? 'bg-brand-600 text-white shadow-md' : 'bg-[#071326] border border-[#1e3659] text-slate-300'
+                    isActive ? 'bg-triton-aqua text-triton-navy font-bold shadow-md' : 'bg-triton-deep border border-triton-slate/50 text-slate-200'
                   }`}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
@@ -495,6 +514,22 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                 </button>
               );
             })}
+            {/* Alternador de tema en menú móvil */}
+            <button
+              onClick={() => {
+                toggleTheme();
+                setMobileMenuOpen(false);
+              }}
+              className="col-span-2 flex items-center justify-between p-2.5 rounded-xl text-xs font-bold bg-triton-deep border border-triton-slate/50 text-slate-200 hover:text-white"
+            >
+              <div className="flex items-center gap-2">
+                {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-triton-teal" />}
+                <span>Tema visual:</span>
+              </div>
+              <span className="text-[11px] font-black text-triton-aqua uppercase">
+                {theme === 'dark' ? 'Modo Oscuro' : 'Modo Claro'}
+              </span>
+            </button>
           </div>
         )}
       </div>

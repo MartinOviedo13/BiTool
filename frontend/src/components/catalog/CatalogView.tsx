@@ -120,15 +120,15 @@ export const CatalogView: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Top Header & Sub-Tabs */}
-      <div className="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+      <div className="bg-triton-navy/90 p-4 sm:p-5 rounded-2xl border border-triton-slate/50 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="grid grid-cols-2 sm:flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+          <div className="grid grid-cols-2 sm:flex items-center gap-1 bg-triton-deep p-1 rounded-xl border border-triton-slate/50 w-full sm:w-auto">
             <button
               onClick={() => setTab('hoteles')}
               className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
                 tab === 'hoteles'
-                  ? 'bg-brand-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  ? 'bg-triton-aqua text-triton-navy font-bold shadow-md shadow-triton-aqua/25'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-triton-deep'
               }`}
             >
               <Building2 className="h-4 w-4 shrink-0" />
@@ -138,8 +138,8 @@ export const CatalogView: React.FC = () => {
               onClick={() => setTab('items')}
               className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
                 tab === 'items'
-                  ? 'bg-brand-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  ? 'bg-triton-aqua text-triton-navy font-bold shadow-md shadow-triton-aqua/25'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-triton-deep'
               }`}
             >
               <Shirt className="h-4 w-4 shrink-0" />
@@ -157,14 +157,14 @@ export const CatalogView: React.FC = () => {
               placeholder={`Buscar ${tab === 'hoteles' ? 'hotel' : 'prenda'}...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 sm:py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 w-full sm:w-52"
+              className="bg-triton-deep border border-triton-slate/50 rounded-xl pl-9 pr-3 py-2 sm:py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-triton-aqua w-full sm:w-52"
             />
           </div>
 
           {tab === 'hoteles' ? (
             <button
               onClick={() => setAddingHotel(true)}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-600/20 shrink-0"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-triton-aqua hover:bg-triton-aqua-hover text-triton-navy rounded-xl text-xs font-black transition-all shadow-md shadow-triton-aqua/25 shrink-0"
             >
               <Plus className="h-4 w-4" />
               <span>Nuevo Hotel</span>
@@ -172,7 +172,7 @@ export const CatalogView: React.FC = () => {
           ) : (
             <button
               onClick={() => setAddingItem(true)}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-600/20 shrink-0"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-triton-aqua hover:bg-triton-aqua-hover text-triton-navy rounded-xl text-xs font-black transition-all shadow-md shadow-triton-aqua/25 shrink-0"
             >
               <Plus className="h-4 w-4" />
               <span>Nueva Prenda</span>
@@ -201,27 +201,27 @@ export const CatalogView: React.FC = () => {
 
       {/* New Hotel Modal / Inline Form */}
       {addingHotel && (
-        <div className="bg-slate-900 p-4 rounded-2xl border border-brand-500/40 animate-fadeIn">
+        <div className="bg-triton-navy p-4 rounded-2xl border border-brand-500/40 animate-fadeIn">
           <form onSubmit={handleAddHotel} className="flex flex-wrap items-center gap-3">
             <input
               type="text"
               placeholder="Nombre del nuevo hotel / cliente..."
               value={newHotelName}
               onChange={(e) => setNewHotelName(e.target.value)}
-              className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-400 flex-1 min-w-[200px]"
+              className="bg-triton-deep border border-triton-slate/60 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua flex-1 min-w-[200px]"
               autoFocus
             />
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="submit"
-                className="flex-1 sm:flex-initial px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition-colors"
+                className="flex-1 sm:flex-initial px-4 py-2 bg-triton-aqua hover:bg-triton-aqua-hover text-triton-navy rounded-xl text-xs font-black transition-colors"
               >
                 Crear Hotel
               </button>
               <button
                 type="button"
                 onClick={() => setAddingHotel(false)}
-                className="flex-1 sm:flex-initial px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors"
+                className="flex-1 sm:flex-initial px-3 py-2 bg-triton-deep hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors"
               >
                 Cancelar
               </button>
@@ -232,14 +232,14 @@ export const CatalogView: React.FC = () => {
 
       {/* New Item Modal / Inline Form */}
       {addingItem && (
-        <div className="bg-slate-900 p-4 rounded-2xl border border-brand-500/40 animate-fadeIn">
+        <div className="bg-triton-navy p-4 rounded-2xl border border-brand-500/40 animate-fadeIn">
           <form onSubmit={handleAddItem} className="flex flex-wrap items-center gap-3">
             <input
               type="text"
               placeholder="Nombre de la prenda / concepto..."
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
-              className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-400 flex-1 min-w-[200px]"
+              className="bg-triton-deep border border-triton-slate/60 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua flex-1 min-w-[200px]"
               autoFocus
             />
             <input
@@ -248,28 +248,28 @@ export const CatalogView: React.FC = () => {
               placeholder="Precio unitario ($)..."
               value={newItemPrice}
               onChange={(e) => setNewItemPrice(e.target.value)}
-              className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-400 w-full sm:w-36"
+              className="bg-triton-deep border border-triton-slate/60 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua w-full sm:w-36"
             />
             <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={newItemSeFactura}
                 onChange={(e) => setNewItemSeFactura(e.target.checked)}
-                className="rounded border-slate-700 text-brand-600 focus:ring-brand-500"
+                className="rounded border-triton-slate/60 text-brand-600 focus:ring-brand-500"
               />
               <span>Es Facturable</span>
             </label>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="submit"
-                className="flex-1 sm:flex-initial px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition-colors"
+                className="flex-1 sm:flex-initial px-4 py-2 bg-triton-aqua hover:bg-triton-aqua-hover text-triton-navy rounded-xl text-xs font-black transition-colors"
               >
                 Guardar Prenda
               </button>
               <button
                 type="button"
                 onClick={() => setAddingItem(false)}
-                className="flex-1 sm:flex-initial px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors"
+                className="flex-1 sm:flex-initial px-3 py-2 bg-triton-deep hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors"
               >
                 Cancelar
               </button>
@@ -279,7 +279,7 @@ export const CatalogView: React.FC = () => {
       )}
 
       {/* Catalog Content: Mobile Cards + Desktop Table */}
-      <div className="bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+      <div className="bg-triton-navy/90 rounded-2xl border border-triton-slate/50 overflow-hidden shadow-xl">
         {tab === 'hoteles' ? (
           <>
             {/* Mobile Cards for Hoteles */}
@@ -299,7 +299,7 @@ export const CatalogView: React.FC = () => {
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
                             hotel.activo
                               ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
-                              : 'bg-slate-800 text-slate-400 border-slate-700'
+                              : 'bg-triton-deep text-slate-400 border-triton-slate/60'
                           }`}
                         >
                           {hotel.activo ? 'Activo' : 'Inactivo'}
@@ -324,7 +324,7 @@ export const CatalogView: React.FC = () => {
             {/* Desktop Table for Hoteles */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                <thead className="bg-triton-deep text-slate-400 uppercase tracking-wider font-semibold border-b border-triton-slate/50">
                   <tr>
                     <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3">Nombre del Hotel</th>
@@ -341,7 +341,7 @@ export const CatalogView: React.FC = () => {
                     </tr>
                   ) : (
                     filteredHoteles.map((hotel) => (
-                      <tr key={hotel.id} className="hover:bg-slate-800/40 transition-colors">
+                      <tr key={hotel.id} className="hover:bg-triton-deep/60 transition-colors">
                         <td className="px-4 py-3 text-slate-500 font-mono">#{hotel.id}</td>
                         <td className="px-4 py-3 font-semibold text-slate-200">{hotel.nombre}</td>
                         <td className="px-4 py-3">
@@ -349,7 +349,7 @@ export const CatalogView: React.FC = () => {
                             className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
                               hotel.activo
                                 ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
-                                : 'bg-slate-800 text-slate-400 border-slate-700'
+                                : 'bg-triton-deep text-slate-400 border-triton-slate/60'
                             }`}
                           >
                             {hotel.activo ? 'Activo' : 'Inactivo'}
@@ -413,7 +413,7 @@ export const CatalogView: React.FC = () => {
                         value={editPriceValue}
                         onChange={(e) => setEditPriceValue(e.target.value)}
                         placeholder="0.00"
-                        className="flex-1 bg-slate-950 border border-brand-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                        className="flex-1 bg-triton-deep border border-brand-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
                         autoFocus
                       />
                       <button
@@ -425,7 +425,7 @@ export const CatalogView: React.FC = () => {
                       </button>
                       <button
                         onClick={() => setEditingItemId(null)}
-                        className="p-2 bg-slate-800 text-slate-300 rounded-xl"
+                        className="p-2 bg-triton-deep text-slate-300 rounded-xl"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -437,7 +437,7 @@ export const CatalogView: React.FC = () => {
                           setEditingItemId(item.id);
                           setEditPriceValue(item.precio_unitario != null ? item.precio_unitario.toString() : '');
                         }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 active:bg-slate-700 text-slate-200 border border-slate-700"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-triton-deep active:bg-slate-700 text-slate-200 border border-triton-slate/60"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                         <span>Editar Precio</span>
@@ -451,7 +451,7 @@ export const CatalogView: React.FC = () => {
             {/* Desktop Table for Prendas */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                <thead className="bg-triton-deep text-slate-400 uppercase tracking-wider font-semibold border-b border-triton-slate/50">
                   <tr>
                     <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3">Tipo de Prenda / Concepto</th>
@@ -462,7 +462,7 @@ export const CatalogView: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {filteredItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
+                    <tr key={item.id} className="hover:bg-triton-deep/60 transition-colors">
                       <td className="px-4 py-3 text-slate-500 font-mono">#{item.id}</td>
                       <td className="px-4 py-3 font-semibold text-slate-200">{item.nombre}</td>
                       <td className="px-4 py-3">
@@ -485,7 +485,7 @@ export const CatalogView: React.FC = () => {
                               value={editPriceValue}
                               onChange={(e) => setEditPriceValue(e.target.value)}
                               placeholder="0.00"
-                              className="bg-slate-950 border border-brand-500 rounded px-2 py-1 text-xs text-white w-24 text-right focus:outline-none"
+                              className="bg-triton-deep border border-brand-500 rounded px-2 py-1 text-xs text-white w-24 text-right focus:outline-none"
                               autoFocus
                             />
                             <button
@@ -514,7 +514,7 @@ export const CatalogView: React.FC = () => {
                               setEditingItemId(item.id);
                               setEditPriceValue(item.precio_unitario != null ? item.precio_unitario.toString() : '');
                             }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-triton-deep hover:bg-slate-700 text-slate-200 border border-triton-slate/60 transition-colors"
                           >
                             <Edit2 className="h-3 w-3" />
                             <span>Editar Precio</span>

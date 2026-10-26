@@ -487,18 +487,18 @@ export const MatrixEntryView: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-5 animate-fade-in pb-20 md:pb-0">
       {/* Top Header & Controles de Operación */}
-      <div className="bg-[#0b1a33]/90 p-4 sm:p-5 rounded-2xl border border-[#1e3659] shadow-xl shadow-black/20 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-triton-navy/90 p-4 sm:p-5 rounded-2xl border border-triton-slate/50 shadow-xl shadow-black/20 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center justify-between sm:justify-start gap-2.5">
             <div className="flex items-center gap-2.5">
-              <Layers className="h-5 w-5 sm:h-6 sm:w-6 text-brand-400 shrink-0" />
+              <Layers className="h-5 w-5 sm:h-6 sm:w-6 text-triton-aqua shrink-0" />
               <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">Carga Diaria de Planilla</h2>
             </div>
             {/* Estado de Auto-Save en Mobile visible arriba a la derecha */}
             <div className="sm:hidden">
               {autoSaveStatus === 'saving' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-brand-950 text-brand-300 border border-brand-700/60 text-[10px] font-semibold animate-pulse">
-                  <RefreshCw className="w-3 h-3 animate-spin text-brand-400" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-brand-950 text-triton-aqua-light border border-brand-700/60 text-[10px] font-semibold animate-pulse">
+                  <RefreshCw className="w-3 h-3 animate-spin text-triton-aqua" />
                   <span>Guardando</span>
                 </span>
               )}
@@ -515,7 +515,7 @@ export const MatrixEntryView: React.FC = () => {
                 </span>
               )}
               {autoSaveStatus === 'idle' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#071326] text-slate-400 border border-[#1e3659] text-[10px] font-medium">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-triton-deep text-slate-400 border border-triton-slate/50 text-[10px] font-medium">
                   <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                   <span>En vivo</span>
                 </span>
@@ -532,8 +532,8 @@ export const MatrixEntryView: React.FC = () => {
           {/* Indicador de Estado del Guardado Automático (Desktop/Tablet) */}
           <div className="hidden sm:block mr-1">
             {autoSaveStatus === 'saving' && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-brand-950 text-brand-300 border border-brand-700/60 text-xs font-semibold animate-pulse shadow-sm">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand-400" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-brand-950 text-triton-aqua-light border border-brand-700/60 text-xs font-semibold animate-pulse shadow-sm">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-triton-aqua" />
                 <span>Guardando celda...</span>
               </span>
             )}
@@ -550,7 +550,7 @@ export const MatrixEntryView: React.FC = () => {
               </span>
             )}
             {autoSaveStatus === 'idle' && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#071326] text-slate-400 border border-[#1e3659] text-xs font-medium">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-triton-deep text-slate-400 border border-triton-slate/50 text-xs font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                 <span>Sincronizado en vivo</span>
               </span>
@@ -559,8 +559,8 @@ export const MatrixEntryView: React.FC = () => {
 
           <div className="grid grid-cols-2 sm:flex items-center gap-2">
             {/* Selector de Fecha */}
-            <div className="flex items-center gap-2 bg-[#071326] px-3 py-2 sm:py-1.5 rounded-xl border border-[#1e3659]">
-              <Calendar className="h-4 w-4 text-brand-400 shrink-0" />
+            <div className="flex items-center gap-2 bg-triton-deep px-3 py-2 sm:py-1.5 rounded-xl border border-triton-slate/50">
+              <Calendar className="h-4 w-4 text-triton-aqua shrink-0" />
               <span className="text-xs font-bold text-slate-300 hidden xs:inline">Fecha:</span>
               <input
                 type="date"
@@ -581,7 +581,7 @@ export const MatrixEntryView: React.FC = () => {
                   setSearchTerm(e.target.value);
                   setActiveMobileHotelId('all');
                 }}
-                className="bg-[#071326] border border-[#1e3659] rounded-xl pl-9 pr-3 py-2 sm:py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-400 w-full sm:w-44"
+                className="bg-triton-deep border border-triton-slate/50 rounded-xl pl-9 pr-3 py-2 sm:py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua w-full sm:w-44"
               />
             </div>
           </div>
@@ -590,7 +590,7 @@ export const MatrixEntryView: React.FC = () => {
           <button
             onClick={handleSaveBulk}
             disabled={savingBulk || loading}
-            className="flex items-center justify-center gap-2 px-3.5 py-2 sm:py-1.5 bg-[#132747] hover:bg-[#1e3659] border border-[#1e3659] text-slate-200 hover:text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-3.5 py-2 sm:py-1.5 bg-triton-deep hover:bg-triton-slate/60 border border-triton-slate/50 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
             title="Consolidar y verificar toda la planilla"
           >
             <Save className={`h-3.5 w-3.5 ${savingBulk ? 'animate-spin' : ''}`} />
@@ -622,7 +622,7 @@ export const MatrixEntryView: React.FC = () => {
       {/* ===================================================================== */}
       <div className="md:hidden space-y-3.5">
         {/* Barra de Filtros Rápidos de Prendas y Hoteles para Mobile */}
-        <div className="bg-[#0b1a33]/90 p-3.5 rounded-2xl border border-[#1e3659] shadow-lg space-y-3">
+        <div className="bg-triton-navy/90 p-3.5 rounded-2xl border border-triton-slate/50 shadow-lg space-y-3">
           {/* Buscador de Prenda + Filtro Solo Cargadas */}
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -632,7 +632,7 @@ export const MatrixEntryView: React.FC = () => {
                 placeholder="Buscar ítem / prenda (ej: Sábana, Toalla)..."
                 value={itemSearchMobile}
                 onChange={(e) => setItemSearchMobile(e.target.value)}
-                className="w-full bg-[#071326] border border-[#1e3659] rounded-xl pl-8 pr-7 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-400"
+                className="w-full bg-triton-deep border border-triton-slate/50 rounded-xl pl-8 pr-7 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua"
               />
               {itemSearchMobile && (
                 <button
@@ -650,7 +650,7 @@ export const MatrixEntryView: React.FC = () => {
               className={`px-2.5 py-2 rounded-xl text-[11px] font-bold border shrink-0 transition-all ${
                 onlyLoadedItemsMobile
                   ? 'bg-brand-600 text-white border-brand-500'
-                  : 'bg-[#071326] text-slate-300 border-[#1e3659]'
+                  : 'bg-triton-deep text-slate-300 border-triton-slate/50'
               }`}
             >
               {onlyLoadedItemsMobile ? 'Cargados' : `Todos (${items.length})`}
@@ -666,7 +666,7 @@ export const MatrixEntryView: React.FC = () => {
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 border transition-all ${
                   activeMobileHotelId === 'all'
                     ? 'bg-brand-600 text-white border-brand-500 shadow-sm'
-                    : 'bg-[#071326] text-slate-300 border-[#1e3659]'
+                    : 'bg-triton-deep text-slate-300 border-triton-slate/50'
                 }`}
               >
                 <Building2 className="w-3.5 h-3.5" />
@@ -689,7 +689,7 @@ export const MatrixEntryView: React.FC = () => {
                         ? 'bg-brand-600 text-white border-brand-500 shadow-sm'
                         : hTotal > 0
                         ? 'bg-brand-950/60 text-cyan-300 border-brand-700/60'
-                        : 'bg-[#071326] text-slate-300 border-[#1e3659]'
+                        : 'bg-triton-deep text-slate-300 border-triton-slate/50'
                     }`}
                   >
                     <span className="truncate max-w-[130px]">{h.nombre}</span>
@@ -705,7 +705,7 @@ export const MatrixEntryView: React.FC = () => {
           )}
 
           {/* Controles rápidos Expandir / Colapsar hoteles */}
-          <div className="flex items-center justify-between pt-1 border-t border-[#1e3659]/60 text-[11px]">
+          <div className="flex items-center justify-between pt-1 border-t border-triton-slate/40 text-[11px]">
             <span className="text-slate-400 font-medium">
               Tocá un hotel para cargar sus <strong className="text-white">{items.length} ítems</strong>
             </span>
@@ -713,7 +713,7 @@ export const MatrixEntryView: React.FC = () => {
               <button
                 type="button"
                 onClick={expandAllMobileHotels}
-                className="text-brand-400 font-bold hover:underline"
+                className="text-triton-aqua font-bold hover:underline"
               >
                 Abrir todos
               </button>
@@ -731,12 +731,12 @@ export const MatrixEntryView: React.FC = () => {
 
         {/* Listado de Tarjetas de Hoteles con sus Ítems para Cargar */}
         {loading ? (
-          <div className="bg-[#0b1a33]/90 rounded-2xl border border-[#1e3659] p-12 text-center text-slate-400">
+          <div className="bg-triton-navy/90 rounded-2xl border border-triton-slate/50 p-12 text-center text-slate-400">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-500 border-t-transparent mb-3" />
             <p className="text-xs font-semibold">Cargando ítems y hoteles en tiempo real...</p>
           </div>
         ) : mobileVisibleHoteles.length === 0 ? (
-          <div className="bg-[#0b1a33]/90 rounded-2xl border border-[#1e3659] p-8 text-center text-slate-400 text-xs">
+          <div className="bg-triton-navy/90 rounded-2xl border border-triton-slate/50 p-8 text-center text-slate-400 text-xs">
             No se encontraron hoteles con ese filtro.
           </div>
         ) : (
@@ -766,14 +766,14 @@ export const MatrixEntryView: React.FC = () => {
                 key={hotel.id}
                 className={`rounded-2xl border transition-all overflow-hidden shadow-xl ${
                   isExpanded
-                    ? 'bg-[#0b1a33] border-brand-500/60'
-                    : 'bg-[#0b1a33]/90 border-[#1e3659]'
+                    ? 'bg-triton-navy border-brand-500/60'
+                    : 'bg-triton-navy/90 border-triton-slate/50'
                 }`}
               >
                 {/* Cabecera del Hotel en Mobile */}
                 <div
                   onClick={() => toggleMobileHotel(hotel.id)}
-                  className="p-3.5 bg-[#071326]/80 flex items-center justify-between gap-2 cursor-pointer select-none"
+                  className="p-3.5 bg-triton-deep/80 flex items-center justify-between gap-2 cursor-pointer select-none"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -810,7 +810,7 @@ export const MatrixEntryView: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="px-2.5 py-1.5 rounded-xl bg-[#132747] border border-[#1e3659] text-[11px] font-bold text-brand-300 flex items-center gap-1">
+                    <span className="px-2.5 py-1.5 rounded-xl bg-triton-deep border border-triton-slate/50 text-[11px] font-bold text-triton-aqua-light flex items-center gap-1">
                       <span>{isExpanded ? 'Ocultar' : 'Cargar ítems'}</span>
                       {isExpanded ? (
                         <ChevronUp className="w-4 h-4" />
@@ -823,7 +823,7 @@ export const MatrixEntryView: React.FC = () => {
 
                 {/* Cuerpo Desplegado: Todos los Ítems para Cargar en este Hotel */}
                 {isExpanded && (
-                  <div className="p-3 space-y-2.5 border-t border-[#1e3659]">
+                  <div className="p-3 space-y-2.5 border-t border-triton-slate/50">
                     {visibleItemsForHotel.length === 0 ? (
                       <div className="py-6 text-center text-xs text-slate-400">
                         No hay ítems que coincidan con el filtro actual.
@@ -846,7 +846,7 @@ export const MatrixEntryView: React.FC = () => {
                                   ? 'bg-brand-950/60 border-brand-400 animate-pulse'
                                   : qty > 0
                                   ? 'bg-brand-950/40 border-brand-600/60'
-                                  : 'bg-[#071326]/90 border-[#1e3659]'
+                                  : 'bg-triton-deep/90 border-triton-slate/50'
                               }`}
                             >
                               <div className="flex items-center justify-between gap-2 mb-2">
@@ -866,7 +866,7 @@ export const MatrixEntryView: React.FC = () => {
                                 </div>
 
                                 {isSavingThis ? (
-                                  <span className="text-[10px] text-brand-300 font-semibold">
+                                  <span className="text-[10px] text-triton-aqua-light font-semibold">
                                     Guardando...
                                   </span>
                                 ) : isSavedThis ? (
@@ -886,7 +886,7 @@ export const MatrixEntryView: React.FC = () => {
                                   type="button"
                                   disabled={isLocked || qty <= 0}
                                   onClick={() => handleIncrementCell(hotel.id, item.id, -1)}
-                                  className="w-11 h-10 rounded-xl bg-[#132747] active:bg-[#1e3659] disabled:opacity-30 border border-[#1e3659] text-white flex items-center justify-center touch-manipulation shrink-0"
+                                  className="w-11 h-10 rounded-xl bg-triton-deep active:bg-triton-slate/80 disabled:opacity-30 border border-triton-slate/50 text-white flex items-center justify-center touch-manipulation shrink-0"
                                   aria-label={`Restar ${item.nombre}`}
                                 >
                                   <Minus className="w-4 h-4" />
@@ -911,7 +911,7 @@ export const MatrixEntryView: React.FC = () => {
                                   className={`flex-1 h-10 text-center rounded-xl border text-sm font-black transition-all focus:outline-none disabled:opacity-50 ${
                                     qty > 0
                                       ? 'bg-brand-950 border-brand-500 text-white'
-                                      : 'bg-[#0b1a33] border-[#1e3659] text-slate-200 focus:border-brand-400'
+                                      : 'bg-triton-navy border-triton-slate/50 text-slate-200 focus:border-triton-aqua'
                                   }`}
                                 />
 
@@ -919,7 +919,7 @@ export const MatrixEntryView: React.FC = () => {
                                   type="button"
                                   disabled={isLocked}
                                   onClick={() => handleIncrementCell(hotel.id, item.id, 1)}
-                                  className="w-11 h-10 rounded-xl bg-brand-600 hover:bg-brand-500 active:bg-brand-700 disabled:opacity-30 text-white flex items-center justify-center shadow-sm touch-manipulation shrink-0"
+                                  className="w-11 h-10 rounded-xl bg-triton-teal hover:bg-triton-teal-light active:bg-[#108080] disabled:opacity-30 text-white flex items-center justify-center shadow-sm touch-manipulation shrink-0"
                                   aria-label={`Sumar ${item.nombre}`}
                                 >
                                   <Plus className="w-4 h-4" />
@@ -936,7 +936,7 @@ export const MatrixEntryView: React.FC = () => {
                                       onClick={() =>
                                         handleIncrementCell(hotel.id, item.id, step)
                                       }
-                                      className="py-1 rounded-lg bg-[#132747]/80 active:bg-[#1e3659] border border-[#1e3659] text-[11px] font-bold text-slate-300 touch-manipulation"
+                                      className="py-1 rounded-lg bg-triton-deep/80 active:bg-triton-slate/80 border border-triton-slate/50 text-[11px] font-bold text-slate-300 touch-manipulation"
                                     >
                                       +{step}
                                     </button>
@@ -950,7 +950,7 @@ export const MatrixEntryView: React.FC = () => {
                     )}
 
                     {/* Pie de Tarjeta del Hotel: Resumen y Conciliación con Remito */}
-                    <div className="pt-3 mt-2 border-t border-[#1e3659] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                    <div className="pt-3 mt-2 border-t border-triton-slate/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-300">
                           Total cargado en {hotel.nombre}:
@@ -965,7 +965,7 @@ export const MatrixEntryView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setModalDespacho(despacho)}
-                            className="flex-1 py-2 px-3 rounded-xl bg-[#071326] border border-[#1e3659] text-xs font-bold text-slate-200 flex items-center justify-center gap-1.5"
+                            className="flex-1 py-2 px-3 rounded-xl bg-triton-deep border border-triton-slate/50 text-xs font-bold text-slate-200 flex items-center justify-center gap-1.5"
                           >
                             <ShieldCheck className="w-4 h-4 text-cyan-400" />
                             <span>Ver Conciliación</span>
@@ -977,7 +977,7 @@ export const MatrixEntryView: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleReopenHotel(hotel)}
-                              className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700"
+                              className="flex-1 py-2.5 px-3 rounded-xl bg-triton-deep text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700"
                             >
                               <Unlock className="w-4 h-4" />
                               <span>Reabrir Edición (Admin)</span>
@@ -992,7 +992,7 @@ export const MatrixEntryView: React.FC = () => {
                             type="button"
                             onClick={() => void handleValidarHotel(hotel)}
                             disabled={isValidatingThis}
-                            className="flex-1 py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 active:bg-brand-700 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-brand-600/30"
+                            className="flex-1 py-2.5 px-4 rounded-xl bg-triton-teal hover:bg-triton-teal-light active:bg-[#108080] disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-triton-teal/30"
                           >
                             <ClipboardCheck
                               className={`w-4 h-4 ${isValidatingThis ? 'animate-spin' : ''}`}
@@ -1016,7 +1016,7 @@ export const MatrixEntryView: React.FC = () => {
         )}
 
         {/* Barra Inferior Fija en Mobile con Total General del Día */}
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0b1a33]/95 backdrop-blur-md border-t border-[#1e3659] px-4 py-3 shadow-2xl">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-triton-navy/95 backdrop-blur-md border-t border-triton-slate/50 px-4 py-3 shadow-2xl">
           <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
@@ -1032,7 +1032,7 @@ export const MatrixEntryView: React.FC = () => {
               type="button"
               onClick={handleSaveBulk}
               disabled={savingBulk || loading}
-              className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-brand-600/30"
+              className="px-4 py-2.5 rounded-xl bg-triton-aqua hover:bg-triton-aqua-hover active:bg-[#48c0b0] disabled:opacity-50 text-triton-navy text-xs font-black flex items-center gap-1.5 shadow-lg shadow-triton-aqua/30"
             >
               <Save className={`w-4 h-4 ${savingBulk ? 'animate-spin' : ''}`} />
               <span>{savingBulk ? 'Sincronizando...' : 'Sincronizar Todo'}</span>
@@ -1044,7 +1044,7 @@ export const MatrixEntryView: React.FC = () => {
       {/* ===================================================================== */}
       {/* VISTA WEB / DESKTOP (md:block): TABLA MATRIZ ORIGINAL INTACTA         */}
       {/* ===================================================================== */}
-      <div className="hidden md:block bg-[#0b1a33]/90 rounded-2xl border border-[#1e3659] overflow-hidden shadow-2xl">
+      <div className="hidden md:block bg-triton-navy/90 rounded-2xl border border-triton-slate/50 overflow-hidden shadow-2xl">
         <div
           tabIndex={0}
           role="region"
@@ -1052,9 +1052,9 @@ export const MatrixEntryView: React.FC = () => {
           className="overflow-x-auto max-h-[620px] relative"
         >
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-[#071326] sticky top-0 z-20 shadow-md">
-              <tr className="border-b border-[#1e3659] text-slate-400 uppercase tracking-wider">
-                <th className="px-4 py-3 sticky left-0 z-30 bg-[#071326] min-w-[200px] font-bold text-white border-r border-[#1e3659]">
+            <thead className="bg-triton-deep sticky top-0 z-20 shadow-md">
+              <tr className="border-b border-triton-slate/50 text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-3 sticky left-0 z-30 bg-triton-deep min-w-[200px] font-bold text-white border-r border-triton-slate/50">
                   Hotel / Cliente
                 </th>
                 {items.map((item) => (
@@ -1068,16 +1068,16 @@ export const MatrixEntryView: React.FC = () => {
                     {!item.se_factura && <span className="text-[9px] lowercase font-normal">(relav)</span>}
                   </th>
                 ))}
-                <th className="px-3 py-3 text-right min-w-[90px] font-bold text-cyan-400 border-l border-[#1e3659] bg-[#071326]">
+                <th className="px-3 py-3 text-right min-w-[90px] font-bold text-cyan-400 border-l border-triton-slate/50 bg-triton-deep">
                   Total Fila
                 </th>
-                <th className="px-4 py-3 text-center xl:sticky xl:right-0 z-30 bg-[#071326] min-w-[215px] font-bold text-white border-l border-[#1e3659]">
+                <th className="px-4 py-3 text-center xl:sticky xl:right-0 z-30 bg-triton-deep min-w-[215px] font-bold text-white border-l border-triton-slate/50">
                   Check / Conciliar Remito
                 </th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-[#1e3659]/60 bg-[#0b1a33]/40">
+            <tbody className="divide-y divide-triton-slate/40 bg-triton-navy/40">
               {loading ? (
                 <tr>
                   <td colSpan={items.length + 3} className="px-4 py-16 text-center text-slate-400">
@@ -1096,7 +1096,7 @@ export const MatrixEntryView: React.FC = () => {
                   return (
                     <tr
                       key={hotel.id}
-                      className={`hover:bg-[#132747]/40 transition-colors ${
+                      className={`hover:bg-triton-deep/40 transition-colors ${
                         isLocked
                           ? 'bg-emerald-950/10 opacity-90'
                           : rowTotal > 0
@@ -1105,7 +1105,7 @@ export const MatrixEntryView: React.FC = () => {
                       }`}
                     >
                       {/* Nombre del Hotel (Sticky izquierda) */}
-                      <td className="px-4 py-2 sticky left-0 z-10 bg-[#0b1a33] font-bold text-slate-200 border-r border-[#1e3659]">
+                      <td className="px-4 py-2 sticky left-0 z-10 bg-triton-navy font-bold text-slate-200 border-r border-triton-slate/50">
                         <div className="flex items-center justify-between gap-1.5">
                           <span className="truncate">{hotel.nombre}</span>
                           {isLocked && (
@@ -1127,7 +1127,7 @@ export const MatrixEntryView: React.FC = () => {
                         const isSavedThis = savedCells.has(cellKey);
 
                         return (
-                          <td key={item.id} className="p-1 text-center border-r border-[#1e3659]/40">
+                          <td key={item.id} className="p-1 text-center border-r border-triton-slate/50/40">
                             <input
                               type="number"
                               min="0"
@@ -1148,7 +1148,7 @@ export const MatrixEntryView: React.FC = () => {
                                   ? 'bg-brand-950 border-brand-400 text-brand-200 ring-2 ring-brand-400/50 animate-pulse'
                                   : qty > 0
                                   ? 'bg-brand-950/80 border-brand-700 text-white focus:ring-2 focus:ring-brand-400'
-                                  : 'bg-[#071326] border-[#1e3659] text-slate-400 hover:border-slate-500 focus:border-brand-400 focus:text-white'
+                                  : 'bg-triton-deep border-triton-slate/50 text-slate-400 hover:border-slate-500 focus:border-triton-aqua focus:text-white'
                               }`}
                             />
                           </td>
@@ -1156,17 +1156,17 @@ export const MatrixEntryView: React.FC = () => {
                       })}
 
                       {/* Total de Fila */}
-                      <td className="px-3 py-2 text-right bg-[#0b1a33] font-black text-cyan-300 border-l border-[#1e3659]">
+                      <td className="px-3 py-2 text-right bg-triton-navy font-black text-cyan-300 border-l border-triton-slate/50">
                         {formatNumber(rowTotal)}
                       </td>
 
                       {/* Check de Validación / Conciliar con Remito (Sticky derecha en pantallas amplias) */}
-                      <td className="px-3 py-2 xl:sticky xl:right-0 z-10 bg-[#0b1a33] border-l border-[#1e3659]">
+                      <td className="px-3 py-2 xl:sticky xl:right-0 z-10 bg-triton-navy border-l border-triton-slate/50">
                         <div className="flex items-center justify-between gap-1.5">
                           {/* Estado actual */}
                           <div className="flex-1 min-w-0">
                             {!despacho || despacho.estado === 'pendiente' ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-[#071326] border border-[#1e3659] px-2 py-0.5 rounded-full">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-triton-deep border border-triton-slate/50 px-2 py-0.5 rounded-full">
                                 Pendiente
                               </span>
                             ) : despacho.estado === 'validado_ok' ? (
@@ -1210,7 +1210,7 @@ export const MatrixEntryView: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleReopenHotel(hotel)}
-                                className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] font-bold flex items-center gap-1 border border-slate-700 shrink-0"
+                                className="px-2 py-1 rounded-lg bg-triton-deep hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] font-bold flex items-center gap-1 border border-slate-700 shrink-0"
                                 title="Reabrir edición (Solo Admin)"
                               >
                                 <Unlock className="w-3 h-3" />
@@ -1224,7 +1224,7 @@ export const MatrixEntryView: React.FC = () => {
                               type="button"
                               onClick={() => handleValidarHotel(hotel)}
                               disabled={isValidatingThis}
-                              className="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm transition-all shrink-0"
+                              className="px-2.5 py-1 rounded-lg bg-triton-teal hover:bg-triton-teal-light disabled:opacity-50 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm transition-all shrink-0"
                               title="Comparar carga con el Remito del Hotel y enviar alerta/muestra al Repartidor"
                             >
                               <ClipboardCheck className={`w-3 h-3 ${isValidatingThis ? 'animate-spin' : ''}`} />
@@ -1241,23 +1241,23 @@ export const MatrixEntryView: React.FC = () => {
 
             {/* Fila Inferior con Totales Generales */}
             {!loading && (
-              <tfoot className="bg-[#071326] sticky bottom-0 z-20 border-t-2 border-[#1e3659] font-bold">
+              <tfoot className="bg-triton-deep sticky bottom-0 z-20 border-t-2 border-triton-slate/50 font-bold">
                 <tr>
-                  <td className="px-4 py-3 sticky left-0 z-30 bg-[#071326] text-white border-r border-[#1e3659] uppercase tracking-wider text-xs">
+                  <td className="px-4 py-3 sticky left-0 z-30 bg-triton-deep text-white border-r border-triton-slate/50 uppercase tracking-wider text-xs">
                     TOTAL GENERAL DEL DÍA
                   </td>
                   {items.map((item) => {
                     const colTotal = getColumnTotal(item.id);
                     return (
-                      <td key={item.id} className="px-3 py-3 text-center text-slate-200 border-r border-[#1e3659]/40 font-extrabold">
+                      <td key={item.id} className="px-3 py-3 text-center text-slate-200 border-r border-triton-slate/50/40 font-extrabold">
                         {formatNumber(colTotal)}
                       </td>
                     );
                   })}
-                  <td className="px-3 py-3 text-right bg-[#071326] text-emerald-400 border-l border-[#1e3659] text-sm font-black">
+                  <td className="px-3 py-3 text-right bg-triton-deep text-emerald-400 border-l border-triton-slate/50 text-sm font-black">
                     {formatNumber(grandTotal)}
                   </td>
-                  <td className="px-4 py-3 text-center xl:sticky xl:right-0 z-30 bg-[#071326] text-slate-400 border-l border-[#1e3659] text-[10px]">
+                  <td className="px-4 py-3 text-center xl:sticky xl:right-0 z-30 bg-triton-deep text-slate-400 border-l border-triton-slate/50 text-[10px]">
                     {Object.values(despachosByHotel).filter((d) => d.estado !== 'pendiente').length} conciliados
                   </td>
                 </tr>
@@ -1270,9 +1270,9 @@ export const MatrixEntryView: React.FC = () => {
       {/* Modal de Confirmación y Comparativo Remito vs. Procesado */}
       {modalDespacho && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
-          <div className="bg-[#0b1a33] border border-[#1e3659] rounded-2xl max-w-2xl w-full max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-triton-navy border border-triton-slate/50 rounded-2xl max-w-2xl w-full max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden">
             {/* Cabecera del Modal */}
-            <div className="p-4 sm:p-5 bg-[#071326] border-b border-[#1e3659] flex items-center justify-between gap-3 shrink-0">
+            <div className="p-4 sm:p-5 bg-triton-deep border-b border-triton-slate/50 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
@@ -1296,7 +1296,7 @@ export const MatrixEntryView: React.FC = () => {
                     {modalDespacho.codigo_qr && (
                       <>
                         {' '}
-                        &bull; Remito QR: <span className="font-mono text-brand-300">{modalDespacho.codigo_qr}</span>
+                        &bull; Remito QR: <span className="font-mono text-triton-aqua-light">{modalDespacho.codigo_qr}</span>
                       </>
                     )}
                   </p>
@@ -1304,7 +1304,7 @@ export const MatrixEntryView: React.FC = () => {
               </div>
               <button
                 onClick={() => setModalDespacho(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#132747] shrink-0"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-triton-deep shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1340,7 +1340,7 @@ export const MatrixEntryView: React.FC = () => {
 
               {/* Tarjetas Comparativas: Remito vs. Procesado */}
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <div className="bg-[#071326] border border-[#1e3659] rounded-xl p-2.5 sm:p-3.5 text-center">
+                <div className="bg-triton-deep border border-triton-slate/50 rounded-xl p-2.5 sm:p-3.5 text-center">
                   <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                     Cant. Remito
                   </span>
@@ -1349,7 +1349,7 @@ export const MatrixEntryView: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="bg-[#071326] border border-[#1e3659] rounded-xl p-2.5 sm:p-3.5 text-center">
+                <div className="bg-triton-deep border border-triton-slate/50 rounded-xl p-2.5 sm:p-3.5 text-center">
                   <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-cyan-400 block">
                     Procesada
                   </span>
@@ -1391,8 +1391,8 @@ export const MatrixEntryView: React.FC = () => {
               </div>
 
               {/* Muestra Procesada Ítem por Ítem */}
-              <div className="rounded-xl border border-[#1e3659] overflow-hidden">
-                <div className="bg-[#071326] px-3.5 sm:px-4 py-2.5 border-b border-[#1e3659] flex items-center justify-between">
+              <div className="rounded-xl border border-triton-slate/50 overflow-hidden">
+                <div className="bg-triton-deep px-3.5 sm:px-4 py-2.5 border-b border-triton-slate/50 flex items-center justify-between">
                   <span className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-wider">
                     Muestra enviada al Repartidor
                   </span>
@@ -1402,7 +1402,7 @@ export const MatrixEntryView: React.FC = () => {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-[#071326]/70 text-slate-400 uppercase text-[10px] border-b border-[#1e3659]">
+                    <thead className="bg-triton-deep/70 text-slate-400 uppercase text-[10px] border-b border-triton-slate/50">
                       <tr>
                         <th className="px-3 sm:px-4 py-2.5">Ítem / Prenda</th>
                         <th className="px-2 sm:px-3 py-2.5 text-right">Remito</th>
@@ -1410,7 +1410,7 @@ export const MatrixEntryView: React.FC = () => {
                         <th className="px-3 sm:px-4 py-2.5 text-right">Dif.</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1e3659]/50">
+                    <tbody className="divide-y divide-triton-slate/40">
                       {modalDespacho.muestra_procesado.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
@@ -1419,7 +1419,7 @@ export const MatrixEntryView: React.FC = () => {
                         </tr>
                       ) : (
                         modalDespacho.muestra_procesado.map((m) => (
-                          <tr key={m.item_id} className="hover:bg-[#132747]/30">
+                          <tr key={m.item_id} className="hover:bg-triton-deep/30">
                             <td className="px-3 sm:px-4 py-2 font-bold text-white">{m.item_nombre}</td>
                             <td className="px-2 sm:px-3 py-2 text-right text-slate-300 font-semibold">
                               {formatNumber(m.cant_remito)}
@@ -1450,7 +1450,7 @@ export const MatrixEntryView: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-3.5 sm:p-4 bg-[#071326] border-t border-[#1e3659] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
+            <div className="p-3.5 sm:p-4 bg-triton-deep border-t border-triton-slate/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
               <div className="text-[11px] text-slate-400 text-center sm:text-left">
                 {modalDespacho.entregado_en ? (
                   <span className="text-emerald-400 font-semibold">
@@ -1467,7 +1467,7 @@ export const MatrixEntryView: React.FC = () => {
               </div>
               <button
                 onClick={() => setModalDespacho(null)}
-                className="px-4 py-2.5 sm:py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl"
+                className="px-4 py-2.5 sm:py-2 bg-triton-aqua hover:bg-triton-aqua-hover active:bg-[#48c0b0] text-triton-navy text-xs font-black rounded-xl shadow-md shadow-triton-aqua/20"
               >
                 Entendido
               </button>

@@ -283,7 +283,7 @@ export const EntregasView: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-5 animate-fade-in pb-12">
       {/* 1. Encabezado Oficial para Reparto */}
-      <div className="bg-[#0b1a33]/90 border border-[#1e3659] rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-triton-navy/95 border border-triton-slate/50 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
@@ -307,13 +307,13 @@ export const EntregasView: React.FC = () => {
         </div>
 
         {/* Selector Retiros vs Entregas */}
-        <div className="grid grid-cols-2 sm:flex items-center gap-1.5 bg-[#071326] p-1.5 rounded-xl border border-[#1e3659] w-full sm:w-auto">
+        <div className="grid grid-cols-2 sm:flex items-center gap-1.5 bg-triton-deep p-1.5 rounded-xl border border-triton-slate/50 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setVistaModo('retiros')}
             className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               vistaModo === 'retiros'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                ? 'bg-triton-teal text-white shadow-md shadow-triton-teal/30'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -325,7 +325,7 @@ export const EntregasView: React.FC = () => {
             onClick={() => setVistaModo('entregas')}
             className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               vistaModo === 'entregas'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                ? 'bg-triton-aqua text-triton-navy font-bold shadow-md shadow-triton-aqua/25'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -343,12 +343,12 @@ export const EntregasView: React.FC = () => {
               placeholder="Escanear QR Remito (ENV-...)"
               value={qrInput}
               onChange={(e) => setQrInput(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-[#071326] border border-[#1e3659] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-400 font-mono"
+              className="w-full pl-9 pr-3 py-2 bg-triton-deep border border-triton-slate/50 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua font-mono"
             />
           </div>
           <button
             type="submit"
-            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all shrink-0"
+            className="px-3.5 py-2 bg-triton-aqua hover:bg-triton-aqua-hover text-triton-navy text-xs font-black rounded-xl shadow-md shadow-triton-aqua/20 flex items-center gap-1.5 transition-all shrink-0"
           >
             <Search className="w-3.5 h-3.5" />
             <span>Buscar</span>
@@ -391,7 +391,7 @@ export const EntregasView: React.FC = () => {
               </div>
               <button
                 onClick={() => setScannedEnvio(null)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-[#132747]"
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-triton-deep"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -419,7 +419,7 @@ export const EntregasView: React.FC = () => {
                   .map((d) => (
                     <div
                       key={d.id}
-                      className="bg-[#071326]/90 border border-amber-700/60 rounded-xl p-3 flex items-center justify-between gap-3"
+                      className="bg-triton-deep/90 border border-amber-700/60 rounded-xl p-3 flex items-center justify-between gap-3"
                     >
                       <div className="min-w-0">
                         <p className="text-xs font-black text-white truncate">{d.hotel_nombre}</p>
@@ -449,7 +449,7 @@ export const EntregasView: React.FC = () => {
           {/* 2. Tarjetas de Carga del Vehículo (KPIs para el Repartidor) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
             {/* Total Limpias a Entregar */}
-            <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-emerald-800/60 bg-emerald-950/20 shadow-lg">
+            <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-emerald-800/60 bg-emerald-950/20 shadow-lg">
               <div className="flex items-center justify-between text-emerald-400 mb-1">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">
                   Listo a Entregar
@@ -465,7 +465,7 @@ export const EntregasView: React.FC = () => {
             </div>
 
             {/* Hoteles en Ruta */}
-            <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-blue-800/60 bg-blue-950/20 shadow-lg">
+            <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-blue-800/60 bg-blue-950/20 shadow-lg">
               <div className="flex items-center justify-between text-blue-400 mb-1">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">
                   Hoteles en Ruta
@@ -481,7 +481,7 @@ export const EntregasView: React.FC = () => {
             </div>
 
             {/* En Relavado (Quedaron en Planta) */}
-            <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-amber-800/60 bg-amber-950/20 shadow-lg">
+            <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-amber-800/60 bg-amber-950/20 shadow-lg">
               <div className="flex items-center justify-between text-amber-400 mb-1">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">
                   En Relavado
@@ -497,7 +497,7 @@ export const EntregasView: React.FC = () => {
             </div>
 
             {/* Prendas Dadas de Baja */}
-            <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-rose-800/60 bg-rose-950/20 shadow-lg">
+            <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-rose-800/60 bg-rose-950/20 shadow-lg">
               <div className="flex items-center justify-between text-rose-400 mb-1">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">
                   Roturas / Bajas
@@ -514,10 +514,10 @@ export const EntregasView: React.FC = () => {
           </div>
 
           {/* 3. Filtros Rápidos y Selector */}
-          <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-2xl border border-[#1e3659] shadow-xl flex flex-col sm:flex-row flex-wrap sm:items-center justify-between gap-3">
+          <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-2xl border border-triton-slate/50 shadow-xl flex flex-col sm:flex-row flex-wrap sm:items-center justify-between gap-3">
             <div className="grid grid-cols-1 sm:flex flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
               {/* Selector de Fecha */}
-              <div className="flex items-center gap-2 bg-[#071326] px-3 py-2 rounded-xl border border-[#1e3659] w-full sm:w-auto">
+              <div className="flex items-center gap-2 bg-triton-deep px-3 py-2 rounded-xl border border-triton-slate/50 w-full sm:w-auto">
                 <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                 <span className="text-xs font-bold text-slate-400">Fecha:</span>
                 <input
@@ -537,7 +537,7 @@ export const EntregasView: React.FC = () => {
               </div>
 
               {/* Selector de Hotel */}
-              <div className="flex items-center gap-2 bg-[#071326] px-3 py-2 rounded-xl border border-[#1e3659] w-full sm:w-auto">
+              <div className="flex items-center gap-2 bg-triton-deep px-3 py-2 rounded-xl border border-triton-slate/50 w-full sm:w-auto">
                 <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <select
                   value={hotelFiltro}
@@ -546,11 +546,11 @@ export const EntregasView: React.FC = () => {
                   }
                   className="bg-transparent text-xs text-white font-bold focus:outline-none cursor-pointer w-full"
                 >
-                  <option value="all" className="bg-[#071326] text-white">
+                  <option value="all" className="bg-triton-deep text-white">
                     Todos los Hoteles ({hotelGroups.length})
                   </option>
                   {hoteles.map((h) => (
-                    <option key={h.id} value={h.id} className="bg-[#071326] text-white">
+                    <option key={h.id} value={h.id} className="bg-triton-deep text-white">
                       {h.nombre}
                     </option>
                   ))}
@@ -565,7 +565,7 @@ export const EntregasView: React.FC = () => {
                   placeholder="Buscar prenda..."
                   value={busquedaPrenda}
                   onChange={(e) => setBusquedaPrenda(e.target.value)}
-                  className="w-full bg-[#071326] border border-[#1e3659] rounded-xl pl-8 pr-3 py-2 sm:py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-400"
+                  className="w-full bg-triton-deep border border-triton-slate/50 rounded-xl pl-8 pr-3 py-2 sm:py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua"
                 />
               </div>
             </div>
@@ -580,13 +580,13 @@ export const EntregasView: React.FC = () => {
                   });
                   setExpandedHotels(all);
                 }}
-                className="px-2.5 py-1.5 sm:py-1 text-[11px] font-bold text-slate-300 hover:text-white bg-[#132747] hover:bg-[#1e3659] rounded-lg transition-colors text-center"
+                className="px-2.5 py-1.5 sm:py-1 text-[11px] font-bold text-slate-300 hover:text-white bg-triton-deep hover:bg-triton-slate/60 rounded-lg transition-colors text-center"
               >
                 Expandir todo
               </button>
               <button
                 onClick={() => setExpandedHotels({})}
-                className="px-2.5 py-1.5 sm:py-1 text-[11px] font-bold text-slate-400 hover:text-slate-200 bg-[#071326] border border-[#1e3659] rounded-lg transition-colors text-center"
+                className="px-2.5 py-1.5 sm:py-1 text-[11px] font-bold text-slate-400 hover:text-slate-200 bg-triton-deep border border-triton-slate/50 rounded-lg transition-colors text-center"
               >
                 Colapsar
               </button>
@@ -595,13 +595,13 @@ export const EntregasView: React.FC = () => {
 
           {/* 4. Lista de Entregas por Hotel */}
           {loading ? (
-            <div className="bg-[#0b1a33]/80 border border-[#1e3659] rounded-2xl p-8 text-center text-slate-400 text-xs">
+            <div className="bg-triton-navy/80 border border-triton-slate/50 rounded-2xl p-8 text-center text-slate-400 text-xs">
               <p className="animate-pulse font-bold text-blue-300">
                 Cargando hoja de ruta de entregas...
               </p>
             </div>
           ) : gruposFiltrados.length === 0 ? (
-            <div className="bg-[#0b1a33]/80 border border-[#1e3659] rounded-2xl p-10 text-center space-y-3">
+            <div className="bg-triton-navy/80 border border-triton-slate/50 rounded-2xl p-10 text-center space-y-3">
               <Truck className="w-10 h-10 text-slate-500 mx-auto" />
               <h3 className="text-base font-bold text-white">
                 No hay entregas registradas para los filtros seleccionados
@@ -629,12 +629,12 @@ export const EntregasView: React.FC = () => {
                 return (
                   <div
                     key={group.hotel_id}
-                    className="bg-[#0b1a33]/90 border border-[#1e3659] rounded-2xl overflow-hidden shadow-xl transition-all"
+                    className="bg-triton-navy/95 border border-triton-slate/50 rounded-2xl overflow-hidden shadow-xl transition-all"
                   >
                     {/* Cabecera de la Parada / Hotel */}
                     <div
                       onClick={() => toggleHotel(group.hotel_id)}
-                      className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 cursor-pointer hover:bg-[#132747]/40 transition-colors select-none"
+                      className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 cursor-pointer hover:bg-triton-deep/40 transition-colors select-none"
                     >
                       <div className="flex items-start sm:items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 font-black text-xs">
@@ -695,7 +695,7 @@ export const EntregasView: React.FC = () => {
                       </div>
 
                       {/* Resumen numérico y Acciones */}
-                      <div className="flex items-center justify-between md:justify-end gap-2 sm:gap-3 shrink-0 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-[#1e3659]/50">
+                      <div className="flex items-center justify-between md:justify-end gap-2 sm:gap-3 shrink-0 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-triton-slate/50/50">
                         <div className="text-left md:text-right">
                           <div className="flex items-baseline gap-1.5 md:justify-end">
                             <span className="text-xl sm:text-2xl font-black text-emerald-400">
@@ -714,7 +714,7 @@ export const EntregasView: React.FC = () => {
                                 e.stopPropagation();
                                 setMuestraModalDespacho(despacho);
                               }}
-                              className="px-2.5 sm:px-3 py-2 bg-[#132747] hover:bg-[#1e3659] border border-[#1e3659] text-cyan-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                              className="px-2.5 sm:px-3 py-2 bg-triton-deep hover:bg-triton-slate/60 border border-triton-slate/50 text-cyan-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
                               title="Ver Muestra de lo Procesado validada en planta"
                             >
                               <Eye className="w-3.5 h-3.5 shrink-0" />
@@ -728,7 +728,7 @@ export const EntregasView: React.FC = () => {
                               e.stopPropagation();
                               abrirRemitoImpresion(group);
                             }}
-                            className="px-2.5 sm:px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all"
+                            className="px-2.5 sm:px-3 py-2 bg-triton-aqua hover:bg-triton-aqua-hover text-triton-navy font-black rounded-xl text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all"
                             title="Ver e imprimir remito oficial de entrega"
                           >
                             <Printer className="w-3.5 h-3.5 shrink-0" />
@@ -741,7 +741,7 @@ export const EntregasView: React.FC = () => {
                               e.stopPropagation();
                               toggleHotel(group.hotel_id);
                             }}
-                            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-[#132747]"
+                            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-triton-deep"
                           >
                             {isExpanded ? (
                               <ChevronUp className="w-5 h-5" />
@@ -755,7 +755,7 @@ export const EntregasView: React.FC = () => {
 
                     {/* Contenido Desplegado */}
                     {isExpanded && (
-                      <div className="border-t border-[#1e3659] bg-[#071326]/50 p-3.5 sm:p-5 space-y-4">
+                      <div className="border-t border-triton-slate/50 bg-triton-deep/50 p-3.5 sm:p-5 space-y-4">
                         {/* Panel de Conciliación y Check de Confirmación de Entrega para el Repartidor */}
                         {despacho && (
                           <div
@@ -764,7 +764,7 @@ export const EntregasView: React.FC = () => {
                                 ? 'bg-emerald-950/30 border-emerald-800/70'
                                 : despacho.estado === 'validado_con_diferencia'
                                 ? 'bg-amber-950/30 border-amber-700/70'
-                                : 'bg-[#0b1a33] border-[#1e3659]'
+                                : 'bg-triton-navy border-triton-slate/50'
                             }`}
                           >
                             <div className="space-y-1">
@@ -822,7 +822,7 @@ export const EntregasView: React.FC = () => {
                                       [despacho.id]: e.target.value,
                                     }))
                                   }
-                                  className="bg-[#071326] border border-[#1e3659] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 sm:w-64"
+                                  className="bg-triton-deep border border-triton-slate/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 sm:w-64"
                                 />
                               )}
 
@@ -872,7 +872,7 @@ export const EntregasView: React.FC = () => {
                           {group.items.map((row, idx) => (
                             <div
                               key={`${row.item_id}-${idx}`}
-                              className="p-3 rounded-xl bg-[#071326] border border-[#1e3659] space-y-2"
+                              className="p-3 rounded-xl bg-triton-deep border border-triton-slate/50 space-y-2"
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <span className="font-bold text-white text-xs sm:text-sm">
@@ -904,24 +904,24 @@ export const EntregasView: React.FC = () => {
                                 )}
                               </div>
 
-                              <div className="grid grid-cols-5 gap-1.5 pt-1.5 border-t border-[#1e3659]/60 text-center text-[11px]">
-                                <div className="bg-[#0b1a33] rounded-lg p-1.5">
+                              <div className="grid grid-cols-5 gap-1.5 pt-1.5 border-t border-triton-slate/50/60 text-center text-[11px]">
+                                <div className="bg-triton-navy rounded-lg p-1.5">
                                   <span className="text-[9px] text-slate-400 uppercase block">Remito</span>
                                   <span className="font-bold text-slate-200">{formatNumber(row.cantidad_declarada)}</span>
                                 </div>
-                                <div className="bg-[#0b1a33] rounded-lg p-1.5">
+                                <div className="bg-triton-navy rounded-lg p-1.5">
                                   <span className="text-[9px] text-emerald-400 uppercase block">A Entregar</span>
                                   <span className="font-black text-emerald-400">{formatNumber(row.cantidad_limpia)}</span>
                                 </div>
-                                <div className="bg-[#0b1a33] rounded-lg p-1.5">
+                                <div className="bg-triton-navy rounded-lg p-1.5">
                                   <span className="text-[9px] text-amber-400 uppercase block">Relav.</span>
                                   <span className="font-bold text-amber-300">{row.cantidad_relavado || 0}</span>
                                 </div>
-                                <div className="bg-[#0b1a33] rounded-lg p-1.5">
+                                <div className="bg-triton-navy rounded-lg p-1.5">
                                   <span className="text-[9px] text-rose-400 uppercase block">Rotas</span>
                                   <span className="font-bold text-rose-300">{row.cantidad_rota || 0}</span>
                                 </div>
-                                <div className="bg-[#0b1a33] rounded-lg p-1.5">
+                                <div className="bg-triton-navy rounded-lg p-1.5">
                                   <span className="text-[9px] text-slate-300 uppercase block">Dif.</span>
                                   <span
                                     className={`font-black ${
@@ -941,9 +941,9 @@ export const EntregasView: React.FC = () => {
                         </div>
 
                         {/* VISTA DESKTOP (md:block): Tabla Detallada de Prendas Original */}
-                        <div className="hidden md:block overflow-x-auto rounded-xl border border-[#1e3659]">
+                        <div className="hidden md:block overflow-x-auto rounded-xl border border-triton-slate/50">
                           <table className="w-full text-left text-xs border-collapse">
-                            <thead className="bg-[#071326] text-slate-400 font-bold uppercase tracking-wider border-b border-[#1e3659]">
+                            <thead className="bg-triton-deep text-slate-400 font-bold uppercase tracking-wider border-b border-triton-slate/50">
                               <tr>
                                 <th className="px-4 py-3 min-w-[150px]">Prenda / Artículo</th>
                                 <th className="px-3 py-3 text-right">Remitado por Hotel</th>
@@ -957,11 +957,11 @@ export const EntregasView: React.FC = () => {
                               </tr>
                             </thead>
 
-                            <tbody className="divide-y divide-[#1e3659]/50 bg-[#071326]/30">
+                            <tbody className="divide-y divide-triton-slate/40 bg-triton-deep/30">
                               {group.items.map((row, idx) => (
                                 <tr
                                   key={`${row.item_id}-${idx}`}
-                                  className="hover:bg-[#132747]/40 transition-colors"
+                                  className="hover:bg-triton-deep/40 transition-colors"
                                 >
                                   <td className="px-4 py-2.5 font-bold text-white">
                                     {row.item_nombre}
@@ -1029,7 +1029,7 @@ export const EntregasView: React.FC = () => {
                               ))}
                             </tbody>
 
-                            <tfoot className="bg-[#071326] font-extrabold border-t-2 border-[#1e3659]">
+                            <tfoot className="bg-triton-deep font-extrabold border-t-2 border-triton-slate/50">
                               <tr>
                                 <td className="px-4 py-2.5 text-white uppercase text-[10px]">
                                   Total Entrega {group.hotel_nombre}
@@ -1073,8 +1073,8 @@ export const EntregasView: React.FC = () => {
           {/* Modal: Ver Muestra de lo Procesado (Detalle Ítem por Ítem + Check de Entrega) */}
           {muestraModalDespacho && (
             <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
-              <div className="bg-[#0b1a33] border border-[#1e3659] rounded-2xl max-w-2xl w-full max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden">
-                <div className="p-4 sm:p-5 bg-[#071326] border-b border-[#1e3659] flex items-center justify-between shrink-0">
+              <div className="bg-triton-navy border border-triton-slate/50 rounded-2xl max-w-2xl w-full max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden">
+                <div className="p-4 sm:p-5 bg-triton-deep border-b border-triton-slate/50 flex items-center justify-between shrink-0">
                   <div className="min-w-0 pr-2">
                     <h3 className="text-sm sm:text-lg font-black text-white truncate">
                       Muestra Procesada — {muestraModalDespacho.hotel_nombre}
@@ -1107,9 +1107,9 @@ export const EntregasView: React.FC = () => {
                 </div>
 
                 <div className="p-4 sm:p-5 overflow-y-auto flex-1">
-                  <div className="rounded-xl border border-[#1e3659] overflow-x-auto">
+                  <div className="rounded-xl border border-triton-slate/50 overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
-                      <thead className="bg-[#071326] text-slate-400 uppercase text-[10px] border-b border-[#1e3659]">
+                      <thead className="bg-triton-deep text-slate-400 uppercase text-[10px] border-b border-triton-slate/50">
                         <tr>
                           <th className="px-3 sm:px-4 py-2.5">Ítem</th>
                           <th className="px-2 sm:px-3 py-2.5 text-right">Remito</th>
@@ -1119,9 +1119,9 @@ export const EntregasView: React.FC = () => {
                           <th className="px-3 sm:px-4 py-2.5 text-right">Dif.</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#1e3659]/50">
+                      <tbody className="divide-y divide-triton-slate/40">
                         {muestraModalDespacho.muestra_procesado.map((m) => (
-                          <tr key={m.item_id} className="hover:bg-[#132747]/30">
+                          <tr key={m.item_id} className="hover:bg-triton-deep/30">
                             <td className="px-3 sm:px-4 py-2 font-bold text-white">{m.item_nombre}</td>
                             <td className="px-2 sm:px-3 py-2 text-right text-slate-300 font-semibold">
                               {formatNumber(m.cant_remito)}
@@ -1145,11 +1145,11 @@ export const EntregasView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="p-3.5 sm:p-4 bg-[#071326] border-t border-[#1e3659] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 shrink-0">
+                <div className="p-3.5 sm:p-4 bg-triton-deep border-t border-triton-slate/50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 shrink-0">
                   <button
                     type="button"
                     onClick={() => setMuestraModalDespacho(null)}
-                    className="px-4 py-2.5 sm:py-2 bg-[#132747] hover:bg-[#1e3659] text-slate-200 text-xs font-bold rounded-xl"
+                    className="px-4 py-2.5 sm:py-2 bg-triton-deep hover:bg-triton-slate/60 text-slate-200 text-xs font-bold rounded-xl"
                   >
                     Cerrar
                   </button>

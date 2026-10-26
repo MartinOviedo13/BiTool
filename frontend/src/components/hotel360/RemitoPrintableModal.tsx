@@ -18,9 +18,9 @@ export const RemitoPrintableModal: React.FC<RemitoPrintableModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-[#0b1a33] border border-[#1e3659] rounded-2xl max-w-3xl w-full max-h-[92dvh] overflow-y-auto shadow-2xl space-y-4 p-3.5 sm:p-6 animate-fade-in">
+      <div className="bg-triton-navy border border-triton-slate/50 rounded-2xl max-w-3xl w-full max-h-[92dvh] overflow-y-auto shadow-2xl space-y-4 p-3.5 sm:p-6 animate-fade-in">
         {/* Barra de control (oculta en impresion) */}
-        <div className="no-print flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#1e3659]">
+        <div className="no-print flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-triton-slate/50">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-xs sm:text-sm text-white">Certificado Oficial de Remito y Entrega</span>
             <span className="font-mono text-xs bg-brand-950 text-brand-300 border border-brand-800 px-2 py-0.5 rounded">
@@ -30,14 +30,14 @@ export const RemitoPrintableModal: React.FC<RemitoPrintableModalProps> = ({
           <div className="flex items-center gap-2 ml-auto">
             <button
               onClick={() => window.print()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-brand-600/30"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-triton-aqua hover:bg-triton-aqua-hover text-triton-navy rounded-lg text-xs font-black transition-all shadow-md shadow-triton-aqua/20"
             >
               <Printer className="h-3.5 w-3.5" />
               <span>Imprimir Remito</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-[#132747]"
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-triton-deep"
             >
               <X className="h-4 w-4" />
             </button>

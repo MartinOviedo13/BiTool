@@ -83,8 +83,8 @@ export function App() {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-slate-950">
-        <div className="text-slate-400 text-sm animate-pulse font-semibold">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-triton-navy">
+        <div className="text-triton-aqua text-sm animate-pulse font-semibold">
           Verificando sesión...
         </div>
       </div>
@@ -101,7 +101,7 @@ export function App() {
   const isRepartidor = user.rol === 'repartidor';
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-[#071326] text-slate-100">
+    <div className="min-h-[100dvh] flex flex-col app-canvas text-slate-100">
       <Navbar activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 animate-fade-in">
@@ -120,18 +120,18 @@ export function App() {
         {isAdmin && activeTab === 'ai' && <AIInsightsView />}
       </main>
 
-      <footer className="border-t border-[#112340] bg-[#071326]/95 py-5 sm:py-6 text-center text-xs text-slate-400">
+      <footer className="border-t border-triton-slate/40 bg-triton-navy-dark py-5 sm:py-6 text-center text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
           <p className="flex items-center gap-2">
             <img
               src="/logo-triton.jpg"
               alt="Tritón"
-              className="w-5 h-5 rounded object-contain border border-[#1e3659]"
+              className="w-5 h-5 rounded object-contain border border-triton-teal/40"
             />
             <span className="font-bold text-white">TRITÓN</span> &copy;{' '}
             {new Date().getFullYear()} &mdash; Lavadero Industrial SRL
           </p>
-          <p className="text-slate-500 text-[11px] sm:text-xs">
+          <p className="text-slate-400 text-[11px] sm:text-xs">
             Sistema de Gestión y Business Intelligence &bull; TRITÓN
           </p>
         </div>
@@ -141,7 +141,7 @@ export function App() {
         <>
           <button
             onClick={() => setChatOpen((v) => !v)}
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 p-3.5 rounded-full bg-gradient-to-r from-brand-600 to-cyan-500 hover:from-brand-500 hover:to-cyan-400 text-white shadow-xl shadow-brand-600/30 transition-all hover:scale-105"
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 p-3.5 rounded-full bg-gradient-to-r from-triton-teal to-triton-aqua hover:from-triton-teal-light hover:to-triton-aqua-hover text-triton-navy font-bold shadow-xl shadow-triton-aqua/25 transition-all hover:scale-105"
             aria-label="Abrir asistente de IA"
           >
             {chatOpen ? <X className="h-5 w-5" /> : <Bot className="h-5 w-5" />}

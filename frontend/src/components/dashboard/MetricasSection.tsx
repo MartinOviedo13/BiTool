@@ -87,7 +87,7 @@ export const MetricasSection: React.FC<MetricasSectionProps> = ({
       {/* 1. Tarjetas KPI de Alto Impacto */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: Facturación del Período / Hoy */}
-        <div className="bg-[#0b1a33]/85 p-5 rounded-2xl border border-[#1e3659] relative overflow-hidden group hover:border-brand-500/50 shadow-lg shadow-black/20 transition-all">
+        <div className="bg-triton-navy/90 p-5 rounded-2xl border border-triton-slate/50 relative overflow-hidden group hover:border-triton-aqua/50 shadow-lg shadow-black/20 transition-all">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
               Facturación {periodLabel === 'Hoy' ? 'Hoy' : 'Período'}
@@ -114,12 +114,12 @@ export const MetricasSection: React.FC<MetricasSectionProps> = ({
         </div>
 
         {/* KPI 2: Remitos Activos en Planta */}
-        <div className="bg-[#0b1a33]/85 p-5 rounded-2xl border border-[#1e3659] relative overflow-hidden group hover:border-brand-500/50 shadow-lg shadow-black/20 transition-all">
+        <div className="bg-triton-navy/90 p-5 rounded-2xl border border-triton-slate/50 relative overflow-hidden group hover:border-triton-aqua/50 shadow-lg shadow-black/20 transition-all">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-brand-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-triton-aqua uppercase tracking-wider">
               Remitos en Planta
             </span>
-            <div className="p-2.5 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 group-hover:scale-105 transition-transform">
+            <div className="p-2.5 rounded-xl bg-brand-500/10 text-triton-aqua border border-brand-500/20 group-hover:scale-105 transition-transform">
               <Layers className="h-5 w-5" />
             </div>
           </div>
@@ -139,7 +139,7 @@ export const MetricasSection: React.FC<MetricasSectionProps> = ({
         </div>
 
         {/* KPI 3: Ticket / Remito Promedio */}
-        <div className="bg-[#0b1a33]/85 p-5 rounded-2xl border border-[#1e3659] relative overflow-hidden group hover:border-brand-500/50 shadow-lg shadow-black/20 transition-all">
+        <div className="bg-triton-navy/90 p-5 rounded-2xl border border-triton-slate/50 relative overflow-hidden group hover:border-triton-aqua/50 shadow-lg shadow-black/20 transition-all">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
               Ticket Promedio
@@ -161,7 +161,7 @@ export const MetricasSection: React.FC<MetricasSectionProps> = ({
         </div>
 
         {/* KPI 4: Tiempo Medio de Ciclo (Turnaround Time) */}
-        <div className="bg-[#0b1a33]/85 p-5 rounded-2xl border border-[#1e3659] relative overflow-hidden group hover:border-brand-500/50 shadow-lg shadow-black/20 transition-all">
+        <div className="bg-triton-navy/90 p-5 rounded-2xl border border-triton-slate/50 relative overflow-hidden group hover:border-triton-aqua/50 shadow-lg shadow-black/20 transition-all">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
               Tiempo Medio de Ciclo
@@ -185,8 +185,8 @@ export const MetricasSection: React.FC<MetricasSectionProps> = ({
       </div>
 
       {/* 2. Ranking de las 5 Prendas Estrella ("Platos Estrella" adaptado a lavandería) */}
-      <div className="bg-[#0b1a33]/85 p-5 rounded-2xl border border-[#1e3659] shadow-lg shadow-black/20">
-        <div className="flex items-center justify-between mb-4 border-b border-[#1e3659]/70 pb-3">
+      <div className="bg-triton-navy/90 p-5 rounded-2xl border border-triton-slate/50 shadow-lg shadow-black/20">
+        <div className="flex items-center justify-between mb-4 border-b border-triton-slate/50 pb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-amber-400" />
             <div>
@@ -223,7 +223,7 @@ export const MetricasSection: React.FC<MetricasSectionProps> = ({
               return (
                 <div
                   key={p.item_id}
-                  className="p-3 sm:p-3.5 rounded-xl bg-[#071326]/70 border border-[#1e3659]/60 hover:border-brand-500/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                  className="p-3 sm:p-3.5 rounded-xl bg-triton-deep/70 border border-triton-slate/50 hover:border-triton-aqua/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     {/* Badge de Posición */}
@@ -239,15 +239,15 @@ export const MetricasSection: React.FC<MetricasSectionProps> = ({
                         <span className="font-bold text-white text-sm truncate group-hover:text-brand-300 transition-colors">
                           {p.nombre}
                         </span>
-                        <span className="text-xs font-semibold text-brand-400 sm:hidden">
+                        <span className="text-xs font-semibold text-triton-aqua sm:hidden">
                           {formatCurrency(p.facturacion)}
                         </span>
                       </div>
 
                       {/* Barra de progreso */}
-                      <div className="w-full bg-[#132747] rounded-full h-2 overflow-hidden flex items-center">
+                      <div className="w-full bg-triton-deep rounded-full h-2 overflow-hidden flex items-center">
                         <div
-                          className="bg-gradient-to-r from-brand-500 via-sky-400 to-cyan-300 h-full rounded-full transition-all duration-700"
+                          className="bg-gradient-to-r from-triton-teal via-[#007888] to-triton-aqua h-full rounded-full transition-all duration-700"
                           style={{ width: `${Math.min(100, Math.max(5, p.porcentaje))}%` }}
                         />
                       </div>
@@ -255,7 +255,7 @@ export const MetricasSection: React.FC<MetricasSectionProps> = ({
                   </div>
 
                   {/* Métricas a la derecha (Desktop) */}
-                  <div className="flex items-center justify-between sm:justify-end gap-5 text-right shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-[#1e3659]/50">
+                  <div className="flex items-center justify-between sm:justify-end gap-5 text-right shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-triton-slate/40">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-slate-400 block">
                         Unidades

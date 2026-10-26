@@ -39,15 +39,15 @@ export const LiquidacionPrintable: React.FC<LiquidacionPrintableProps> = ({
   return (
     <div className="space-y-4">
       {/* Botonera de control (oculta al imprimir) */}
-      <div className="no-print flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl">
+      <div className="no-print flex flex-wrap items-center justify-between gap-3 p-3 bg-triton-deep border border-triton-slate/50 rounded-xl">
         <div className="text-xs text-slate-300">
-          Vista previa del <span className="font-semibold text-brand-400">Resumen Oficial de Facturación</span> listo para imprimir o enviar.
+          Vista previa del <span className="font-bold text-triton-aqua">Resumen Oficial de Facturación</span> listo para imprimir o enviar.
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {onExportCSV && (
             <button
               onClick={onExportCSV}
-              className="flex-1 sm:flex-initial justify-center flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition-colors"
+              className="flex-1 sm:flex-initial justify-center flex items-center gap-1.5 px-3 py-1.5 bg-triton-navy hover:bg-triton-slate/50 text-slate-200 border border-triton-slate/50 rounded-lg text-xs font-semibold transition-colors"
             >
               <Download className="h-3.5 w-3.5" />
               <span>Exportar CSV</span>
@@ -55,7 +55,7 @@ export const LiquidacionPrintable: React.FC<LiquidacionPrintableProps> = ({
           )}
           <button
             onClick={handlePrint}
-            className="flex-1 sm:flex-initial justify-center flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-brand-600/30"
+            className="flex-1 sm:flex-initial justify-center flex items-center gap-1.5 px-3.5 py-1.5 bg-triton-aqua hover:bg-triton-aqua-hover active:bg-[#48c0b0] text-triton-navy rounded-lg text-xs font-black transition-all shadow-md shadow-triton-aqua/20"
           >
             <Printer className="h-3.5 w-3.5" />
             <span>Imprimir / PDF</span>
@@ -63,7 +63,7 @@ export const LiquidacionPrintable: React.FC<LiquidacionPrintableProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-triton-slate/40"
             >
               <X className="h-4 w-4" />
             </button>
@@ -200,7 +200,7 @@ export const LiquidacionPrintable: React.FC<LiquidacionPrintableProps> = ({
             </div>
             <div className="border-t border-slate-300 pt-2 mt-1 flex justify-between text-sm font-black text-slate-900">
               <span>TOTAL A COBRAR:</span>
-              <span className="text-brand-600">{formatCurrency(totalConIva)}</span>
+              <span className="text-triton-teal font-black">{formatCurrency(totalConIva)}</span>
             </div>
           </div>
         </div>

@@ -120,10 +120,10 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
     <div className="space-y-5 animate-fade-in">
       {/* Banner para activar sonido y notificaciones en celular si aún no dio permiso */}
       {notifPerm !== 'granted' && (
-        <div className="bg-brand-950/80 border border-brand-500/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-fadeIn">
+        <div className="bg-triton-deep/90 border border-triton-teal/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-fadeIn">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-brand-600/30 text-brand-300 border border-brand-500/40 shrink-0">
-              <Bell className="w-5 h-5 text-brand-400" />
+              <Bell className="w-5 h-5 text-triton-aqua" />
             </div>
             <div>
               <h4 className="text-xs sm:text-sm font-bold text-white">
@@ -137,7 +137,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
           <button
             type="button"
             onClick={activarSonidoYNotifs}
-            className="w-full sm:w-auto px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl shadow-md shadow-brand-600/40 flex items-center justify-center gap-2 transition-all shrink-0"
+            className="w-full sm:w-auto px-4 py-2 bg-triton-aqua hover:bg-triton-aqua-hover text-triton-navy text-xs font-black rounded-xl shadow-md shadow-triton-aqua/20 flex items-center justify-center gap-2 transition-all shrink-0"
           >
             <Volume2 className="w-4 h-4" />
             <span>Activar Alertas</span>
@@ -147,7 +147,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
 
       {/* 1. KPIs del Circuito de Retiros */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[#0b1a33]/90 p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/20 shadow-lg">
+        <div className="bg-triton-navy/90 p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/20 shadow-lg">
           <div className="flex items-center justify-between text-emerald-400 mb-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">
               Listos para Retirar
@@ -163,7 +163,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
           </p>
         </div>
 
-        <div className="bg-[#0b1a33]/90 p-4 rounded-xl border border-blue-500/40 bg-blue-950/20 shadow-lg">
+        <div className="bg-triton-navy/90 p-4 rounded-xl border border-blue-500/40 bg-blue-950/20 shadow-lg">
           <div className="flex items-center justify-between text-blue-400 mb-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">
               Ya Retirados
@@ -174,7 +174,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
           <p className="text-[10px] text-blue-300 font-medium">En viaje o en planta</p>
         </div>
 
-        <div className="bg-[#0b1a33]/90 p-4 rounded-xl border border-slate-700 bg-slate-900/40 shadow-lg">
+        <div className="bg-triton-navy/90 p-4 rounded-xl border border-slate-700 bg-slate-900/40 shadow-lg">
           <div className="flex items-center justify-between text-slate-400 mb-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">
               Sin Remito Aún
@@ -185,11 +185,11 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
           <p className="text-[10px] text-slate-400 font-medium">No pasar todavía</p>
         </div>
 
-        <div className="bg-[#0b1a33]/90 p-4 rounded-xl border border-[#1e3659] shadow-lg flex flex-col justify-center">
+        <div className="bg-triton-navy/90 p-4 rounded-xl border border-triton-slate/50 shadow-lg flex flex-col justify-center">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
             Fecha de Recolección
           </span>
-          <div className="flex items-center gap-1.5 bg-[#071326] px-2.5 py-1 rounded-lg border border-[#1e3659]">
+          <div className="flex items-center gap-1.5 bg-triton-deep px-2.5 py-1 rounded-lg border border-triton-slate/50">
             <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
             <input
               type="date"
@@ -216,11 +216,11 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-xs text-slate-400 bg-[#0b1a33]/60 rounded-2xl border border-[#1e3659]">
+          <div className="p-8 text-center text-xs text-slate-400 bg-triton-navy/60 rounded-2xl border border-triton-slate/50">
             Cargando paradas de retiro...
           </div>
         ) : listosParaRetiro.length === 0 ? (
-          <div className="p-8 text-center bg-[#0b1a33]/40 rounded-2xl border border-[#1e3659] space-y-2">
+          <div className="p-8 text-center bg-triton-navy/40 rounded-2xl border border-triton-slate/50 space-y-2">
             <CheckCircle2 className="w-8 h-8 text-slate-500 mx-auto" />
             <p className="text-xs font-semibold text-slate-300">
               No hay retiros pendientes con remito listo para esta fecha.
@@ -241,7 +241,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
               return (
                 <div
                   key={r.envio_id}
-                  className="bg-[#0b1a33] border-2 border-emerald-500/50 rounded-2xl p-4 shadow-xl flex flex-col justify-between gap-3 hover:border-emerald-400 transition-all"
+                  className="bg-triton-navy border-2 border-emerald-500/50 rounded-2xl p-4 shadow-xl flex flex-col justify-between gap-3 hover:border-emerald-400 transition-all"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
@@ -266,7 +266,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
                     </div>
 
                     {/* Desglose rápido de prendas */}
-                    <div className="mt-3 pt-3 border-t border-[#1e3659]/80">
+                    <div className="mt-3 pt-3 border-t border-triton-slate/50/80">
                       <button
                         type="button"
                         onClick={() => setExpandedId(isExpanded ? null : r.envio_id)}
@@ -277,7 +277,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
                       </button>
 
                       {isExpanded && (
-                        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5 bg-[#071326] p-2.5 rounded-xl border border-[#1e3659] text-[11px]">
+                        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5 bg-triton-deep p-2.5 rounded-xl border border-triton-slate/50 text-[11px]">
                           {r.detalles.map((d, idx) => (
                             <div key={idx} className="flex justify-between text-slate-300">
                               <span className="truncate pr-2">{d.item_nombre}</span>
@@ -328,7 +328,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
               return (
                 <div
                   key={r.envio_id}
-                  className="bg-[#0b1a33]/70 border border-[#1e3659] rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs"
+                  className="bg-triton-navy/70 border border-triton-slate/50 rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs"
                 >
                   <div>
                     <div className="flex items-center gap-2">
@@ -342,7 +342,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
                       {r.retirado_por_username ? ` por ${r.retirado_por_username}` : ''}
                     </p>
                     {r.observacion_retiro && (
-                      <p className="text-[10px] text-slate-300 italic mt-1 bg-[#071326] px-2 py-0.5 rounded border border-[#1e3659]">
+                      <p className="text-[10px] text-slate-300 italic mt-1 bg-triton-deep px-2 py-0.5 rounded border border-triton-slate/50">
                         &quot;{r.observacion_retiro}&quot;
                       </p>
                     )}
@@ -358,7 +358,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
       )}
 
       {/* 4. Sección: Hoteles Sin Remito (Informativo para no desviarse) */}
-      <div className="bg-[#0b1a33]/60 border border-slate-800 rounded-2xl p-4 space-y-2.5">
+      <div className="bg-triton-navy/60 border border-slate-800 rounded-2xl p-4 space-y-2.5">
         <div className="flex items-center gap-2 text-slate-400">
           <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
@@ -372,7 +372,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
           {hotelesSinRemito.map((h) => (
             <span
               key={h.id}
-              className="px-2.5 py-1 rounded-lg bg-[#071326] text-slate-400 border border-[#1e3659] text-[11px] font-medium"
+              className="px-2.5 py-1 rounded-lg bg-triton-deep text-slate-400 border border-triton-slate/50 text-[11px] font-medium"
             >
               {h.nombre}
             </span>
@@ -383,8 +383,8 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
       {/* Modal de Confirmación de Retiro */}
       {modalRetiro && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/75 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0b1a33] border border-[#1e3659] rounded-2xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-[#1e3659]">
+          <div className="bg-triton-navy border border-triton-slate/50 rounded-2xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-triton-slate/50">
               <div className="flex items-center gap-2">
                 <Truck className="w-5 h-5 text-emerald-400" />
                 <h3 className="text-sm font-bold text-white">Confirmar Retiro en Hotel</h3>
@@ -398,7 +398,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
               </button>
             </div>
 
-            <div className="bg-[#071326] p-3.5 rounded-xl border border-[#1e3659] space-y-1.5 text-xs">
+            <div className="bg-triton-deep p-3.5 rounded-xl border border-triton-slate/50 space-y-1.5 text-xs">
               <p className="text-white font-bold text-sm">{modalRetiro.hotel_nombre}</p>
               <p className="text-slate-300">
                 Remito: <strong className="text-blue-300 font-mono">{modalRetiro.codigo_qr}</strong>
@@ -417,7 +417,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
                 value={observacion}
                 onChange={(e) => setObservacion(e.target.value)}
                 placeholder="Ej: 3 bolsas cerradas / Precinto #12"
-                className="w-full px-3 py-2.5 bg-[#071326] border border-[#1e3659] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                className="w-full px-3 py-2.5 bg-triton-deep border border-triton-slate/50 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
             </div>
 
@@ -425,7 +425,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
               <button
                 type="button"
                 onClick={() => setModalRetiro(null)}
-                className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800/60"
+                className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-triton-deep/60"
               >
                 Cancelar
               </button>
@@ -433,7 +433,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
                 type="button"
                 disabled={confirmando}
                 onClick={handleConfirmar}
-                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 shadow-md shadow-emerald-600/30 flex items-center gap-1.5"
+                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-triton-aqua hover:bg-triton-aqua-hover active:bg-[#48c0b0] text-triton-navy font-black shadow-md shadow-triton-aqua/25 flex items-center gap-1.5"
               >
                 <Check className="w-4 h-4" />
                 <span>{confirmando ? 'Registrando...' : 'Confirmar Retiro'}</span>

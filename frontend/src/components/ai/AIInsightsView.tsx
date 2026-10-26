@@ -51,11 +51,11 @@ export const AIInsightsView: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-brand-950 via-slate-900 to-indigo-950 p-4 sm:p-6 rounded-2xl border border-brand-800/40 relative overflow-hidden shadow-2xl">
+      <div className="bg-triton-navy p-4 sm:p-6 rounded-2xl border border-triton-teal/40 relative overflow-hidden shadow-xl">
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 mb-3">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-triton-deep/80 text-triton-aqua border border-triton-teal/40 mb-3">
+              <Sparkles className="h-3.5 w-3.5 text-triton-aqua" />
               <span>Módulo de IA & Business Intelligence</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
@@ -65,8 +65,8 @@ export const AIInsightsView: React.FC = () => {
               El Asistente opera mediante el estándar Model Context Protocol (MCP) conectando Gemini a 9 herramientas de auditoría en tiempo real (KPIs, Ficha 360, remitos, calidad, tarifas y proyección de personal). Hacé preguntas en lenguaje natural para auditar la operatoria.
             </p>
           </div>
-          <div className="hidden sm:block p-4 rounded-2xl bg-slate-950/60 border border-slate-800 backdrop-blur-sm">
-            <BrainCircuit className="h-12 w-12 text-brand-400 animate-pulse" />
+          <div className="hidden sm:block p-4 rounded-2xl bg-triton-deep/80 border border-triton-slate/50 backdrop-blur-sm">
+            <BrainCircuit className="h-12 w-12 text-triton-aqua animate-pulse" />
           </div>
         </div>
       </div>
@@ -77,7 +77,7 @@ export const AIInsightsView: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Quality / Relavado Diagnosis */}
-          <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+          <div className="bg-triton-navy/90 p-5 rounded-2xl border border-triton-slate/50 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Control de Calidad</span>
@@ -104,17 +104,17 @@ export const AIInsightsView: React.FC = () => {
                 )}
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-500">
+            <div className="mt-4 pt-3 border-t border-triton-slate/50 text-[11px] text-slate-500">
               Total reprocesado: <span className="font-semibold text-slate-400">{formatNumber(resumen?.cantidad_relavado || 0)} prendas</span>
             </div>
           </div>
 
           {/* Client Concentration Analysis */}
-          <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+          <div className="bg-triton-navy/90 p-5 rounded-2xl border border-triton-slate/50 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Concentración de Demanda</span>
-                <div className="p-2 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                <div className="p-2 rounded-xl bg-brand-500/10 text-triton-aqua border border-brand-500/20">
                   <Building className="h-4 w-4" />
                 </div>
               </div>
@@ -130,13 +130,13 @@ export const AIInsightsView: React.FC = () => {
                 )}
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-500">
+            <div className="mt-4 pt-3 border-t border-triton-slate/50 text-[11px] text-slate-500">
               Líderes de volumen: <span className="truncate">{ranking.map((r) => r.hotel).slice(0, 2).join(', ')}</span>
             </div>
           </div>
 
           {/* Pricing / Revenue Optimization */}
-          <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+          <div className="bg-triton-navy/90 p-5 rounded-2xl border border-triton-slate/50 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Completitud Tarifaria</span>
@@ -165,9 +165,9 @@ export const AIInsightsView: React.FC = () => {
                 )}
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-500">
+            <div className="mt-4 pt-3 border-t border-triton-slate/50 text-[11px] text-slate-500">
               Facturación calculada:{' '}
-              <span className="text-cyan-400 font-bold">{formatCurrency(resumen?.facturacion_estimada || 0)}</span>
+              <span className="text-triton-aqua font-bold">{formatCurrency(resumen?.facturacion_estimada || 0)}</span>
             </div>
           </div>
         </div>

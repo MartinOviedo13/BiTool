@@ -175,13 +175,13 @@ export const DashboardView: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Top Filter Bar */}
-      <div className="bg-slate-900/60 p-3.5 sm:p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row flex-wrap md:items-center justify-between gap-3 sm:gap-4">
+      <div className="bg-triton-deep/40 p-3.5 sm:p-4 rounded-2xl border border-triton-slate/50 flex flex-col md:flex-row flex-wrap md:items-center justify-between gap-3 sm:gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full md:w-auto">
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-brand-400 shrink-0" />
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-triton-aqua shrink-0" />
             <span className="text-xs sm:text-sm font-semibold text-slate-200">Período de Análisis:</span>
           </div>
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto no-scrollbar max-w-full">
+          <div className="flex items-center gap-1 bg-triton-navy p-1 rounded-xl border border-triton-slate/50 overflow-x-auto no-scrollbar max-w-full">
             {(
               [
                 { id: 'today', label: 'Hoy' },
@@ -194,10 +194,10 @@ export const DashboardView: React.FC = () => {
               <button
                 key={opt.id}
                 onClick={() => setPeriod(opt.id)}
-                className={`px-2.5 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs font-medium transition-all shrink-0 ${
+                className={`px-2.5 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs font-semibold transition-all shrink-0 ${
                   period === opt.id
-                    ? 'bg-brand-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                    ? 'bg-triton-teal text-white shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-triton-deep'
                 }`}
               >
                 {opt.label}
@@ -212,14 +212,14 @@ export const DashboardView: React.FC = () => {
               type="date"
               value={customFrom}
               onChange={(e) => setCustomFrom(e.target.value)}
-              className="flex-1 sm:flex-initial bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+              className="flex-1 sm:flex-initial bg-triton-navy border border-triton-slate/50 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-triton-aqua"
             />
-            <span className="text-slate-500">hasta</span>
+            <span className="text-slate-400">hasta</span>
             <input
               type="date"
               value={customTo}
               onChange={(e) => setCustomTo(e.target.value)}
-              className="flex-1 sm:flex-initial bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+              className="flex-1 sm:flex-initial bg-triton-navy border border-triton-slate/50 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-triton-aqua"
             />
           </div>
         )}
@@ -229,7 +229,7 @@ export const DashboardView: React.FC = () => {
           <select
             value={hotelFilter}
             onChange={(e) => setHotelFilter(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 sm:py-1.5 text-slate-200 focus:outline-none focus:border-brand-500 w-full md:w-auto"
+            className="bg-triton-navy border border-triton-slate/50 rounded-lg px-2.5 py-2 sm:py-1.5 text-slate-200 focus:outline-none focus:border-triton-aqua w-full md:w-auto"
           >
             <option value="">Todos los hoteles</option>
             {hoteles.map((h) => (
@@ -239,7 +239,7 @@ export const DashboardView: React.FC = () => {
           <select
             value={itemFilter}
             onChange={(e) => setItemFilter(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 sm:py-1.5 text-slate-200 focus:outline-none focus:border-brand-500 w-full md:w-auto"
+            className="bg-triton-navy border border-triton-slate/50 rounded-lg px-2.5 py-2 sm:py-1.5 text-slate-200 focus:outline-none focus:border-triton-aqua w-full md:w-auto"
           >
             <option value="">Todas las prendas</option>
             {items.map((i) => (
@@ -252,9 +252,9 @@ export const DashboardView: React.FC = () => {
           <button
             onClick={loadData}
             disabled={loading}
-            className="flex-1 md:flex-initial justify-center flex items-center gap-1.5 px-3 py-2 sm:py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition-colors"
+            className="flex-1 md:flex-initial justify-center flex items-center gap-1.5 px-3 py-2 sm:py-1.5 bg-triton-deep hover:bg-triton-slate/50 text-slate-200 rounded-xl text-xs font-semibold transition-colors border border-triton-slate/50"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin text-brand-400' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin text-triton-aqua' : ''}`} />
             <span>Actualizar</span>
           </button>
 
@@ -266,7 +266,7 @@ export const DashboardView: React.FC = () => {
                 item_id: itemFilter === '' ? undefined : itemFilter,
               })
             }
-            className="flex-1 md:flex-initial justify-center flex items-center gap-1.5 px-3 py-2 sm:py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-medium transition-colors"
+            className="flex-1 md:flex-initial justify-center flex items-center gap-1.5 px-3.5 py-2 sm:py-1.5 bg-triton-aqua hover:bg-triton-aqua-hover active:bg-[#48c0b0] text-triton-navy rounded-xl text-xs font-black transition-all shadow-md shadow-triton-aqua/20"
           >
             <Download className="h-3.5 w-3.5" />
             <span>Exportar CSV</span>
@@ -277,10 +277,10 @@ export const DashboardView: React.FC = () => {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Procesadas */}
-        <div className="bg-slate-900/80 p-3.5 sm:p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
+        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-triton-slate/50 relative overflow-hidden group hover:border-triton-teal/50 transition-all shadow-lg">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Procesado</span>
-            <div className="p-2 sm:p-2.5 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-300 uppercase tracking-wider">Total Procesado</span>
+            <div className="p-2 sm:p-2.5 rounded-xl bg-triton-teal/20 text-triton-aqua border border-triton-teal/40">
               <Package className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
@@ -289,7 +289,7 @@ export const DashboardView: React.FC = () => {
           </div>
           <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
             {ctx && <DeltaBadge delta={ctx.cantidad_total} label="vs período anterior" />}
-            <span className="text-[10px] text-slate-500">vs anterior</span>
+            <span className="text-[10px] text-slate-400">vs anterior</span>
           </div>
           <div className="mt-2 text-[11px] sm:text-xs text-slate-400 flex items-center gap-1 flex-wrap">
             <span className="text-slate-300 font-medium">{formatDateDisplay(dateFilter.from)}</span>
@@ -299,10 +299,10 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Facturables */}
-        <div className="bg-slate-900/80 p-3.5 sm:p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
+        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-emerald-500/40 bg-emerald-950/20 relative overflow-hidden group hover:border-emerald-400 transition-all shadow-lg">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
             <span className="text-[10px] sm:text-xs font-semibold text-emerald-400 uppercase tracking-wider">Facturables</span>
-            <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
               <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
@@ -311,7 +311,7 @@ export const DashboardView: React.FC = () => {
           </div>
           <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
             {ctx && <DeltaBadge delta={ctx.cantidad_facturable} label="vs período anterior" />}
-            <span className="text-[10px] text-slate-500">vs anterior</span>
+            <span className="text-[10px] text-slate-400">vs anterior</span>
           </div>
           <div className="mt-2 text-[11px] sm:text-xs text-emerald-400 font-medium flex items-center gap-1 flex-wrap">
             <span>{resumen?.cantidad_total ? formatPercent(resumen.cantidad_facturable / resumen.cantidad_total) : '0%'}</span>
@@ -320,10 +320,10 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Relavado */}
-        <div className="bg-slate-900/80 p-3.5 sm:p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
+        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-amber-500/40 bg-amber-950/20 relative overflow-hidden group hover:border-amber-400 transition-all shadow-lg">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
             <span className="text-[10px] sm:text-xs font-semibold text-amber-400 uppercase tracking-wider">Relavado</span>
-            <div className="p-2 sm:p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
               <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
@@ -332,7 +332,7 @@ export const DashboardView: React.FC = () => {
           </div>
           <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
             {ctx && <DeltaBadge delta={ctx.relavado} invert label="vs período anterior" />}
-            <span className="text-[10px] text-slate-500">vs anterior</span>
+            <span className="text-[10px] text-slate-400">vs anterior</span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 flex-wrap">
             <span
@@ -349,21 +349,21 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Facturación Estimada */}
-        <div className="bg-slate-900/80 p-3.5 sm:p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
+        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-triton-aqua/40 bg-triton-deep/30 relative overflow-hidden group hover:border-triton-aqua transition-all shadow-lg">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <span className="text-[10px] sm:text-xs font-semibold text-cyan-400 uppercase tracking-wider">Facturación Est.</span>
-            <div className="p-2 sm:p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <span className="text-[10px] sm:text-xs font-bold text-triton-aqua uppercase tracking-wider">Facturación Est.</span>
+            <div className="p-2 sm:p-2.5 rounded-xl bg-triton-aqua/20 text-triton-aqua border border-triton-aqua/40">
               <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
-          <div className="text-xl sm:text-3xl font-extrabold text-white tracking-tight truncate">
+          <div className="text-xl sm:text-3xl font-black text-triton-aqua tracking-tight truncate">
             {loading ? '...' : formatCurrency(resumen?.facturacion_estimada || 0)}
           </div>
           <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
             {ctx && <DeltaBadge delta={ctx.facturacion} label="vs período anterior" />}
-            <span className="text-[10px] text-slate-500">vs anterior</span>
+            <span className="text-[10px] text-slate-400">vs anterior</span>
           </div>
-          <div className="mt-2 text-[11px] sm:text-xs text-slate-400">
+          <div className="mt-2 text-[11px] sm:text-xs text-slate-300">
             Precios unitarios activos
           </div>
         </div>
@@ -374,10 +374,10 @@ export const DashboardView: React.FC = () => {
       {/* Tendencia + Distribución */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Tendencia Line Chart */}
-        <div className="lg:col-span-2 bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800">
+        <div className="lg:col-span-2 bg-triton-navy/90 p-4 sm:p-5 rounded-2xl border border-triton-slate/50">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div className="flex items-center gap-2">
-              <LineChartIcon className="h-5 w-5 text-brand-400" />
+              <LineChartIcon className="h-5 w-5 text-triton-aqua" />
               <h3 className="font-bold text-slate-100 text-sm sm:text-base">Tendencia de Volumen</h3>
             </div>
             <span className="text-xs text-slate-400">Agrupado por día</span>
@@ -400,7 +400,7 @@ export const DashboardView: React.FC = () => {
                     contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem' }}
                     formatter={(val: number) => [formatNumber(val), 'prenda(s)']}
                   />
-                  <Line type="monotone" dataKey="cantidad_total" stroke="#0c8fe9" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="cantidad_total" stroke="#48c0b0" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -408,7 +408,7 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Item Distribution Donut */}
-        <div className="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800">
+        <div className="bg-triton-navy/90 p-4 sm:p-5 rounded-2xl border border-triton-slate/50">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div className="flex items-center gap-2">
               <PieChartIcon className="h-5 w-5 text-cyan-400" />
@@ -451,10 +451,10 @@ export const DashboardView: React.FC = () => {
       </div>
 
       {/* Ranking Bar Chart */}
-      <div className="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800">
+      <div className="bg-triton-navy/90 p-4 sm:p-5 rounded-2xl border border-triton-slate/50">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-brand-400" />
+            <BarChart3 className="h-5 w-5 text-triton-aqua" />
             <h3 className="font-bold text-slate-100 text-sm sm:text-base">Top Hoteles por Volumen</h3>
           </div>
           <span className="text-xs text-slate-400">
@@ -478,7 +478,7 @@ export const DashboardView: React.FC = () => {
                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem' }}
                   formatter={(val: number) => [`${formatNumber(val)} prendas`, 'Volumen']}
                 />
-                <Bar dataKey="cantidad_total" fill="#0c8fe9" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="cantidad_total" fill="#48c0b0" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -486,10 +486,10 @@ export const DashboardView: React.FC = () => {
       </div>
 
       {/* Ranking Detailed Table */}
-      <div className="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800">
+      <div className="bg-triton-navy/90 p-4 sm:p-5 rounded-2xl border border-triton-slate/50">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
           <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-brand-400" />
+            <Building2 className="h-5 w-5 text-triton-aqua" />
             <h3 className="font-bold text-slate-100 text-sm sm:text-base">Rendimiento por Cliente</h3>
           </div>
           <div className="relative w-full sm:w-64">
@@ -499,14 +499,14 @@ export const DashboardView: React.FC = () => {
               placeholder="Buscar hotel..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 w-full"
+              className="bg-triton-deep border border-triton-slate/50 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-triton-aqua w-full"
             />
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-800">
+        <div className="overflow-x-auto rounded-xl border border-triton-slate/50">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+            <thead className="bg-triton-deep/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-triton-slate/50">
               <tr>
                 <th className="px-3 sm:px-4 py-3">Pos.</th>
                 <th className="px-3 sm:px-4 py-3">Hotel / Cliente</th>
@@ -526,11 +526,11 @@ export const DashboardView: React.FC = () => {
                   const base = hotelFilter === '' ? resumen?.cantidad_facturable : item.cantidad_total;
                   const percent = base ? (item.cantidad_total / base) * 100 : 0;
                   return (
-                    <tr key={item.hotel_id} className="hover:bg-slate-800/40 transition-colors">
+                    <tr key={item.hotel_id} className="hover:bg-triton-deep/60 transition-colors">
                       <td className="px-3 sm:px-4 py-3 font-semibold text-slate-400">#{idx + 1}</td>
                       <td className="px-3 sm:px-4 py-3 font-bold text-slate-200">{item.hotel}</td>
                       <td className="px-3 sm:px-4 py-3 text-right font-medium text-white">{formatNumber(item.cantidad_total)}</td>
-                      <td className="px-3 sm:px-4 py-3 text-right text-brand-400 font-semibold">{percent.toFixed(1)}%</td>
+                      <td className="px-3 sm:px-4 py-3 text-right text-triton-aqua font-semibold">{percent.toFixed(1)}%</td>
                     </tr>
                   );
                 })
