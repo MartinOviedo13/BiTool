@@ -6,7 +6,18 @@
   body {
     @apply bg-[#071326] text-slate-100 antialiased font-sans;
     font-family: 'Plus Jakarta Sans', sans-serif;
+    min-height: 100dvh;
+    overflow-x: hidden;
   }
+}
+
+/* Hide scrollbar for horizontal mobile touch strips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Custom modern scrollbars */

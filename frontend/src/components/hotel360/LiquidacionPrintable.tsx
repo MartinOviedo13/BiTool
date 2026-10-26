@@ -43,11 +43,11 @@ export const LiquidacionPrintable: React.FC<LiquidacionPrintableProps> = ({
         <div className="text-xs text-slate-300">
           Vista previa del <span className="font-semibold text-brand-400">Resumen Oficial de Facturación</span> listo para imprimir o enviar.
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {onExportCSV && (
             <button
               onClick={onExportCSV}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition-colors"
+              className="flex-1 sm:flex-initial justify-center flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition-colors"
             >
               <Download className="h-3.5 w-3.5" />
               <span>Exportar CSV</span>
@@ -55,10 +55,10 @@ export const LiquidacionPrintable: React.FC<LiquidacionPrintableProps> = ({
           )}
           <button
             onClick={handlePrint}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-brand-600/30"
+            className="flex-1 sm:flex-initial justify-center flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-brand-600/30"
           >
             <Printer className="h-3.5 w-3.5" />
-            <span>Imprimir / Guardar PDF</span>
+            <span>Imprimir / PDF</span>
           </button>
           {onClose && (
             <button
@@ -72,14 +72,14 @@ export const LiquidacionPrintable: React.FC<LiquidacionPrintableProps> = ({
       </div>
 
       {/* Documento Formal Imprimible */}
-      <div className="printable-area bg-white text-slate-900 p-6 sm:p-10 rounded-2xl shadow-xl border border-slate-200 font-sans">
+      <div className="printable-area bg-white text-slate-900 p-4 sm:p-10 rounded-2xl shadow-xl border border-slate-200 font-sans">
         {/* Encabezado Membretado */}
         <div className="border-b-2 border-slate-900 pb-5 mb-6 flex flex-wrap justify-between items-start gap-4">
           <div className="flex items-center gap-3.5">
-            <img src="/logo-triton.jpg" alt="Tritón" className="w-14 h-14 rounded-xl object-contain border border-slate-300 shadow-sm" />
+            <img src="/logo-triton.jpg" alt="Tritón" className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-contain border border-slate-300 shadow-sm shrink-0" />
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-black tracking-tight text-slate-900 uppercase">TRITÓN</span>
+                <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 uppercase">TRITÓN</span>
                 <span className="text-xs font-bold px-2 py-0.5 bg-slate-900 text-white rounded">SRL</span>
               </div>
               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mt-0.5">
@@ -94,10 +94,10 @@ export const LiquidacionPrintable: React.FC<LiquidacionPrintableProps> = ({
             </div>
           </div>
 
-          <div className="text-right">
-            <div className="inline-block bg-slate-100 border border-slate-300 rounded-lg px-4 py-2 text-right">
+          <div className="w-full sm:w-auto text-left sm:text-right print:w-auto print:text-right">
+            <div className="inline-block bg-slate-100 border border-slate-300 rounded-lg px-4 py-2 text-left sm:text-right print:text-right w-full sm:w-auto">
               <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider block">Documento</span>
-              <span className="text-base font-extrabold text-slate-900">LIQUIDACIÓN DE SERVICIOS</span>
+              <span className="text-sm sm:text-base font-extrabold text-slate-900">LIQUIDACIÓN DE SERVICIOS</span>
               <span className="text-xs text-slate-600 block font-mono mt-0.5">
                 Emisión: {new Date().toLocaleDateString('es-AR')}
               </span>
@@ -106,13 +106,13 @@ export const LiquidacionPrintable: React.FC<LiquidacionPrintableProps> = ({
         </div>
 
         {/* Datos del Cliente y Período */}
-        <div className="grid grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-3 sm:gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 text-xs">
           <div>
             <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px] block">Cliente / Establecimiento:</span>
             <span className="text-sm font-black text-slate-900">{hotelNombre}</span>
             <span className="text-slate-600 block mt-0.5">Cuenta Corriente B2B Habilitada</span>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right print:text-right">
             <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px] block">Período de Liquidación:</span>
             <span className="text-xs font-bold text-slate-900">{fechaDesde} al {fechaHasta}</span>
             <span className="text-slate-600 block mt-0.5">Modalidad: Procesamiento por Unidad</span>
@@ -120,7 +120,7 @@ export const LiquidacionPrintable: React.FC<LiquidacionPrintableProps> = ({
         </div>
 
         {/* Tabla Detallada de Prendas */}
-        <div className="overflow-x-auto mb-6">
+        <div className="overflow-x-auto mb-6" tabIndex={0} role="region" aria-label="Detalle de liquidación de prendas">
           <table className="w-full text-left text-xs border border-slate-300">
             <thead className="bg-slate-900 text-white font-bold uppercase text-[10px] tracking-wider">
               <tr>
@@ -206,7 +206,7 @@ export const LiquidacionPrintable: React.FC<LiquidacionPrintableProps> = ({
         </div>
 
         {/* Bloque de Firmas para Conformidad */}
-        <div className="mt-12 pt-8 border-t border-slate-200 grid grid-cols-2 gap-12 text-center text-xs">
+        <div className="mt-8 sm:mt-12 pt-8 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-8 sm:gap-12 text-center text-xs">
           <div>
             <div className="border-b border-slate-400 w-44 mx-auto mb-2"></div>
             <span className="font-bold text-slate-800 block">TRITÓN Lavadero Industrial SRL</span>

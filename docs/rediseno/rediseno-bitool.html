@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Propuesta de Rediseño UI/UX & Arquitectura Frontend — TRITÓN BI (BiTool)</title>
+  <style>
+    :root {
+      --bg-page: #050d1a;
+      --bg-surface: #0b1a33;
+      --bg-elevated: #112445;
+      --border-subtle: #1e3659;
+      --border-strong: #2c4c7e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --brand-500: #0284c7;
+      --brand-400: #38bdf8;
+      --emerald-500: #10b981;
+      --amber-500: #f59e0b;
+      --rose-500: #f43f5e;
+      --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.55;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: var(--brand-400);
+      text-decoration: none;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.86em;
+      background: rgba(15, 34, 61, 0.85);
+      color: #7dd3fc;
+      padding: 2px 6px;
+      border-radius: 5px;
+      border: 1px solid rgba(56, 189, 248, 0.22);
+    }
+
+    /* Top Header */
+    .top-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(7, 19, 38, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 24px;
+    }
+
+    .top-header-inner {
+      max-width: 1360px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand-id {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      border: 1px solid var(--border-strong);
+      object-fit: contain;
+      background: #071326;
+      padding: 2px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+
+    .badge-cyan { background: rgba(2, 132, 199, 0.2); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.35); }
+    .badge-emerald { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-amber { background: rgba(245, 158, 11, 0.18); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-rose { background: rgba(244, 63, 94, 0.18); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.4); }
+    .badge-purple { background: rgba(139, 92, 246, 0.18); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.4); }
+
+    /* Nav Tabs */
+    .main-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      background: #071326;
+      padding: 5px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+      background: rgba(30, 54, 89, 0.45);
+    }
+
+    .tab-btn.active {
+      background: var(--brand-500);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 28px 24px 64px;
+    }
+
+    .tab-panel {
+      display: none;
+      animation: fadeIn 0.22s ease-out;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Typography & Layout Helpers */
+    .section-hero {
+      background: linear-gradient(135deg, #0b1a33 0%, #071326 100%);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 26px 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+    }
+
+    .section-hero h1 {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.4px;
+      margin-bottom: 8px;
+    }
+
+    .section-hero p {
+      color: var(--text-muted);
+      max-width: 920px;
+      font-size: 15px;
+    }
+
+    .section-title {
+      font-size: 19px;
+      font-weight: 800;
+      margin: 28px 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #ffffff;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 8px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }
+
+    .card h3 {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card p, .card li {
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    .card ul {
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stat-box {
+      background: #071326;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .stat-box .stat-label {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+    }
+
+    .stat-box .stat-value {
+      font-size: 28px;
+      font-weight: 900;
+      color: #fff;
+      margin: 4px 0;
+    }
+
+    .stat-box .stat-sub {
+      font-size: 12px;
+      color: #7dd3fc;
+    }
+
+    /* Tables with responsive-table pattern */
+    .table-wrapper {
+      overflow: auto;
+      max-inline-size: 100%;
+      container-type: inline-size;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      background: #071326;
+      margin: 12px 0;
+    }
+
+    table.audit-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13.5px;
+      text-align: left;
+    }
+
+    table.audit-table thead {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: 2;
+      background: #0f223d;
+    }
+
+    table.audit-table th {
+      padding: 12px 14px;
+      font-size: 11.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    table.audit-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(30, 54, 89, 0.5);
+      color: #e2e8f0;
+      vertical-align: top;
+    }
+
+    table.audit-table tbody tr:hover {
+      background: rgba(19, 39, 71, 0.5);
+    }
+
+    /* Color Swatches */
+    .swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .swatch {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      background: #071326;
+    }
+
+    .swatch-color {
+      height: 46px;
+      width: 100%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: 4px 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .swatch-info {
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .swatch-info strong {
+      display: block;
+      color: #fff;
+      font-size: 12.5px;
+    }
+
+    .swatch-info span {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    /* Mockup Showcase Frames */
+    .mockups-container {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin-top: 14px;
+    }
+
+    .mockup-frame {
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #060f1e;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+    }
+
+    .mockup-bar {
+      background: #0d1d36;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .mockup-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .mockup-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .phone-frame {
+      max-width: 410px;
+      margin: 0 auto;
+      border: 6px solid #1e293b;
+      border-radius: 34px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    }
+
+    .phone-status-bar {
+      padding: 8px 18px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* Option A Mockup Specifics (Ocean Tactical Dark + High Contrast) */
+    .mock-a-bg { background: #071326; color: #f8fafc; padding: 18px; }
+    .mock-a-surface { background: #0b1a33; border: 1px solid #1e3659; border-radius: 12px; padding: 14px; }
+    .mock-a-btn {
+      min-height: 48px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* Option B Mockup Specifics (Daylight Industrial Hybrid) */
+    .mock-b-bg { background: #f1f5f9; color: #0f172a; padding: 18px; }
+    .mock-b-surface { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px; box-shadow: 0 1px 3px rgba(15,23,42,0.06); }
+    .mock-b-header { background: #0f223d; color: #ffffff; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Option C Mockup Specifics (Glove-Ready Field Cockpit) */
+    .mock-c-bg { background: #090d16; color: #ffffff; padding: 16px; }
+    .mock-c-card { background: #111827; border: 2px solid #10b981; border-radius: 16px; padding: 16px; }
+    .mock-c-giant-btn {
+      width: 100%;
+      min-height: 60px;
+      background: #10b981;
+      color: #052e16;
+      font-weight: 900;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-radius: 14px;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+    }
+
+    /* Print / PDF Overrides */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 12mm 14mm;
+      }
+      body {
+        background: #050d1a !important;
+        color: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        font-size: 11.5px;
+      }
+      .top-header {
+        position: static !important;
+        border-bottom: 2px solid #1e3659;
+      }
+      .main-nav {
+        display: none !important;
+      }
+      .tab-panel {
+        display: block !important;
+        page-break-after: always;
+        margin-bottom: 24px;
+      }
+      .tab-panel:last-child {
+        page-break-after: avoid;
+      }
+      .container {
+        max-width: 100%;
+        padding: 10px 0;
+      }
+      .mockup-frame, .card {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-header">
+    <div class="top-header-inner">
+      <div class="brand-id">
+        <img src="data:image/jpeg;base64,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" alt="Logo TRITÓN" class="brand-logo" />
+        <div>
+          <div class="brand-title">
+            TRITÓN BI <span class="badge badge-cyan">Diagnóstico UX/UI + 3 Propuestas</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted);">
+            Lavadero Industrial SRL &bull; Auditoría sobre React 18 + TypeScript (Vite 6) + Backend Go
+          </div>
+        </div>
+      </div>
+
+      <nav class="main-nav" role="tablist" aria-label="Secciones de la propuesta">
+        <button class="tab-btn active" data-tab="fase1" role="tab" aria-selected="true">1. Auditoría del Repo</button>
+        <button class="tab-btn" data-tab="opcionA" role="tab" aria-selected="false">2. Opción A: Evolutiva</button>
+        <button class="tab-btn" data-tab="opcionB" role="tab" aria-selected="false">3. Opción B: Moderna / Dual</button>
+        <button class="tab-btn" data-tab="opcionC" role="tab" aria-selected="false">4. Opción C: Ambiciosa (Mobile-First)</button>
+        <button class="tab-btn" data-tab="comparativa" role="tab" aria-selected="false">5. Comparativa & Recomendación</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ================================================================= -->
+    <!-- FASE 1: ANÁLISIS DEL REPO                                         -->
+    <!-- ================================================================= -->
+    <section id="fase1" class="tab-panel active" role="tabpanel">
+      <div class="section-hero">
+        <span class="badge badge-cyan" style="margin-bottom: 10px;">Fase 1 &bull; Relevamiento Forense de Solo Lectura</span>
+        <h1>Estado Actual del Frontend y Experiencia Operativa en BiTool</h1>
+        <p>
+          Relevamos la totalidad de <code>lavadero-bi/frontend/</code> (30 archivos en <code>src/</code>, 7.669 líneas de TypeScript/TSX) sin tocar ni una línea del código de tu aplicación. Abajo tenés la radiografía exacta con rutas, líneas de código, métricas de estilos y los cuellos de botella operativos para administración, planta, hoteles y repartidores.
+        </p>
+      </div>
+
+      <div class="grid-4">
+        <div class="stat-box">
+          <div class="stat-label">Hexadecimales Hardcodeados</div>
+          <div class="stat-value">400</div>
+          <div class="stat-sub"><code>#1e3659</code> (160x), <code>#071326</code> (83x), <code>#0b1a33</code> (65x)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Micro-Textos (&lt; 12px)</div>
+          <div class="stat-value">205</div>
+          <div class="stat-sub"><code>text-[9px]</code>, <code>text-[10px]</code> y <code>text-[11px]</code> en 19 archivos</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Atributos ARIA / Roles</div>
+          <div class="stat-value">4</div>
+          <div class="stat-sub">En todo <code>src/</code>; 6 modales sin <code>role="dialog"</code> ni <code>Escape</code></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Archivos PWA (SW / Manifest)</div>
+          <div class="stat-value">0</div>
+          <div class="stat-sub">No existen aún en <code>public/</code> ni en <code>vite.config.ts</code></div>
+        </div>
+      </div>
+
+      <!-- 1.1 Mapa de Vistas y Perfiles -->
+      <h2 class="section-title">1.1. Mapa de Vistas, Tabs y Permisos por Perfil de Usuario</h2>
+      <p style="color: var(--text-muted); margin-bottom: 10px;">
+        El ruteo está basado en <code>window.location.hash</code> dentro de <code>src/App.tsx:180-184</code> (<code>VALID_TABS_BY_ROLE</code>) y los menús se declaran en <code>src/components/layout/Navbar.tsx:34-55</code>:
+      </p>
+
+      <div class="table-wrapper" tabindex="0" role="region" aria-label="Mapa de vistas por rol">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Perfil (<code>user.rol</code>)</th>
+              <th>Tabs habilitados en <code>App.tsx</code></th>
+              <th>Tabs visibles en <code>Navbar.tsx</code></th>
+              <th>Vistas y Sub-vistas Principales</th>
+              <th>Dispositivo Principal y Contexto Físico</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Admin</strong><br><span class="badge badge-cyan">7 vistas</span></td>
+              <td><code>#dashboard</code>, <code>#matrix</code>, <code>#auditoria</code>, <code>#entregas</code>, <code>#import</code>, <code>#catalog</code>, <code>#ai</code></td>
+              <td>Los 7 tabs en barra superior (desktop) o grilla 2 col en hamburguesa (mobile) + botón flotante <code>ChatWidget.tsx</code>.</td>
+              <td>
+                &bull; <code>DashboardView.tsx</code> (540 lín.) + <code>MetricasSection.tsx</code> (288 lín.) + <code>FichaHotel360Modal.tsx</code> (584 lín.)<br>
+                &bull; <code>CatalogView.tsx</code> (411 lín.), <code>ImportView.tsx</code> (270 lín.), <code>AIInsightsView.tsx</code> (182 lín.)
+              </td>
+              <td>Desktop en oficina administrativa y celular para supervisión en ruta.</td>
+            </tr>
+            <tr>
+              <td><strong>Operario (Planta)</strong><br><span class="badge badge-purple">2 vistas</span></td>
+              <td><code>#matrix</code>, <code>#auditoria</code></td>
+              <td><code>Carga Diaria</code> y <code>Auditoría</code>.</td>
+              <td>
+                &bull; <code>MatrixEntryView.tsx</code> (959 lín.): planilla matricial + conciliación de despacho y alerta por desvío.<br>
+                &bull; <code>AuditoriaView.tsx</code> (895 lín.): conteo de bolsa sucia vs limpia, relavado y roturas.
+              </td>
+              <td>PC / Tablet en sector de báscula y conteo de planta (ambiente húmedo, uso rápido con teclado/touch).</td>
+            </tr>
+            <tr>
+              <td><strong>Repartidor (Chofer)</strong><br><span class="badge badge-emerald">2 en App / 1 en Navbar</span></td>
+              <td><code>#entregas</code>, <code>#auditoria</code> (en <code>App.tsx:183</code>)</td>
+              <td>Solo <code>Hoja de Entregas</code> (<code>Navbar.tsx:49-51</code>). <strong>Inconsistencia:</strong> puede entrar a <code>#auditoria</code> por URL pero no tiene botón en el menú.</td>
+              <td>
+                &bull; <code>EntregasView.tsx</code> (1.110 lín.) que anida dos modos internos (<code>vistaModo</code> en lín. 44):<br>
+                &nbsp;&nbsp;1) <strong>Modo Retiros:</strong> renderiza <code>RetirosTab.tsx</code> (447 lín.) con semáforo en vivo.<br>
+                &nbsp;&nbsp;2) <strong>Modo Entregas:</strong> despacho conciliado, lector QR textual, tabla de prendas y confirmación de entrega.
+              </td>
+              <td>Celular en mano o soporte de camioneta, bajo luz solar directa, en movimiento y cargando bolsones.</td>
+            </tr>
+            <tr>
+              <td><strong>Cliente (Hotel B2B)</strong><br><span class="badge badge-amber">1 vista / 4 sub-tabs</span></td>
+              <td><code>#portal</code></td>
+              <td><code>Portal Hotel</code> (sin menú hamburguesa en mobile, <code>Navbar.tsx:427</code>).</td>
+              <td>
+                &bull; <code>PortalHotelView.tsx</code> (677 lín.) con 4 sub-tabs internos: <code>remito</code> (declaración de bolsas sucias), <code>auditoria</code>, <code>facturacion</code> y <code>historial</code> (dispara QR e impresión).
+              </td>
+              <td>Desktop de gobernanta/recepción del hotel o celular en depósito de blancos.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 1.2 Estado actual del Sistema de Estilos -->
+      <h2 class="section-title">1.2. Relevamiento de UI: Estilos, Tokens, Tipografía, Tablas y Formularios</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Paleta, Tokens y Deuda de Configuración <span class="badge badge-amber">Desvío Alto</span></h3>
+          <ul>
+            <li><strong>Tokens definidos pero sub-utilizados:</strong> En <code>tailwind.config.js:8-29</code> están declaradas las escalas <code>brand</code> (<code>50</code> a <code>950</code>) y <code>ocean</code> (<code>600</code> a <code>950</code>: <code>#071326</code>, <code>#0b1a33</code>, <code>#132747</code>, <code>#1e3659</code>). Sin embargo, en los componentes se escribieron a mano <strong>400 valores hexadecimales arbitrary</strong> (ej. <code>bg-[#0b1a33]/90</code>, <code>border-[#1e3659]</code>) en vez de usar <code>bg-ocean-900</code> o <code>border-ocean-700</code>.</li>
+            <li><strong>Clases de animación huérfanas:</strong> Se invocan <code>animate-fade-in</code> (21 veces) y <code>animate-fadeIn</code> (5 veces, ej. <code>RetirosTab.tsx:120,123</code>), pero ninguna de las dos existe en <code>tailwind.config.js</code> ni en <code>src/index.css</code> (solo está definida <code>.animate-slide-in</code> en <code>src/index.css:33-38</code>).</li>
+            <li><strong>Utilidades instaladas sin uso:</strong> <code>package.json:13,19</code> incluye <code>clsx</code> y <code>tailwind-merge</code>, pero no existe ningún helper <code>cn()</code> ni carpeta <code>src/components/ui/</code>; todos los strings de clases se concatenan con template literals manuales.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Tipografía, Iconografía, Tablas y Formularios <span class="badge badge-cyan">Diagnóstico</span></h3>
+          <ul>
+            <li><strong>Tipografía:</strong> Carga <code>Plus Jakarta Sans</code> (pesos 400 a 900) desde Google Fonts en <code>index.html:10</code>. Excelente legibilidad geométrica, pero degradada por <strong>205 ocurrencias de tamaños micro</strong> (<code>text-[9px]</code>, <code>text-[10px]</code>, <code>text-[11px]</code>) en <code>AuditoriaView.tsx</code> (33x), <code>EntregasView.tsx</code> (31x), <code>PortalHotelView.tsx</code> (20x) y <code>RetirosTab.tsx</code> (20x).</li>
+            <li><strong>Iconografía:</strong> Usa <code>lucide-react</code> (^0.468.0) de forma consistente, pero en <code>RetirosTab.tsx:210</code> mezcla un emoji nativo <code>🟢</code> con un punto <code>bg-emerald-500 animate-pulse</code> al lado, duplicando el indicador semántico.</li>
+            <li><strong>Tablas (14 instancias de <code>&lt;table&gt;</code>):</strong> Envueltas en <code>overflow-x-auto</code>, sin <code>position: sticky</code> en la primera columna (Hotel/Prenda) ni transformación a tarjetas en mobile. En <code>EntregasView.tsx:870</code> el chofer debe scrollear horizontalmente 7 columnas en una pantalla de 360px.</li>
+            <li><strong>Formularios:</strong> El buscador de QR en <code>EntregasView.tsx:341-347</code> y <code>AuditoriaView.tsx:254-260</code> es solo un <code>&lt;input type="text"&gt;</code> manual; no abre la cámara del celular para escanear el código QR impreso en el remito.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 1.3 Problemas concretos de UX -->
+      <h2 class="section-title">1.3. Problemas Concretos de UX, Consistencia y Flujos Operativos</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>1. Legibilidad al Sol y Tamaños Táctiles <span class="badge badge-rose">Crítico en Ruta</span></h3>
+          <ul>
+            <li><strong>Solo Modo Oscuro Profundo:</strong> El fondo fijo <code>#071326</code> con textos secundarios <code>text-slate-400</code>/<code>text-slate-500</code> pierde contraste bajo luz del día en la cabina de reparto o la vereda del hotel.</li>
+            <li><strong>Targets táctiles &lt; 44px:</strong>
+              <br>&bull; <code>Navbar.tsx:297-307</code>: botones <code>Ver Muestra Procesada</code> y <code>Marcar leída</code> usan <code>px-2 py-1 text-[10px]</code> (~24px de alto).
+              <br>&bull; <code>RetirosTab.tsx:271-277</code>: el acordeón <code>Ver detalle de prendas</code> tiene <code>text-[11px]</code> (~18px de alto).
+              <br>&bull; <code>RetirosTab.tsx:293-303</code>: el CTA principal <code>Marcar como Retirado</code> mide ~36px (<code>py-2.5 text-xs</code>).
+              <br>&bull; <code>RetirosTab.tsx:391-398</code>: el cierre del modal es un carácter <code>&amp;times;</code> sin padding.
+            </li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>2. Feedback, Errores y Modales <span class="badge badge-amber">Fricción</span></h3>
+          <ul>
+            <li><strong>6 <code>alert()</code> nativos bloqueantes:</strong> En <code>RetirosTab.tsx:98</code>, <code>EntregasView.tsx:137</code>, <code>AuditoriaView.tsx:217</code>, <code>MatrixEntryView.tsx:398</code> y <code>PortalHotelView.tsx:97,120</code>. Cortan el hilo de ejecución y rompen la estética en PWA.</li>
+            <li><strong>Notificaciones sin Deep-Link:</strong> Cuando llega por SSE <code>REMITO_LISTO_RETIRO</code> (<code>useRealtime.ts:41-46</code>), suena el doble timbre Web Audio (<code>sound.ts:30</code>) y sale la notificación nativa (<code>sound.ts:100</code>), pero tocar la notificación o abrir la campana (<code>Navbar.tsx:260-360</code>) <strong>no lleva al usuario a <code>#entregas</code> ni resalta el hotel</strong>.</li>
+            <li><strong>Skeleton solo en 1 vista:</strong> <code>MetricasSkeleton.tsx</code> se usa en el Dashboard, pero <code>RetirosTab.tsx:219</code> y <code>EntregasView.tsx:598</code> reemplazan toda la pantalla por un texto plano <em>"Cargando..."</em>, causando saltos de layout (CLS) al refrescar por SSE.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>3. Flujos Largos (Avisar &rarr; Retirar &rarr; Conciliar &rarr; Entregar) <span class="badge badge-cyan">4 Roles</span></h3>
+          <ul>
+            <li><strong>Paso 1 (Hotel - <code>PortalHotelView.tsx</code>):</strong> Carga prendas en una grilla de 3 columnas con botones rápidos <code>+5 / +10 / +25</code> (<code>lín. 398</code>). Al enviar, dispara <code>REMITO_LISTO_RETIRO</code>.</li>
+            <li><strong>Paso 2 (Repartidor - <code>RetirosTab.tsx</code>):</strong> Está oculto dentro de <code>#entregas</code>. Si el chofer cambió al modo "Entregas de Ropa Limpia", no ve el contador de nuevos retiros listos en el toggle superior (<code>EntregasView.tsx:311-322</code> no tiene badge numérico).</li>
+            <li><strong>Paso 3 (Planta - <code>MatrixEntryView.tsx</code>):</strong> Valida kilos/prendas y genera alerta si hay diferencia con el remito.</li>
+            <li><strong>Paso 4 (Repartidor - <code>EntregasView.tsx</code>):</strong> El encabezado dice un badge engañoso <code>Solo Consulta</code> (<code>lín. 299</code>), pero abajo en cada acordeón (<code>lín. 827</code>) está la acción obligatoria <code>Marcar como Entregado</code>. Además, todos los hoteles se abren expandidos por defecto (<code>lín. 107-114</code>), generando un scroll larguísimo en el celular.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 1.4 Mobile vs Desktop y Preparación PWA -->
+      <h2 class="section-title">1.4. Evaluación Mobile vs. Desktop y Preparación Real para PWA</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Estado de Preparación PWA (Verificado en el Repo) <span class="badge badge-rose">Incompleto</span></h3>
+          <ul>
+            <li><strong>Lo que SÍ existe hoy:</strong>
+              <br>&bull; Conexión SSE en tiempo real con reconexión automática en <code>src/hooks/useRealtime.ts:15-71</code> (<code>/api/realtime/stream</code>).
+              <br>&bull; Sintetizador de audio sin dependencias externas usando Web Audio API (tonos D5 587Hz + A5 880Hz) y vibración <code>navigator.vibrate([200, 100, 300])</code> en <code>src/utils/sound.ts:30-79</code>.
+              <br>&bull; Banner de desbloqueo de audio + solicitud de <code>Notification.requestPermission()</code> en <code>RetirosTab.tsx:122-146</code>.
+            </li>
+            <li><strong>Lo que NO existe hoy (confirmado en <code>frontend/</code>):</strong>
+              <br>&bull; <strong>No hay <code>manifest.webmanifest</code></strong> en <code>public/</code> ni enlace en <code>index.html</code>.
+              <br>&bull; <strong>No hay Service Worker</strong> ni <code>vite-plugin-pwa</code> en <code>vite.config.ts</code> o <code>package.json</code>. Por usar <code>new Notification()</code> directo en <code>sound.ts:104</code> en vez de <code>ServiceWorkerRegistration.showNotification()</code>, Android Chrome bloquea las notificaciones cuando la PWA está en segundo plano.
+              <br>&bull; <strong>Faltan meta tags de PWA standalone</strong> en <code>index.html:1-16</code>: no tiene <code>theme-color</code> (<code>#071326</code>), <code>apple-mobile-web-app-capable</code>, ni <code>viewport-fit=cover</code> para respetar el notch y la barra de gestos inferior (<code>env(safe-area-inset-bottom)</code>).
+              <br>&bull; <strong>Ícono no cuadrado/maskable:</strong> <code>public/logo-triton.jpg</code> es JPEG; requiere PNG 192x192 y 512x512 maskable.
+            </li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Comportamiento Mobile vs. Desktop y Navegación Standalone <span class="badge badge-amber">A Corregir</span></h3>
+          <ul>
+            <li><strong>Navegación sin barra del navegador (Standalone):</strong> La app sincroniza las pestañas con <code>window.location.hash</code> (<code>App.tsx:199-244</code>), lo cual permite usar el gesto "Atrás" de Android entre tabs. Sin embargo, los <strong>6 modales internos</strong> (<code>RetirosTab</code>, <code>EntregasView</code>, <code>FichaHotel360Modal</code>, <code>RemitoPrintableModal</code>, <code>MatrixEntryView</code>, <code>AuditoriaView</code>) son simples estados locales <code>useState</code>: si el repartidor hace el gesto "Atrás" en el teléfono para cerrar un modal, <strong>sale de la vista o cierra la PWA</strong>.</li>
+            <li><strong>Sin barra inferior (Bottom Nav) en Mobile:</strong> En pantallas chicas, el usuario depende de un menú hamburguesa arriba a la derecha (<code>Navbar.tsx:427-461</code>), en la zona más incómoda para el pulgar cuando se opera con una sola mano.</li>
+            <li><strong>Colisión con el botón flotante de IA:</strong> En <code>App.tsx:305-310</code>, el botón <code>fixed bottom-6 right-6</code> del asistente de IA tapa los botones inferiores de tablas y tarjetas cuando el Admin revisa la app desde el celular.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 1.5 Inventario de Componentes Reutilizables vs A Rehacer vs Código Muerto -->
+      <h2 class="section-title">1.5. Clasificación de Componentes: Reutilizar, Refactorizar o Eliminar</h2>
+      <div class="table-wrapper" tabindex="0" role="region" aria-label="Clasificación de componentes del repositorio">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Archivo / Ruta Real</th>
+              <th>Líneas</th>
+              <th>Veredicto</th>
+              <th>Diagnóstico Técnico y Acción Propuesta</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>src/api/client.ts</code><br><code>src/contexts/AuthContext.tsx</code><br><code>src/types/index.ts</code></td>
+              <td>344<br>119<br>371</td>
+              <td><span class="badge badge-emerald">Reutilizar 100%</span></td>
+              <td>Contratos HTTP limpios con el backend en Go, manejo de JWT y tipado completo de DTOs. No requieren ningún cambio de contrato.</td>
+            </tr>
+            <tr>
+              <td><code>src/hooks/useRealtime.ts</code><br><code>src/utils/sound.ts</code></td>
+              <td>72<br>115</td>
+              <td><span class="badge badge-emerald">Reutilizar + Extender</span></td>
+              <td>El motor SSE y el timbre Web Audio API son excelentes. Solo hay que sumar un indicador visual de estado SSE y delegar la notificación al Service Worker para soporte background en Android, con click hacia <code>#entregas</code>.</td>
+            </tr>
+            <tr>
+              <td><code>src/components/hotel360/LiquidacionPrintable.tsx</code><br><code>src/components/hotel360/RemitoPrintableModal.tsx</code></td>
+              <td>224<br>184</td>
+              <td><span class="badge badge-emerald">Reutilizar</span></td>
+              <td>Funcionan muy bien con las reglas <code>@media print</code> A4 de <code>src/index.css:40-80</code> y <code>qrcode.react</code>. Solo adaptar el contenedor modal a <code>&lt;dialog&gt;</code> nativo.</td>
+            </tr>
+            <tr>
+              <td><code>src/components/layout/Header.tsx</code><br><code>src/components/layout/Sidebar.tsx</code></td>
+              <td>133<br>157</td>
+              <td><span class="badge badge-rose">Código Muerto (Eliminar)</span></td>
+              <td><strong>Confirmado por búsqueda de imports:</strong> ningún archivo del proyecto importa <code>Header.tsx</code> ni <code>Sidebar.tsx</code> (además usan estética clara vieja <code>bg-white</code>). Se pueden eliminar o reciclar como base para el layout de la Opción B.</td>
+            </tr>
+            <tr>
+              <td><code>src/components/portal/RetirosTab.tsx</code></td>
+              <td>447</td>
+              <td><span class="badge badge-amber">Rehacer UX Táctil</span></td>
+              <td>Separar o destacar con contador en vivo; agrandar targets táctiles a 48-56px; agregar chips rápidos de observación (<em>"1 bolsón"</em>, <em>"2 bolsones"</em>, <em>"Sin novedad"</em>) para que el chofer no tenga que tipear con el teclado en la calle.</td>
+            </tr>
+            <tr>
+              <td><code>src/components/portal/EntregasView.tsx</code></td>
+              <td>1.110</td>
+              <td><span class="badge badge-amber">Dividir y Rehacer</span></td>
+              <td>Archivo monolítico. Colapsar acordeones por defecto en mobile, quitar el badge contradictorio <code>Solo Consulta</code>, transformar la tabla de 7 columnas en tarjetas apiladas en mobile y sumar escaneo QR por cámara.</td>
+            </tr>
+            <tr>
+              <td><code>src/components/matrix/MatrixEntryView.tsx</code><br><code>src/components/portal/AuditoriaView.tsx</code></td>
+              <td>959<br>895</td>
+              <td><span class="badge badge-amber">Refactorizar UI</span></td>
+              <td>Fijar primera columna sticky en grillas anchas, reemplazar <code>alert()</code> por Toasts no bloqueantes y unificar botones e inputs mediante componentes base en <code>src/components/ui/</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- FASE 2 - OPCIÓN A: EVOLUTIVA                                      -->
+    <!-- ================================================================= -->
+    <section id="opcionA" class="tab-panel" role="tabpanel">
+      <div class="section-hero">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+          <span class="badge badge-emerald">Opción A &bull; Evolutiva (Bajo Costo / Cero Ruptura)</span>
+          <span class="badge badge-cyan">Esfuerzo: Bajo (3 a 5 días)</span>
+        </div>
+        <h1>Opción A: «Océano Táctico Consolidado» (Refinamiento sobre la Base Actual)</h1>
+        <p>
+          Mantiene la identidad nocturna marítima que hoy tiene TRITÓN BI (<code>#071326</code> / <code>#0b1a33</code>) y la estructura de vistas que tu equipo ya conoce, pero sanea los 400 hexadecimales dispersos, sube el piso tipográfico a 12px, lleva todos los botones operativos a un mínimo de 48px para dedos con guantes y completa el empaquetado PWA (Manifest + Service Worker) sin reescribir la arquitectura.
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Concepto y Justificación Operativa</h3>
+          <ul>
+            <li><strong>Cero curva de reaprendizaje:</strong> Ni el operario de planta ni el administrador tienen que reaprender dónde están los botones; todo sigue en el mismo lugar pero responde más rápido, con mayor contraste y sin errores de toque.</li>
+            <li><strong>Higiene de arquitectura CSS:</strong> Todos los colores arbitrarios <code>bg-[#0b1a33]</code> y <code>border-[#1e3659]</code> pasan a variables CSS semánticas en <code>src/index.css</code> consumidas desde <code>tailwind.config.js</code>, y se declara finalmente la animación <code>animate-fade-in</code> que hoy está rota en 26 lugares.</li>
+            <li><strong>Cierre de brecha PWA inmediata:</strong> Agrega <code>vite-plugin-pwa</code>, <code>manifest.webmanifest</code>, meta tags de barra de estado y reemplaza los 6 <code>alert()</code> nativos por un sistema liviano de Toasts.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Sistema de Diseño — Opción A</h3>
+          <ul>
+            <li><strong>Tipografía:</strong> Mantiene <code>Plus Jakarta Sans</code> para UI y suma <code>JetBrains Mono</code> (o <code>tabular-nums</code>) en conteos de prendas, kilos y códigos <code>ENV-...</code>. Prohibido usar menos de <code>12px</code> (<code>text-xs</code>).</li>
+            <li><strong>Espaciados y Bordes:</strong> Escala base 4px; cards con <code>rounded-2xl</code> (16px) y bordes de <code>1.5px</code> en tarjetas activas de retiro; botones de acción con altura mínima garantizada de <code>48px</code> (<code>min-h-12</code>).</li>
+            <li><strong>Iconografía y Tono Visual:</strong> <code>lucide-react</code> con trazo subido a <code>strokeWidth=2.25</code> en vistas de reparto. Tono sobrio, marítimo y técnico.</li>
+          </ul>
+          <div class="swatch-grid">
+            <div class="swatch">
+              <div class="swatch-color" style="background:#071326; color:#94a3b8;">#071326</div>
+              <div class="swatch-info"><strong>ocean-950</strong><span>Fondo base app</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#0b1a33; color:#cbd5e1;">#0b1a33</div>
+              <div class="swatch-info"><strong>ocean-900</strong><span>Superficie cards</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#24426b; color:#ffffff;">#24426b</div>
+              <div class="swatch-info"><strong>ocean-border</strong><span>Borde elevado (+contraste)</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#0ea5e9; color:#082f49;">#0ea5e9</div>
+              <div class="swatch-info"><strong>brand-500</strong><span>Acción primaria</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#10b981; color:#052e16;">#10b981</div>
+              <div class="swatch-info"><strong>status-ready</strong><span>Listo para retiro</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#f59e0b; color:#451a03;">#f59e0b</div>
+              <div class="swatch-info"><strong>status-warn</strong><span>Diferencia / Relavado</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mockups HTML/CSS Reales - Opción A -->
+      <h2 class="section-title">Mockups HTML/CSS Reales — Opción A (3 Pantallas Clave)</h2>
+      <div class="mockups-container">
+
+        <!-- Mockup A1: Dashboard Principal -->
+        <div class="mockup-frame">
+          <div class="mockup-bar">
+            <div class="mockup-dots">
+              <span class="mockup-dot" style="background:#f43f5e;"></span>
+              <span class="mockup-dot" style="background:#f59e0b;"></span>
+              <span class="mockup-dot" style="background:#10b981;"></span>
+              <strong style="color:#fff; margin-left:8px;">Pantalla 1 (Opción A): Dashboard Principal BI (Desktop)</strong>
+            </div>
+            <span>Mejoras: Contraste AA+, Números Tabulares, Estado SSE en vivo</span>
+          </div>
+          <div class="mock-a-bg">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:14px; margin-bottom:16px; border-bottom:1px solid #24426b; flex-wrap:wrap; gap:10px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-weight:900; font-size:17px; color:#fff;">TRITÓN <span style="color:#38bdf8;">BI</span></span>
+                <span class="badge badge-emerald">SSE Conectado &bull; Tiempo Real</span>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <span style="background:#0b1a33; border:1px solid #24426b; padding:8px 12px; border-radius:10px; font-size:12.5px; color:#e2e8f0;">Octubre 2026 &blacktriangledown;</span>
+                <span style="background:#0ea5e9; color:#fff; font-weight:800; padding:8px 14px; border-radius:10px; font-size:12.5px;">Exportar Liquidación A4</span>
+              </div>
+            </div>
+
+            <div class="grid-4" style="margin-bottom:16px;">
+              <div class="mock-a-surface" style="border-left:4px solid #0ea5e9;">
+                <div style="font-size:12px; font-weight:700; color:#cbd5e1; text-transform:uppercase;">Facturación Mensual</div>
+                <div style="font-size:24px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; margin:4px 0;">$ 18.420.500</div>
+                <div style="font-size:12px; color:#38bdf8; font-weight:600;">+12,4% vs. mes anterior</div>
+              </div>
+              <div class="mock-a-surface" style="border-left:4px solid #10b981;">
+                <div style="font-size:12px; font-weight:700; color:#cbd5e1; text-transform:uppercase;">Prendas Procesadas</div>
+                <div style="font-size:24px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; margin:4px 0;">42.890 u.</div>
+                <div style="font-size:12px; color:#6ee7b7; font-weight:600;">98,7% efectividad sin relavado</div>
+              </div>
+              <div class="mock-a-surface" style="border-left:4px solid #f59e0b;">
+                <div style="font-size:12px; font-weight:700; color:#cbd5e1; text-transform:uppercase;">Retiros Pendientes Hoy</div>
+                <div style="font-size:24px; font-weight:900; color:#fcd34d; font-variant-numeric:tabular-nums; margin:4px 0;">3 Hoteles</div>
+                <div style="font-size:12px; color:#fde68a; font-weight:600;">1.140 prendas listas para buscar</div>
+              </div>
+              <div class="mock-a-surface" style="border-left:4px solid #f43f5e;">
+                <div style="font-size:12px; font-weight:700; color:#cbd5e1; text-transform:uppercase;">Desvíos de Conciliación</div>
+                <div style="font-size:24px; font-weight:900; color:#fda4af; font-variant-numeric:tabular-nums; margin:4px 0;">1 Alerta</div>
+                <div style="font-size:12px; color:#fecdd3; font-weight:600;">Hotel King David (-6 toallas)</div>
+              </div>
+            </div>
+
+            <div class="mock-a-surface">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <strong style="font-size:14px; color:#fff;">Rendimiento por Cliente (Columna Fija + Tipografía &ge; 12px)</strong>
+                <span style="font-size:12px; color:#94a3b8;">Click en cualquier fila para abrir Ficha 360°</span>
+              </div>
+              <table class="audit-table" style="margin:0;">
+                <thead>
+                  <tr>
+                    <th>Hotel Cliente</th>
+                    <th style="text-align:right;">Remitos Mes</th>
+                    <th style="text-align:right;">Prendas Limpias</th>
+                    <th style="text-align:right;">Tasa Relavado</th>
+                    <th style="text-align:right;">Total Facturado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Hotel Quinto Centenario</strong></td>
+                    <td style="text-align:right; font-variant-numeric:tabular-nums;">28</td>
+                    <td style="text-align:right; font-variant-numeric:tabular-nums; color:#6ee7b7; font-weight:700;">14.210</td>
+                    <td style="text-align:right; font-variant-numeric:tabular-nums;">1,1%</td>
+                    <td style="text-align:right; font-variant-numeric:tabular-nums; font-weight:800;">$ 6.840.000</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Hotel King David</strong></td>
+                    <td style="text-align:right; font-variant-numeric:tabular-nums;">25</td>
+                    <td style="text-align:right; font-variant-numeric:tabular-nums; color:#6ee7b7; font-weight:700;">9.640</td>
+                    <td style="text-align:right; font-variant-numeric:tabular-nums; color:#fcd34d;">2,4%</td>
+                    <td style="text-align:right; font-variant-numeric:tabular-nums; font-weight:800;">$ 4.510.200</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mockup A2 y A3 en Grid -->
+        <div class="grid-2">
+          <!-- Mockup A2: Listado/Detalle de Remitos y Conciliación -->
+          <div class="mockup-frame">
+            <div class="mockup-bar">
+              <div class="mockup-dots">
+                <span class="mockup-dot" style="background:#f43f5e;"></span>
+                <span class="mockup-dot" style="background:#f59e0b;"></span>
+                <span class="mockup-dot" style="background:#10b981;"></span>
+                <strong style="color:#fff; margin-left:8px;">Pantalla 2 (Opción A): Listado / Detalle de Remitos</strong>
+              </div>
+            </div>
+            <div class="mock-a-bg">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div>
+                  <span class="badge badge-amber">Conciliación con Diferencia (-6 u.)</span>
+                  <h4 style="font-size:17px; font-weight:900; color:#fff; margin-top:4px;">Hotel King David &bull; ENV-20261023-04</h4>
+                </div>
+                <button class="mock-a-btn" style="background:#132747; color:#7dd3fc; border:1px solid #24426b; min-height:42px; padding:8px 12px; font-size:12px;">
+                  Imprimir A4
+                </button>
+              </div>
+
+              <div class="mock-a-surface" style="margin-bottom:12px; background:#071326;">
+                <table class="audit-table" style="font-size:12.5px;">
+                  <thead>
+                    <tr>
+                      <th>Prenda</th>
+                      <th style="text-align:right;">Remito</th>
+                      <th style="text-align:right; color:#6ee7b7;">Limpia</th>
+                      <th style="text-align:right; color:#fcd34d;">Relav.</th>
+                      <th style="text-align:right;">Dif.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Sábana King 240h</strong></td>
+                      <td style="text-align:right;">120</td>
+                      <td style="text-align:right; color:#6ee7b7; font-weight:800;">118</td>
+                      <td style="text-align:right; color:#fcd34d;">2</td>
+                      <td style="text-align:right; color:#6ee7b7;">0</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Toallón Baño 600g</strong></td>
+                      <td style="text-align:right;">200</td>
+                      <td style="text-align:right; color:#6ee7b7; font-weight:800;">194</td>
+                      <td style="text-align:right;">0</td>
+                      <td style="text-align:right; color:#fda4af; font-weight:800;">-6</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="text" value="Recibió Gobernanta Laura (conforme con desvío)" readonly style="flex:1; height:48px; border-radius:12px; border:1px solid #24426b; background:#0b1a33; color:#fff; padding:0 12px; font-size:13px;" />
+                <button class="mock-a-btn" style="background:#10b981; color:#052e16;">
+                  &#10003; Confirmar Entrega
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mockup A3: Vista de Retiros del Repartidor (Mobile-First) -->
+          <div class="mockup-frame" style="padding: 16px;">
+            <div style="text-align:center; margin-bottom:10px; font-size:12px; color:#94a3b8; font-weight:700;">
+              Pantalla 3 (Opción A): Vista Mobile del Repartidor (<code>RetirosTab.tsx</code>)
+            </div>
+            <div class="phone-frame" style="background:#071326;">
+              <div class="phone-status-bar" style="background:#040b16; color:#94a3b8;">
+                <span>09:42 &bull; TRITÓN PWA</span>
+                <span style="color:#6ee7b7;">&#9679; Audio Activo</span>
+              </div>
+              <div style="padding:14px; display:flex; flex-direction:column; gap:12px;">
+                <!-- Switch con contadores visibles -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; background:#040b16; padding:5px; border-radius:12px; border:1px solid #24426b;">
+                  <div style="background:#10b981; color:#052e16; font-weight:900; font-size:12.5px; padding:10px; border-radius:9px; text-align:center;">
+                    Retiros (3 Listos)
+                  </div>
+                  <div style="color:#cbd5e1; font-weight:700; font-size:12.5px; padding:10px; text-align:center;">
+                    Entregas (5)
+                  </div>
+                </div>
+
+                <!-- Card de Retiro Lista con botones >= 48px y chips rápidos -->
+                <div style="background:#0b1a33; border:2px solid #10b981; border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:10px;">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                      <span class="badge badge-emerald">Listo hace 4 min</span>
+                      <div style="font-size:17px; font-weight:900; color:#fff; margin-top:4px;">Hotel Windsor</div>
+                      <div style="font-size:12.5px; color:#94a3b8; font-family:var(--font-mono);">ENV-20261023-09 &bull; 09:38 hs</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="font-size:24px; font-weight:900; color:#6ee7b7; line-height:1;">385</div>
+                      <div style="font-size:12px; color:#cbd5e1;">prendas</div>
+                    </div>
+                  </div>
+
+                  <!-- Chips de observación con 1 toque (sin tipear) -->
+                  <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <span style="background:#132747; border:1px solid #38bdf8; color:#e0f2fe; font-size:12px; font-weight:700; padding:6px 10px; border-radius:8px;">&#10003; 4 Bolsones cerrados</span>
+                    <span style="background:#071326; border:1px solid #24426b; color:#94a3b8; font-size:12px; padding:6px 10px; border-radius:8px;">+ Precinto OK</span>
+                  </div>
+
+                  <button class="mock-a-btn" style="width:100%; background:#10b981; color:#052e16; font-size:14.5px;">
+                    &#10003; Confirmar Retiro en Hotel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cambios en el código, Esfuerzo y Riesgos - Opción A -->
+      <h2 class="section-title">Impacto en Código, Archivos Afectados y Esfuerzo — Opción A</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Archivos Afectados y Componentes a Crear</h3>
+          <ul>
+            <li><strong>Configuración y PWA:</strong> <code>frontend/vite.config.ts</code> (agregar <code>vite-plugin-pwa</code>), <code>frontend/index.html</code> (meta tags <code>theme-color</code> y <code>viewport-fit=cover</code>), <code>frontend/tailwind.config.js</code> y <code>frontend/src/index.css</code> (tokens semánticos y <code>@keyframes fade-in</code>).</li>
+            <li><strong>Nuevos Primitivos Livianos (<code>src/components/ui/</code>):</strong> <code>Toast.tsx</code> (reemplaza los 6 <code>alert()</code>), <code>DialogModal.tsx</code> (basado en <code>&lt;dialog&gt;</code> nativo con soporte de botón Atrás en Android) y <code>SkeletonCard.tsx</code>.</li>
+            <li><strong>Vistas a actualizar:</strong> <code>RetirosTab.tsx</code>, <code>EntregasView.tsx</code> (quitar badge <em>"Solo Consulta"</em>, agregar contadores en tabs de modo y chips rápidos de observación), <code>Navbar.tsx</code> (click en notificación navega a <code>#entregas</code>).</li>
+            <li><strong>Dependencias nuevas:</strong> únicamente <code>vite-plugin-pwa</code> (en <code>devDependencies</code>).</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Estimación, Riesgos, Accesibilidad y Rendimiento</h3>
+          <ul>
+            <li><strong>Esfuerzo estimado:</strong> <span class="badge badge-emerald">Bajo (3 a 5 días hábiles)</span>.</li>
+            <li><strong>Riesgo de regresión:</strong> Mínimo. No cambia la estructura de estados ni las llamadas a <code>src/api/client.ts</code>.</li>
+            <li><strong>Impacto en Accesibilidad:</strong> Sube el contraste de bordes y textos secundarios a WCAG AA (4.5:1), elimina los 205 micro-textos &lt; 12px y garantiza áreas de toque &ge; 48x48px.</li>
+            <li><strong>Impacto en Rendimiento:</strong> Cero peso extra en el bundle JS de producción; precache de assets estáticos gracias al Service Worker.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- FASE 2 - OPCIÓN B: MODERNA / EQUILIBRADA                          -->
+    <!-- ================================================================= -->
+    <section id="opcionB" class="tab-panel" role="tabpanel">
+      <div class="section-hero">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+          <span class="badge badge-cyan">Opción B &bull; Moderna / Equilibrada (Recomendada)</span>
+          <span class="badge badge-amber">Esfuerzo: Medio (2 semanas)</span>
+        </div>
+        <h1>Opción B: «TRITÓN Dual-Theme Industrial» (Nuevo Design System + Modo Sol/Planta + Escáner QR)</h1>
+        <p>
+          Introduce un Sistema de Diseño formal con soporte <strong>Dual-Theme (Modo Claro de Alto Contraste "Planta &amp; Sol" + Modo Oscuro "Ejecutivo BI")</strong>, navegación adaptativa con <strong>Barra Inferior (Bottom Navigation) en mobile</strong> y Sidebar colapsable en desktop, tablas responsivas con <code>@container</code> queries que se convierten automáticamente en tarjetas operativas en el celular y lector QR por cámara integrado.
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Concepto y Justificación Operativa</h3>
+          <ul>
+            <li><strong>Por qué el Modo Claro "Daylight" cambia la operación en la calle:</strong> Una pantalla oscura (<code>#071326</code>) al mediodía en la vereda de un hotel actúa como un espejo bajo el sol. El tema claro de alto contraste (fondo <code>#f1f5f9</code>, tarjetas <code>#ffffff</code>, tipografía <code>#0f172a</code> y acentos semáforo saturados) multiplica la legibilidad a plena luz del día y en galpones con iluminación industrial LED intensa, manteniendo el modo oscuro para oficina o turno noche.</li>
+            <li><strong>Separación limpia entre Retiros y Entregas:</strong> En lugar de esconder <code>RetirosTab</code> adentro de <code>EntregasView</code>, la barra inferior del repartidor expone directamente <strong>3 pestañas al alcance del pulgar</strong>: <code>Retiros (En Vivo)</code>, <code>Entregas</code> y <code>Escanear QR</code>, manteniendo 100% de compatibilidad con la ruta <code>#entregas</code>.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Sistema de Diseño — Opción B (Dual Palette)</h3>
+          <ul>
+            <li><strong>Tipografía:</strong> <code>Plus Jakarta Sans</code> (600/700/800) para encabezados y etiquetas + <code>JetBrains Mono</code> (500/700) para códigos QR, pesajes en kg, conteos y diferencias. Escala fluida con mínimo estricto de <code>13px</code> en mobile.</li>
+            <li><strong>Espaciados, Bordes e Iconografía:</strong> Grilla de 8px; bordes nítidos de <code>1px solid #cbd5e1</code> (claro) / <code>#1e3659</code> (oscuro); radios de <code>12px</code> en contenedores y <code>10px</code> en controles.</li>
+          </ul>
+          <div class="swatch-grid">
+            <div class="swatch">
+              <div class="swatch-color" style="background:#f1f5f9; color:#0f172a;">#f1f5f9</div>
+              <div class="swatch-info"><strong>day-canvas</strong><span>Fondo Modo Sol/Planta</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#ffffff; color:#0f172a;">#ffffff</div>
+              <div class="swatch-info"><strong>day-surface</strong><span>Tarjeta Modo Sol</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#0f223d; color:#ffffff;">#0f223d</div>
+              <div class="swatch-info"><strong>triton-navy</strong><span>Header / Marca Oficial</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#0284c7; color:#ffffff;">#0284c7</div>
+              <div class="swatch-info"><strong>triton-blue</strong><span>Primario Interactivo</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#059669; color:#ffffff;">#059669</div>
+              <div class="swatch-info"><strong>semaforo-ok</strong><span>Verde Retiro AA (Sol)</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#d97706; color:#ffffff;">#d97706</div>
+              <div class="swatch-info"><strong>semaforo-warn</strong><span>Ámbar Conciliación AA</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mockups HTML/CSS Reales - Opción B -->
+      <h2 class="section-title">Mockups HTML/CSS Reales — Opción B (3 Pantallas Clave)</h2>
+      <div class="mockups-container">
+
+        <!-- Mockup B1: Dashboard Principal con Sidebar + Tema Dual -->
+        <div class="mockup-frame">
+          <div class="mockup-bar">
+            <div class="mockup-dots">
+              <span class="mockup-dot" style="background:#f43f5e;"></span>
+              <span class="mockup-dot" style="background:#f59e0b;"></span>
+              <span class="mockup-dot" style="background:#10b981;"></span>
+              <strong style="color:#fff; margin-left:8px;">Pantalla 1 (Opción B): Dashboard Principal + Centro Operativo en Vivo (Modo Claro Industrial)</strong>
+            </div>
+            <span>Sidebar unificado + Switch Sol/Noche + Feed SSE accionable</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 220px 1fr; min-height: 360px;">
+            <!-- Sidebar Mock -->
+            <div style="background:#0f223d; color:#e2e8f0; padding:16px; display:flex; flex-direction:column; justify-content:space-between; border-right:1px solid #1e3659;">
+              <div>
+                <div style="font-weight:900; font-size:16px; color:#fff; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between;">
+                  <span>TRITÓN BI</span>
+                  <span style="font-size:10px; background:#0284c7; padding:2px 6px; border-radius:4px;">ADMIN</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:700;">
+                  <div style="background:#0284c7; color:#fff; padding:9px 12px; border-radius:8px;">&#9638; Dashboard BI</div>
+                  <div style="color:#94a3b8; padding:9px 12px;">&#9635; Carga Diaria Planilla</div>
+                  <div style="color:#94a3b8; padding:9px 12px; display:flex; justify-content:space-between;">
+                    <span>&#9888; Auditoría &amp; Conteo</span>
+                    <span style="background:#f59e0b; color:#000; padding:1px 6px; border-radius:99px; font-size:11px;">2</span>
+                  </div>
+                  <div style="color:#94a3b8; padding:9px 12px; display:flex; justify-content:space-between;">
+                    <span>&#128666; Logística (#entregas)</span>
+                    <span style="background:#10b981; color:#000; padding:1px 6px; border-radius:99px; font-size:11px;">3</span>
+                  </div>
+                  <div style="color:#94a3b8; padding:9px 12px;">&#10024; Asistente IA</div>
+                </div>
+              </div>
+              <div style="background:#071326; padding:10px; border-radius:8px; font-size:11.5px; color:#94a3b8;">
+                Tema activo: <strong style="color:#fff;">&#9728; Modo Sol / Planta</strong>
+              </div>
+            </div>
+
+            <!-- Main Content Mock -->
+            <div class="mock-b-bg">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                <div>
+                  <h3 style="font-size:18px; font-weight:900; color:#0f172a;">Pulso Operativo y Financiero de Planta</h3>
+                  <p style="font-size:12.5px; color:#475569;">Viernes 23 de Octubre &bull; 14 hoteles activos hoy</p>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <span style="background:#ecfdf5; border:1px solid #6ee7b7; color:#065f46; font-weight:800; font-size:12px; padding:7px 12px; border-radius:8px;">
+                    &#9679; 3 Retiros Listos Ahora (Ir a #entregas &rarr;)
+                  </span>
+                </div>
+              </div>
+
+              <div class="grid-3" style="margin-bottom:14px;">
+                <div class="mock-b-surface">
+                  <div style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase;">Kilos Lavados Hoy</div>
+                  <div style="font-size:24px; font-weight:900; color:#0f172a; font-family:var(--font-mono); margin:4px 0;">3.840 kg</div>
+                  <div style="font-size:12px; color:#059669; font-weight:700;">&#9650; Meta diaria al 92%</div>
+                </div>
+                <div class="mock-b-surface">
+                  <div style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase;">En Ruta de Retiro</div>
+                  <div style="font-size:24px; font-weight:900; color:#0284c7; font-family:var(--font-mono); margin:4px 0;">4 Bolsones</div>
+                  <div style="font-size:12px; color:#334155; font-weight:600;">Chofer: Martín G. (hace 8 min)</div>
+                </div>
+                <div class="mock-b-surface" style="border-left:4px solid #d97706;">
+                  <div style="font-size:11.5px; font-weight:800; color:#92400e; text-transform:uppercase;">Conciliaciones con Desvío</div>
+                  <div style="font-size:24px; font-weight:900; color:#b45309; font-family:var(--font-mono); margin:4px 0;">1 Despacho</div>
+                  <div style="font-size:12px; color:#92400e; font-weight:700;">Revisar muestra procesada &rarr;</div>
+                </div>
+              </div>
+
+              <div class="mock-b-surface">
+                <div style="font-size:13px; font-weight:800; color:#0f172a; margin-bottom:8px;">Actividad en Tiempo Real (SSE Direct-Action)</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:12.5px;">
+                  <div>
+                    <span style="background:#059669; color:#fff; font-weight:800; padding:2px 7px; border-radius:4px; font-size:11px; margin-right:6px;">REMITO_LISTO_RETIRO</span>
+                    <strong style="color:#0f172a;">Hotel Amerian Córdoba</strong> declaró <strong>410 prendas</strong> (Remito <code>ENV-20261023-11</code>)
+                  </div>
+                  <span style="color:#0284c7; font-weight:800; cursor:pointer;">Asignar / Ver &rarr;</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Mockup B2: Listado/Detalle de Remitos con Container Query Stacked Cards -->
+          <div class="mockup-frame">
+            <div class="mockup-bar">
+              <div class="mockup-dots">
+                <span class="mockup-dot" style="background:#f43f5e;"></span>
+                <span class="mockup-dot" style="background:#f59e0b;"></span>
+                <span class="mockup-dot" style="background:#10b981;"></span>
+                <strong style="color:#fff; margin-left:8px;">Pantalla 2 (Opción B): Detalle de Remito Conciliado</strong>
+              </div>
+            </div>
+            <div class="mock-b-bg">
+              <div class="mock-b-surface" style="margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:10px;">
+                  <div>
+                    <span style="font-size:11px; font-weight:800; color:#0284c7; font-family:var(--font-mono);">ENV-20261023-07 &bull; DESPACHO #44</span>
+                    <h4 style="font-size:16px; font-weight:900; color:#0f172a;">Hotel NH Panorama</h4>
+                  </div>
+                  <span style="background:#dcfce7; color:#166534; border:1px solid #86efac; font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:99px;">
+                    &#10003; Carga Exacta (320 / 320 u.)
+                  </span>
+                </div>
+
+                <!-- Comparador visual de 3 columnas claras -->
+                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; text-align:center; background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:10px;">
+                  <div>
+                    <div style="font-size:11px; color:#64748b; font-weight:700;">REMITO HOTEL</div>
+                    <div style="font-size:18px; font-weight:900; color:#0f172a; font-family:var(--font-mono);">320</div>
+                  </div>
+                  <div>
+                    <div style="font-size:11px; color:#059669; font-weight:700;">LIMPIAS A ENTREGAR</div>
+                    <div style="font-size:18px; font-weight:900; color:#059669; font-family:var(--font-mono);">316</div>
+                  </div>
+                  <div>
+                    <div style="font-size:11px; color:#d97706; font-weight:700;">EN RELAVADO</div>
+                    <div style="font-size:18px; font-weight:900; color:#d97706; font-family:var(--font-mono);">4</div>
+                  </div>
+                </div>
+
+                <div style="font-size:12.5px; color:#334155; display:flex; flex-direction:column; gap:6px;">
+                  <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed #cbd5e1;">
+                    <strong>Sábana 2 Plazas</strong>
+                    <span style="font-family:var(--font-mono);">Rem: 150 | <strong style="color:#059669;">Limp: 146</strong> | <strong style="color:#d97706;">Rel: 4</strong></span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; padding:6px 0;">
+                    <strong>Funda Almohada</strong>
+                    <span style="font-family:var(--font-mono);">Rem: 170 | <strong style="color:#059669;">Limp: 170</strong> | Rel: 0</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex; gap:8px;">
+                <button style="flex:1; min-height:46px; background:#0f223d; color:#fff; border:none; border-radius:10px; font-weight:800; font-size:13px;">
+                  &#128424; Remito A4 / QR
+                </button>
+                <button style="flex:2; min-height:46px; background:#059669; color:#fff; border:none; border-radius:10px; font-weight:800; font-size:13.5px;">
+                  &#10003; Registrar Entrega en Recepción
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mockup B3: Vista Mobile-First del Repartidor con Bottom Nav y Modo Sol -->
+          <div class="mockup-frame" style="padding:16px;">
+            <div style="text-align:center; margin-bottom:10px; font-size:12px; color:#94a3b8; font-weight:700;">
+              Pantalla 3 (Opción B): Repartidor Mobile en Modo Sol + Bottom Nav
+            </div>
+            <div class="phone-frame" style="background:#f1f5f9;">
+              <div class="phone-status-bar" style="background:#0f223d; color:#fff;">
+                <span>09:45 &bull; Ruta Centro</span>
+                <span>&#9728; Sol &bull; SSE OK</span>
+              </div>
+
+              <div style="padding:12px; display:flex; flex-direction:column; gap:10px; color:#0f172a;">
+                <!-- Resumen compacto en una sola tira horizontal -->
+                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+                  <div style="background:#dcfce7; border:1px solid #86efac; padding:8px; border-radius:10px; text-align:center;">
+                    <div style="font-size:10px; font-weight:800; color:#166534;">LISTOS</div>
+                    <div style="font-size:20px; font-weight:900; color:#14532d;">3</div>
+                  </div>
+                  <div style="background:#dbeafe; border:1px solid #93c5fd; padding:8px; border-radius:10px; text-align:center;">
+                    <div style="font-size:10px; font-weight:800; color:#1e40af;">RETIRADOS</div>
+                    <div style="font-size:20px; font-weight:900; color:#1e3a8a;">4</div>
+                  </div>
+                  <div style="background:#e2e8f0; border:1px solid #cbd5e1; padding:8px; border-radius:10px; text-align:center;">
+                    <div style="font-size:10px; font-weight:800; color:#475569;">SIN REMITO</div>
+                    <div style="font-size:20px; font-weight:900; color:#334155;">2</div>
+                  </div>
+                </div>
+
+                <!-- Card de Parada Lista con alto contraste diurno -->
+                <div style="background:#ffffff; border:2px solid #059669; border-radius:14px; padding:12px; box-shadow:0 4px 12px rgba(5,150,105,0.12);">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="background:#059669; color:#fff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:99px;">PARADA #1 &bull; LISTO</span>
+                    <span style="font-family:var(--font-mono); font-size:12px; color:#475569; font-weight:700;">09:38 hs</span>
+                  </div>
+                  <div style="font-size:17px; font-weight:900; color:#0f172a; margin:6px 0 2px;">Hotel Amerian Córdoba</div>
+                  <div style="font-size:13px; color:#334155; margin-bottom:10px;">
+                    <strong>410 prendas declaradas</strong> &bull; <code>ENV-20261023-11</code>
+                  </div>
+                  <button style="width:100%; min-height:48px; background:#059669; color:#fff; border:none; border-radius:10px; font-weight:900; font-size:14px;">
+                    &#10003; Retirar Bolsones (1 Toque)
+                  </button>
+                </div>
+              </div>
+
+              <!-- Bottom Navigation Bar apta para pulgar -->
+              <div style="background:#ffffff; border-top:1px solid #cbd5e1; display:grid; grid-template-columns:repeat(3,1fr); padding:8px 6px 12px; text-align:center; font-size:11px; font-weight:800;">
+                <div style="color:#059669;">&#128230; Retiros (3)</div>
+                <div style="color:#64748b;">&#128666; Entregas (5)</div>
+                <div style="color:#0284c7;">&#128247; Escanear QR</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cambios en el código, Esfuerzo y Riesgos - Opción B -->
+      <h2 class="section-title">Impacto en Código, Archivos Afectados y Esfuerzo — Opción B</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Archivos Afectados y Componentes Nuevos</h3>
+          <ul>
+            <li><strong>Design System en <code>src/components/ui/</code>:</strong> <code>Button</code>, <code>Badge</code>, <code>Card</code>, <code>DialogDrawer</code> (Bottom Sheet en mobile, Dialog en desktop), <code>ResponsiveTable</code> (con <code>@container (width &lt; 600px)</code>), <code>ToastProvider</code> y <code>ThemeToggle</code> (persiste modo claro/oscuro por rol, con modo claro por defecto para <code>repartidor</code>).</li>
+            <li><strong>Navegación y Layout:</strong> Refactorizar <code>Navbar.tsx</code> + crear <code>BottomNavMobile.tsx</code> y limpiar <code>Header.tsx</code> / <code>Sidebar.tsx</code>.</li>
+            <li><strong>Vistas Operativas:</strong> Dividir <code>EntregasView.tsx</code> (1.110 lín.) en sub-componentes modulares (<code>EntregasSummary</code>, <code>HotelEntregaCard</code>, <code>QRScannerModal</code>) manteniendo la ruta <code>#entregas</code> intacta.</li>
+            <li><strong>Dependencias nuevas:</strong> <code>vite-plugin-pwa</code> + lector QR liviano nativo (<code>BarcodeDetector</code> API con fallback a <code>html5-qrcode</code>).</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Estimación, Riesgos, Accesibilidad y Rendimiento</h3>
+          <ul>
+            <li><strong>Esfuerzo estimado:</strong> <span class="badge badge-amber">Medio (8 a 10 días hábiles / ~2 semanas)</span>.</li>
+            <li><strong>Riesgo de regresión:</strong> Bajo-Moderado. Los contratos con Go quedan 100% intactos; el cambio es puramente en la capa de presentación y layout.</li>
+            <li><strong>Impacto en Accesibilidad:</strong> Cumplimiento WCAG AAA en modo diurno (contraste &gt; 7:1 bajo sol directo), navegación por teclado completa en tablas (<code>tabindex="0"</code> + <code>role="region"</code>) y cierre de modales con tecla Escape / botón Atrás.</li>
+            <li><strong>Impacto en Rendimiento:</strong> Permite aplicar <code>React.lazy()</code> por pestaña en <code>App.tsx</code> para que el celular del repartidor no descargue <code>recharts</code> (que solo usa el Admin en <code>DashboardView.tsx</code>), reduciendo más de 45% el bundle inicial en mobile.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- FASE 2 - OPCIÓN C: AMBICIOSA (MOBILE-FIRST / COCKPIT DE CAMPO)    -->
+    <!-- ================================================================= -->
+    <section id="opcionC" class="tab-panel" role="tabpanel">
+      <div class="section-hero">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+          <span class="badge badge-purple">Opción C &bull; Ambiciosa (Rediseño Profundo Mobile-First &amp; Offline Queue)</span>
+          <span class="badge badge-rose">Esfuerzo: Alto (3 a 4 semanas)</span>
+        </div>
+        <h1>Opción C: «TRITÓN Cockpit Operativo &amp; Hoja de Ruta Guiada»</h1>
+        <p>
+          Reimagina BiTool desde cero para el trabajo físico pesado con guantes y en movimiento: reemplaza los listados largos por un <strong>Modo Copiloto de Parada Activa (Una Parada a la Vez)</strong> para el repartidor, suma un <strong>Teclado Numérico Gigante en Pantalla (On-Screen Numpad)</strong> para que el operario de planta y el hotel carguen bolsas sin usar el teclado diminuto del sistema, e incorpora una <strong>Cola de Sincronización Offline (IndexedDB)</strong> para subsuelos de hoteles sin señal celular.
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Concepto y Justificación Operativa</h3>
+          <ul>
+            <li><strong>Pensado para guantes, lluvia y sótanos de hotel:</strong> Los depósitos de ropa blanca de los hoteles suelen estar en subsuelos donde se corta el 4G/5G. En la Opción C, si el chofer confirma un retiro o entrega sin señal, la acción se guarda en una cola local (IndexedDB + Background Sync) y se despacha sola al backend en Go apenas recupera conexión al salir a la calle.</li>
+            <li><strong>Flujo unificado por "Parada de Hotel":</strong> En lugar de obligar al repartidor a cambiar entre la pestaña de Retiros y la de Entregas cuando llega a un hotel, cada parada muestra una <strong>Misión Unificada en 2 Pasos</strong>: <em>Paso 1: Bajar ropa limpia conciliada &rarr; Paso 2: Subir bolsones sucios listos</em>.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Sistema de Diseño — Opción C (Industrial High-Vis)</h3>
+          <ul>
+            <li><strong>Tipografía:</strong> Encabezados condensados de alto impacto + <code>JetBrains Mono</code> gigante (<code>28px</code> a <code>40px</code>) para cantidades de bolsones y prendas.</li>
+            <li><strong>Tamaños Táctiles Extremos (Glove-Ready):</strong> Botones primarios de <strong>60px a 64px de altura</strong>, bordes de <code>2px</code> de espesor y confirmación con barra deslizante o botón de ancho completo en el tercio inferior de la pantalla (Thumb Zone).</li>
+          </ul>
+          <div class="swatch-grid">
+            <div class="swatch">
+              <div class="swatch-color" style="background:#090d16; color:#ffffff;">#090d16</div>
+              <div class="swatch-info"><strong>cockpit-black</strong><span>Fondo OLED Ahorro Batería</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#111827; color:#ffffff;">#111827</div>
+              <div class="swatch-info"><strong>cockpit-card</strong><span>Superficie Táctica</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#10b981; color:#052e16;">#10b981</div>
+              <div class="swatch-info"><strong>hi-vis-green</strong><span>Acción 60px Retiro/OK</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#fbbf24; color:#451a03;">#fbbf24</div>
+              <div class="swatch-info"><strong>hi-vis-amber</strong><span>Alerta Industrial Vial</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#38bdf8; color:#082f49;">#38bdf8</div>
+              <div class="swatch-info"><strong>hi-vis-cyan</strong><span>Entrega / Escáner QR</span></div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#f43f5e; color:#ffffff;">#f43f5e</div>
+              <div class="swatch-info"><strong>hi-vis-crimson</strong><span>Desvío Crítico / Baja</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mockups HTML/CSS Reales - Opción C -->
+      <h2 class="section-title">Mockups HTML/CSS Reales — Opción C (3 Pantallas Clave)</h2>
+      <div class="mockups-container">
+
+        <!-- Mockup C1: Torre de Control Logística y Planta (Dashboard Principal) -->
+        <div class="mockup-frame">
+          <div class="mockup-bar">
+            <div class="mockup-dots">
+              <span class="mockup-dot" style="background:#f43f5e;"></span>
+              <span class="mockup-dot" style="background:#f59e0b;"></span>
+              <span class="mockup-dot" style="background:#10b981;"></span>
+              <strong style="color:#fff; margin-left:8px;">Pantalla 1 (Opción C): Torre de Control Operativa (Kanban Logístico en Vivo + BI)</strong>
+            </div>
+            <span>Pipeline en tiempo real: Sin Remito &rarr; Listo Retiro &rarr; En Planta &rarr; Conciliado/Entregado</span>
+          </div>
+          <div class="mock-c-bg">
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+              <!-- Columna 1 -->
+              <div style="background:#111827; border:1px solid #1f2937; border-radius:12px; padding:12px;">
+                <div style="font-size:11.5px; font-weight:900; color:#94a3b8; text-transform:uppercase; margin-bottom:10px; display:flex; justify-content:space-between;">
+                  <span>1. Sin Remito Aún</span>
+                  <span style="background:#1f2937; padding:1px 7px; border-radius:99px;">2</span>
+                </div>
+                <div style="background:#090d16; border:1px solid #374151; padding:10px; border-radius:8px; font-size:12.5px; color:#cbd5e1;">
+                  <strong>Hotel Sussex</strong><br><span style="font-size:11px; color:#64748b;">Último envío: ayer 10:15 hs</span>
+                </div>
+              </div>
+
+              <!-- Columna 2 -->
+              <div style="background:#111827; border:2px solid #10b981; border-radius:12px; padding:12px;">
+                <div style="font-size:11.5px; font-weight:900; color:#6ee7b7; text-transform:uppercase; margin-bottom:10px; display:flex; justify-content:space-between;">
+                  <span>2. Listos para Retiro</span>
+                  <span style="background:#065f46; color:#fff; padding:1px 7px; border-radius:99px;">3</span>
+                </div>
+                <div style="background:#052e16; border:1px solid #10b981; padding:10px; border-radius:8px; font-size:12.5px; margin-bottom:8px;">
+                  <strong style="color:#fff;">Hotel Windsor</strong>
+                  <div style="font-family:var(--font-mono); color:#6ee7b7; font-weight:800;">385 prendas &bull; 09:38 hs</div>
+                </div>
+                <div style="background:#052e16; border:1px solid #10b981; padding:10px; border-radius:8px; font-size:12.5px;">
+                  <strong style="color:#fff;">Hotel Amerian</strong>
+                  <div style="font-family:var(--font-mono); color:#6ee7b7; font-weight:800;">410 prendas &bull; 09:41 hs</div>
+                </div>
+              </div>
+
+              <!-- Columna 3 -->
+              <div style="background:#111827; border:1px solid #38bdf8; border-radius:12px; padding:12px;">
+                <div style="font-size:11.5px; font-weight:900; color:#38bdf8; text-transform:uppercase; margin-bottom:10px; display:flex; justify-content:space-between;">
+                  <span>3. En Lavado / Conteo</span>
+                  <span style="background:#0c4a6e; color:#fff; padding:1px 7px; border-radius:99px;">4</span>
+                </div>
+                <div style="background:#090d16; border:1px solid #0284c7; padding:10px; border-radius:8px; font-size:12.5px;">
+                  <strong>Hotel Quinto Centenario</strong>
+                  <div style="font-size:11.5px; color:#7dd3fc;">Báscula: 412 kg &bull; Contando...</div>
+                </div>
+              </div>
+
+              <!-- Columna 4 -->
+              <div style="background:#111827; border:1px solid #fbbf24; border-radius:12px; padding:12px;">
+                <div style="font-size:11.5px; font-weight:900; color:#fbbf24; text-transform:uppercase; margin-bottom:10px; display:flex; justify-content:space-between;">
+                  <span>4. Despacho a Entregar</span>
+                  <span style="background:#78350f; color:#fff; padding:1px 7px; border-radius:99px;">5</span>
+                </div>
+                <div style="background:#451a03; border:1px solid #f59e0b; padding:10px; border-radius:8px; font-size:12.5px;">
+                  <strong>Hotel King David</strong>
+                  <div style="font-size:11.5px; color:#fde68a;">Alerta desvío: -6 toallones</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Mockup C2: Detalle de Remito y Auditoría con Numpad Industrial en Pantalla -->
+          <div class="mockup-frame">
+            <div class="mockup-bar">
+              <div class="mockup-dots">
+                <span class="mockup-dot" style="background:#f43f5e;"></span>
+                <span class="mockup-dot" style="background:#f59e0b;"></span>
+                <span class="mockup-dot" style="background:#10b981;"></span>
+                <strong style="color:#fff; margin-left:8px;">Pantalla 2 (Opción C): Conteo de Remito con Numpad Táctil</strong>
+              </div>
+            </div>
+            <div class="mock-c-bg">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div>
+                  <span class="badge badge-cyan">ENV-20261023-04 &bull; Ítem 2 de 8</span>
+                  <h4 style="font-size:18px; font-weight:900; margin-top:4px;">Toallón Baño 600g (Hotel King David)</h4>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; align-items:stretch;">
+                <div style="background:#111827; border:1px solid #374151; border-radius:12px; padding:12px; display:flex; flex-direction:column; justify-content:space-between;">
+                  <div>
+                    <div style="font-size:11px; color:#94a3b8; font-weight:800;">DECLARADO EN REMITO</div>
+                    <div style="font-size:28px; font-weight:900; color:#fff; font-family:var(--font-mono);">200 u.</div>
+                  </div>
+                  <div style="border-top:1px solid #1f2937; padding-top:8px;">
+                    <div style="font-size:11px; color:#6ee7b7; font-weight:800;">CONTADO LIMPIO AHORA</div>
+                    <div style="font-size:34px; font-weight:900; color:#10b981; font-family:var(--font-mono);">194 u.</div>
+                    <span class="badge badge-amber" style="margin-top:4px;">Diferencia: -6 u.</span>
+                  </div>
+                </div>
+
+                <!-- Numpad para manos con guantes -->
+                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+                  <button style="height:46px; background:#1f2937; color:#fff; border:1px solid #374151; border-radius:8px; font-weight:900; font-size:16px;">+1</button>
+                  <button style="height:46px; background:#1f2937; color:#fff; border:1px solid #374151; border-radius:8px; font-weight:900; font-size:16px;">+5</button>
+                  <button style="height:46px; background:#1f2937; color:#fff; border:1px solid #374151; border-radius:8px; font-weight:900; font-size:16px;">+10</button>
+                  <button style="height:46px; background:#065f46; color:#6ee7b7; border:1px solid #10b981; border-radius:8px; font-weight:900; font-size:13px; grid-column:span 3;">= Igualar al Remito (200)</button>
+                  <button style="height:48px; background:#0284c7; color:#fff; border:none; border-radius:8px; font-weight:900; font-size:14px; grid-column:span 3;">Guardar y Siguiente Prenda &rarr;</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mockup C3: Cockpit Mobile del Repartidor (Misión Unificada por Parada) -->
+          <div class="mockup-frame" style="padding:16px;">
+            <div style="text-align:center; margin-bottom:10px; font-size:12px; color:#94a3b8; font-weight:700;">
+              Pantalla 3 (Opción C): Cockpit del Repartidor (Guantes + Cola Offline)
+            </div>
+            <div class="phone-frame" style="background:#090d16;">
+              <div class="phone-status-bar" style="background:#111827; color:#fbbf24;">
+                <span>&#9889; Cola Offline Lista (0 pend.)</span>
+                <span style="color:#6ee7b7;">GPS / SSE Activo</span>
+              </div>
+
+              <div style="padding:14px; display:flex; flex-direction:column; gap:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="badge badge-emerald" style="font-size:12px; padding:4px 10px;">PARADA ACTIVA 1 DE 4</span>
+                  <span style="font-family:var(--font-mono); font-size:12px; color:#94a3b8;">ENV-20261023-09</span>
+                </div>
+
+                <div class="mock-c-card">
+                  <div style="font-size:21px; font-weight:900; color:#fff; line-height:1.15;">Hotel Windsor</div>
+                  <div style="font-size:13px; color:#94a3b8; margin-top:2px;">Avisó hace 4 min (09:38 hs)</div>
+
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0; background:#090d16; padding:10px; border-radius:12px;">
+                    <div>
+                      <div style="font-size:10.5px; color:#94a3b8; font-weight:800;">A RETIRAR (SUCIO)</div>
+                      <div style="font-size:26px; font-weight:900; color:#10b981; font-family:var(--font-mono);">385 u.</div>
+                    </div>
+                    <div>
+                      <div style="font-size:10.5px; color:#94a3b8; font-weight:800;">A DEJAR (LIMPIO)</div>
+                      <div style="font-size:26px; font-weight:900; color:#38bdf8; font-family:var(--font-mono);">310 u.</div>
+                    </div>
+                  </div>
+
+                  <!-- Selector rápido de bolsones con botones grandes -->
+                  <div style="font-size:11.5px; font-weight:800; color:#cbd5e1; margin-bottom:6px;">CANTIDAD DE BOLSONES CARGADOS:</div>
+                  <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:12px;">
+                    <div style="padding:10px 0; text-align:center; background:#1f2937; border-radius:8px; font-weight:900;">2</div>
+                    <div style="padding:10px 0; text-align:center; background:#1f2937; border-radius:8px; font-weight:900;">3</div>
+                    <div style="padding:10px 0; text-align:center; background:#065f46; border:2px solid #10b981; color:#fff; border-radius:8px; font-weight:900;">4</div>
+                    <div style="padding:10px 0; text-align:center; background:#1f2937; border-radius:8px; font-weight:900;">5+</div>
+                  </div>
+
+                  <button class="mock-c-giant-btn">
+                    &#10003; CONFIRMAR RETIRO (60px)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cambios en el código, Esfuerzo y Riesgos - Opción C -->
+      <h2 class="section-title">Impacto en Código, Archivos Afectados y Esfuerzo — Opción C</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Archivos Afectados y Arquitectura Nueva</h3>
+          <ul>
+            <li><strong>Cola Offline y Persistencia (<code>src/services/offlineQueue.ts</code>):</strong> Almacena en IndexedDB las mutaciones de <code>api.confirmarRetiroEnvio()</code> y <code>api.entregarDespachoConciliacion()</code> cuando <code>navigator.onLine === false</code>, sincronizando automáticamente al reconectar sin tocar ni un endpoint del backend en Go.</li>
+            <li><strong>Rediseño de Flujos Operativos:</strong> Nueva vista unificada de Parada en <code>EntregasView.tsx</code> + <code>RetirosTab.tsx</code>, tablero Kanban en vivo para administración y componente <code>IndustrialNumpad.tsx</code> para <code>AuditoriaView.tsx</code> y <code>PortalHotelView.tsx</code>.</li>
+            <li><strong>Dependencias nuevas:</strong> <code>vite-plugin-pwa</code>, <code>idb-keyval</code> (~600 bytes para cola offline) y lector QR.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Estimación, Riesgos, Accesibilidad y Rendimiento</h3>
+          <ul>
+            <li><strong>Esfuerzo estimado:</strong> <span class="badge badge-rose">Alto (3 a 4 semanas)</span>.</li>
+            <li><strong>Riesgo de regresión:</strong> Moderado-Alto. Cambia de forma importante el modelo mental del repartidor y requiere testeo de sincronización offline ante conflictos de estado.</li>
+            <li><strong>Impacto en Accesibilidad y Ergonomía:</strong> Máxima ergonomía física (targets &ge; 60px aptos para guantes gruesos, operación con una sola mano y feedback háptico + sonoro diferenciado por severidad).</li>
+            <li><strong>Impacto en Rendimiento:</strong> Respuesta instantánea (0ms percibidos) gracias a UI Optimista + cola local en IndexedDB.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- FASE 3: TABLA COMPARATIVA Y RECOMENDACIÓN FUNDAMENTADA            -->
+    <!-- ================================================================= -->
+    <section id="comparativa" class="tab-panel" role="tabpanel">
+      <div class="section-hero">
+        <span class="badge badge-emerald" style="margin-bottom: 10px;">Decisión Arquitectónica y Hoja de Ruta</span>
+        <h1>Tabla Comparativa Final y Recomendación Fundamentada</h1>
+        <p>
+          Comparación directa de las 3 direcciones sobre los criterios operativos de TRITÓN BI (planta, administración, hoteles y reparto en la calle), preservando el 100% de los endpoints del backend en Go y las notificaciones SSE.
+        </p>
+      </div>
+
+      <div class="table-wrapper" tabindex="0" role="region" aria-label="Tabla comparativa de las tres opciones de rediseño">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Criterio de Evaluación</th>
+              <th>Opción A: Evolutiva<br><span style="color:#6ee7b7; font-weight:600;">(Océano Táctico Consolidado)</span></th>
+              <th>Opción B: Moderna / Dual<br><span style="color:#38bdf8; font-weight:600;">(Dual-Theme Industrial) &#9733;</span></th>
+              <th>Opción C: Ambiciosa<br><span style="color:#c4b5fd; font-weight:600;">(Cockpit Mobile-First + Offline)</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Impacto Visual y Claridad</strong></td>
+              <td><strong>Moderado:</strong> Ordena y pule la estética oscura actual sin cambiar el layout.</td>
+              <td><strong>Alto:</strong> Salto de calidad B2B profesional con Modo Sol/Planta y jerarquía impecable.</td>
+              <td><strong>Muy Alto / Disruptivo:</strong> Interfaz táctica de misión paso a paso y tablero Kanban.</td>
+            </tr>
+            <tr>
+              <td><strong>Legibilidad al Sol (Repartidor)</strong></td>
+              <td><strong>Media (WCAG AA):</strong> Mejora contrastes, pero sigue siendo fondo oscuro bajo el sol.</td>
+              <td><strong>Excelente (WCAG AAA):</strong> Tema claro de alto contraste pensado para vereda y cabina.</td>
+              <td><strong>Alta:</strong> Alto contraste industrial con tipografía gigante (28-40px) y bordes de 2px.</td>
+            </tr>
+            <tr>
+              <td><strong>Ergonomía Táctil (Guantes / 1 Mano)</strong></td>
+              <td>Botones llevados a <code>&ge; 48px</code> + chips rápidos en el modal de retiro.</td>
+              <td>Botones <code>48-52px</code> + <strong>Bottom Navigation</strong> para el pulgar + tablas que pasan a cards.</td>
+              <td>Targets extremos de <code>60-64px</code> + Numpad en pantalla + flujo de parada en 1 toque.</td>
+            </tr>
+            <tr>
+              <td><strong>Preparación PWA &amp; Notificaciones</strong></td>
+              <td>Manifest + Service Worker + deep-link a <code>#entregas</code> al tocar notificación.</td>
+              <td>PWA instalable completa + escáner QR con cámara + code-splitting por rol.</td>
+              <td>Todo lo de B + <strong>Cola Offline en IndexedDB</strong> para sótanos sin señal celular.</td>
+            </tr>
+            <tr>
+              <td><strong>Esfuerzo de Desarrollo</strong></td>
+              <td><span class="badge badge-emerald">Bajo (3 a 5 días)</span></td>
+              <td><span class="badge badge-amber">Medio (8 a 10 días)</span></td>
+              <td><span class="badge badge-rose">Alto (3 a 4 semanas)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Riesgo Técnico</strong></td>
+              <td><strong>Muy Bajo:</strong> Cambios locales de CSS y componentes puntuales.</td>
+              <td><strong>Bajo:</strong> Refactor limpio en <code>src/components/ui/</code> manteniendo flujos conocidos.</td>
+              <td><strong>Moderado-Alto:</strong> Requiere manejo de cola de sincronización y reentrenamiento.</td>
+            </tr>
+            <tr>
+              <td><strong>Accesibilidad (ARIA / Teclado)</strong></td>
+              <td>Modales con <code>&lt;dialog&gt;</code>, foco visible y fin de los textos de 9px-11px.</td>
+              <td>Semántica completa, <code>@container</code> queries en tablas y soporte lector de pantalla.</td>
+              <td>Orientada a accesibilidad motriz y visual extrema en entorno industrial ruidoso.</td>
+            </tr>
+            <tr>
+              <td><strong>Mantenibilidad del Código</strong></td>
+              <td><strong>Buena:</strong> Elimina los 400 hexadecimales hardcodeados y código muerto.</td>
+              <td><strong>Sobresaliente:</strong> Crea el Design System reutilizable y divide <code>EntregasView.tsx</code>.</td>
+              <td><strong>Compleja:</strong> Mayor cantidad de estados locales y lógica de sincronización diferida.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="section-title">Nuestra Recomendación Fundamentada</h2>
+      <div class="card" style="border: 2px solid #0284c7; background: linear-gradient(135deg, rgba(2,132,199,0.14) 0%, rgba(11,26,51,0.95) 100%);">
+        <h3 style="font-size: 18px; color: #fff;">
+          <span>Recomendamos implementar la <strong>Opción B («TRITÓN Dual-Theme Industrial»)</strong> incorporando los <strong>Chips Rápidos de Observación</strong> de la Opción A/C</span>
+          <span class="badge badge-cyan">Mejor Relación Impacto / Esfuerzo</span>
+        </h3>
+        <p style="margin-bottom: 12px; color: #e2e8f0; font-size: 14.5px;">
+          <strong>¿Por qué es la decisión más inteligente para TRITÓN BI hoy?</strong>
+        </p>
+        <ul style="color: #e2e8f0; font-size: 14px;">
+          <li><strong>1. Resuelve el dolor físico real del repartidor sin demorar un mes:</strong> El modo claro de alto contraste bajo luz del día, la barra de navegación inferior (Bottom Nav) con el contador de <code>REMITO_LISTO_RETIRO</code> siempre visible y los chips de 1 toque (<em>"2 bolsones"</em>, <em>"3 bolsones"</em>, <em>"Precinto OK"</em>) eliminan el 90% de la fricción en la calle en apenas 2 semanas de trabajo.</li>
+          <li><strong>2. Paga la deuda técnica real del repositorio:</strong> Elimina los 400 colores hexadecimales hardcodeados, borra los componentes huérfanos (<code>Header.tsx</code> y <code>Sidebar.tsx</code>), modulariza <code>EntregasView.tsx</code> (1.110 líneas) y reemplaza las tablas horizontales ilegibles en el celular por tablas adaptativas con <code>@container</code> queries.</li>
+          <li><strong>3. Deja la PWA 100% lista para producción en Android e iOS:</strong> Incorpora <code>manifest.webmanifest</code>, Service Worker con notificaciones nativas en segundo plano que abren directamente <code>#entregas</code>, y soporte del gesto "Atrás" del teléfono en todos los modales.</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (function () {
+      const buttons = document.querySelectorAll('.tab-btn');
+      const panels = document.querySelectorAll('.tab-panel');
+
+      function activateTab(tabId) {
+        buttons.forEach((btn) => {
+          const isMatch = btn.getAttribute('data-tab') === tabId;
+          btn.classList.toggle('active', isMatch);
+          btn.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+        });
+        panels.forEach((panel) => {
+          panel.classList.toggle('active', panel.id === tabId);
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          activateTab(btn.getAttribute('data-tab'));
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

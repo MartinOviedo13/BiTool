@@ -6,6 +6,7 @@ import {
   Bot,
   Wrench,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { PeriodOption } from '../../types';
@@ -15,6 +16,10 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   toolsUsadas?: string[];
+}
+
+interface ChatWidgetProps {
+  onClose?: () => void;
 }
 
 const SUGGESTIONS = [
@@ -29,7 +34,7 @@ const SUGGESTIONS = [
 const WELCOME =
   'Hola. Soy tu asistente de Business Intelligence conectado al Servidor MCP de Lavadero BI. Puedo consultar en tiempo real rankings, Fichas 360 de hoteles, alertas de planta, estado de remitos B2B y proyecciones de demanda de personal. NUNCA invento números.';
 
-export const ChatWidget: React.FC = () => {
+export const ChatWidget: React.FC<ChatWidgetProps> = ({ onClose }) => {
   const [period, setPeriod] = useState<PeriodOption>('month');
   const [customFrom, setCustomFrom] = useState<string>(getTodayDateString());
   const [customTo, setCustomTo] = useState<string>(getTodayDateString());
@@ -85,30 +90,42 @@ export const ChatWidget: React.FC = () => {
   const periodLabel = formatDateDisplay(rango.from) + ' → ' + formatDateDisplay(rango.to);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+    <div className="flex flex-col h-full bg-slate-900/95 sm:bg-slate-900/80 sm:rounded-2xl border-0 sm:border border-slate-800 overflow-hidden shadow-xl">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-800 bg-slate-950/60">
+      <div className="px-4 py-3 border-b border-slate-800 bg-slate-950/80">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-2 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 shrink-0">
               <Bot className="h-4 w-4" />
             </div>
-            <div>
-              <h3 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
-                Asistente IA
+            <div className="min-w-0">
+              <h3 className="font-bold text-slate-100 text-sm flex items-center gap-1.5 flex-wrap">
+                <span>Asistente IA</span>
                 <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800/60 flex items-center gap-1">
                   <Sparkles className="h-2.5 w-2.5" /> Gemini 3.8 + MCP
                 </span>
               </h3>
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px] text-slate-500 truncate">
                 Conectado al servidor Model Context Protocol de TRITÓN
               </p>
             </div>
           </div>
-          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-full font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            9 MCP Tools Activas
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-full font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              9 MCP Tools Activas
+            </span>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                aria-label="Cerrar asistente"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Período selector */}
@@ -135,7 +152,7 @@ export const ChatWidget: React.FC = () => {
             </button>
           ))}
           {period === 'custom' && (
-            <span className="flex items-center gap-1 ml-1">
+            <span className="flex flex-wrap items-center gap-1 mt-1 sm:mt-0 sm:ml-1 w-full sm:w-auto">
               <input
                 type="date"
                 value={customFrom}
@@ -229,7 +246,7 @@ export const ChatWidget: React.FC = () => {
           <button
             onClick={() => enviar()}
             disabled={loading || !input.trim()}
-            className="p-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl transition-colors disabled:opacity-40"
+            className="p-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl transition-colors disabled:opacity-40 shrink-0"
             title="Enviar consulta"
           >
             <Send className="h-4 w-4" />

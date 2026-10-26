@@ -48,6 +48,7 @@ const OPERARIO_TABS = [
 
 const REPARTIDOR_TABS = [
   { id: 'entregas' as TabId, label: 'Hoja de Entregas', icon: Truck },
+  { id: 'auditoria' as TabId, label: 'Auditoría', icon: ClipboardCheck },
 ];
 
 const CLIENTE_TABS = [
@@ -145,24 +146,24 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
       : CLIENTE_TABS;
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0b1a33]/90 backdrop-blur-md border-b border-[#1e3659]">
+    <header className="sticky top-0 z-50 bg-[#0b1a33]/95 backdrop-blur-md border-b border-[#1e3659]">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
           {/* Logo Oficial TRITÓN */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="h-10 w-10 rounded-xl bg-[#071326] border border-[#1e3659] p-0.5 flex items-center justify-center shadow-md shadow-brand-900/30 shrink-0 overflow-hidden">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-[#071326] border border-[#1e3659] p-0.5 flex items-center justify-center shadow-md shadow-brand-900/30 shrink-0 overflow-hidden">
               <img src="/logo-triton.jpg" alt="Logo Tritón" className="h-full w-full object-contain rounded-lg" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-base sm:text-lg tracking-tight text-white flex items-center gap-1">
-                  TRITÓN <span className="text-brand-400 text-xs font-extrabold px-1 py-0.2 bg-brand-950/80 border border-brand-700/50 rounded">BI</span>
+                <span className="font-black text-sm sm:text-lg tracking-tight text-white flex items-center gap-1 truncate">
+                  TRITÓN <span className="text-brand-400 text-[11px] sm:text-xs font-extrabold px-1 py-0.2 bg-brand-950/80 border border-brand-700/50 rounded">BI</span>
                 </span>
-                <span className="text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-full bg-brand-950 text-brand-300 border border-brand-800/60">
+                <span className="hidden sm:inline-block text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-full bg-brand-950 text-brand-300 border border-brand-800/60">
                   {user?.rol === 'cliente' ? 'B2B' : 'Industrial'}
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Lavadero Industrial</p>
+              <p className="text-[10px] sm:text-xs text-slate-400 font-medium truncate">Lavadero Industrial</p>
             </div>
           </div>
 
@@ -195,7 +196,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
           </nav>
 
           {/* Right side: notifications + status + user + logout */}
-          <div className="flex items-center gap-1.5 sm:gap-2 relative">
+          <div className="flex items-center gap-1 sm:gap-2 relative shrink-0">
             {/* Campana de Notificaciones Operativas */}
             {canReceiveNotifs && (
               <div className="relative" ref={notifContainerRef}>
@@ -230,145 +231,145 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                     />
 
                     {/* Ventana de notificaciones: centrada en mobile (fixed) y anclada a la derecha en desktop (sm:absolute) */}
-                    <div className="fixed inset-x-3 top-16 mt-2 max-w-lg mx-auto sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[420px] sm:max-w-none sm:mx-0 max-h-[80vh] overflow-y-auto bg-[#0b1a33] border border-[#1e3659] rounded-2xl shadow-2xl z-50 divide-y divide-[#1e3659] animate-fade-in">
-                    <div className="p-3.5 bg-[#071326] flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs font-black text-white uppercase tracking-wider">
-                          Notificaciones Operativas
-                        </h4>
-                        <p className="text-[10px] text-slate-400">
-                          {unreadCount > 0
-                            ? `${unreadCount} sin leer (${user?.rol})`
-                            : 'Todas las notificaciones al día'}
-                        </p>
+                    <div className="fixed inset-x-3 top-16 mt-1 max-w-lg mx-auto sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[420px] sm:max-w-none sm:mx-0 max-h-[80dvh] overflow-y-auto bg-[#0b1a33] border border-[#1e3659] rounded-2xl shadow-2xl z-50 divide-y divide-[#1e3659] animate-fade-in">
+                      <div className="p-3.5 bg-[#071326] flex items-center justify-between sticky top-0 z-10 border-b border-[#1e3659]">
+                        <div>
+                          <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                            Notificaciones Operativas
+                          </h4>
+                          <p className="text-[10px] text-slate-400">
+                            {unreadCount > 0
+                              ? `${unreadCount} sin leer (${user?.rol})`
+                              : 'Todas las notificaciones al día'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setNotifOpen(false)}
+                          className="p-1.5 text-slate-400 hover:text-white rounded-lg"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setNotifOpen(false)}
-                        className="p-1 text-slate-400 hover:text-white rounded-lg"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
 
-                    {notificaciones.length === 0 ? (
-                      <div className="p-6 text-center text-xs text-slate-400">
-                        No hay notificaciones operativas registradas.
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-[#1e3659]/60">
-                        {notificaciones.map((n) => {
-                          const isExpanded = expandedNotifId === n.id;
-                          const hora = new Date(n.created_at).toLocaleTimeString('es-AR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          });
-                          return (
-                            <div
-                              key={n.id}
-                              className={`p-3.5 text-xs transition-colors ${
-                                !n.leida ? 'bg-brand-950/30' : 'bg-transparent opacity-75'
-                              }`}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-start gap-2">
-                                  {n.severidad === 'warning' ? (
-                                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                                  ) : n.severidad === 'success' ? (
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                                  ) : (
-                                    <Truck className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                                  )}
-                                  <div>
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="font-black text-white">{n.titulo}</span>
-                                      <span className="text-[10px] text-slate-400 font-mono">
-                                        {hora} hs
-                                      </span>
+                      {notificaciones.length === 0 ? (
+                        <div className="p-6 text-center text-xs text-slate-400">
+                          No hay notificaciones operativas registradas.
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-[#1e3659]/60">
+                          {notificaciones.map((n) => {
+                            const isExpanded = expandedNotifId === n.id;
+                            const hora = new Date(n.created_at).toLocaleTimeString('es-AR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            });
+                            return (
+                              <div
+                                key={n.id}
+                                className={`p-3.5 text-xs transition-colors ${
+                                  !n.leida ? 'bg-brand-950/30' : 'bg-transparent opacity-75'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-start gap-2">
+                                    {n.severidad === 'warning' ? (
+                                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                                    ) : n.severidad === 'success' ? (
+                                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                                    ) : (
+                                      <Truck className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                                    )}
+                                    <div>
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="font-black text-white">{n.titulo}</span>
+                                        <span className="text-[10px] text-slate-400 font-mono">
+                                          {hora} hs
+                                        </span>
+                                      </div>
+                                      <p className="text-slate-300 mt-1 leading-relaxed">{n.mensaje}</p>
                                     </div>
-                                    <p className="text-slate-300 mt-1 leading-relaxed">{n.mensaje}</p>
                                   </div>
                                 </div>
-                              </div>
 
-                              <div className="flex items-center justify-end gap-2 mt-2.5">
-                                {n.muestra_datos && n.muestra_datos.length > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setExpandedNotifId(isExpanded ? null : n.id)
-                                    }
-                                    className="px-2 py-1 rounded-lg bg-[#071326] hover:bg-[#132747] text-cyan-300 border border-[#1e3659] text-[10px] font-bold flex items-center gap-1"
-                                  >
-                                    <Eye className="w-3 h-3" />
-                                    <span>
-                                      {isExpanded ? 'Ocultar Muestra' : 'Ver Muestra Procesada'}
-                                    </span>
-                                  </button>
-                                )}
+                                <div className="flex items-center justify-end gap-2 mt-2.5 flex-wrap">
+                                  {n.muestra_datos && n.muestra_datos.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setExpandedNotifId(isExpanded ? null : n.id)
+                                      }
+                                      className="px-2.5 py-1.5 rounded-lg bg-[#071326] hover:bg-[#132747] text-cyan-300 border border-[#1e3659] text-[10px] font-bold flex items-center gap-1"
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                      <span>
+                                        {isExpanded ? 'Ocultar Muestra' : 'Ver Muestra Procesada'}
+                                      </span>
+                                    </button>
+                                  )}
 
-                                {!n.leida && (
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleMarcarLeida(n.id)}
-                                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1"
-                                  >
-                                    <Check className="w-3 h-3" />
-                                    <span>Marcar leída</span>
-                                  </button>
-                                )}
-                              </div>
-
-                              {isExpanded && n.muestra_datos && n.muestra_datos.length > 0 && (
-                                <div className="mt-2.5 rounded-xl border border-[#1e3659] bg-[#071326] overflow-x-auto">
-                                  <table className="w-full text-left text-[11px]">
-                                    <thead className="bg-[#0b1a33] text-slate-400 uppercase text-[9px] border-b border-[#1e3659]">
-                                      <tr>
-                                        <th className="px-2.5 py-1.5">Ítem</th>
-                                        <th className="px-2 py-1.5 text-right">Remito</th>
-                                        <th className="px-2 py-1.5 text-right text-cyan-400">Procesado</th>
-                                        <th className="px-2.5 py-1.5 text-right">Dif.</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[#1e3659]/40">
-                                      {n.muestra_datos.map((m) => (
-                                        <tr key={m.item_id}>
-                                          <td className="px-2.5 py-1 font-semibold text-white">
-                                            {m.item_nombre}
-                                          </td>
-                                          <td className="px-2 py-1 text-right text-slate-300">
-                                            {formatNumber(m.cant_remito)}
-                                          </td>
-                                          <td className="px-2 py-1 text-right font-bold text-cyan-300">
-                                            {formatNumber(m.cant_procesada_prendas)}
-                                          </td>
-                                          <td className="px-2.5 py-1 text-right font-bold">
-                                            {m.diferencia === 0 ? (
-                                              <span className="text-emerald-400">0</span>
-                                            ) : m.diferencia > 0 ? (
-                                              <span className="text-amber-400">+{m.diferencia}</span>
-                                            ) : (
-                                              <span className="text-rose-400">{m.diferencia}</span>
-                                            )}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                                  {!n.leida && (
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleMarcarLeida(n.id)}
+                                      className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1"
+                                    >
+                                      <Check className="w-3 h-3" />
+                                      <span>Marcar leída</span>
+                                    </button>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
+
+                                {isExpanded && n.muestra_datos && n.muestra_datos.length > 0 && (
+                                  <div className="mt-2.5 rounded-xl border border-[#1e3659] bg-[#071326] overflow-x-auto">
+                                    <table className="w-full text-left text-[11px]">
+                                      <thead className="bg-[#0b1a33] text-slate-400 uppercase text-[9px] border-b border-[#1e3659]">
+                                        <tr>
+                                          <th className="px-2.5 py-1.5">Ítem</th>
+                                          <th className="px-2 py-1.5 text-right">Remito</th>
+                                          <th className="px-2 py-1.5 text-right text-cyan-400">Procesado</th>
+                                          <th className="px-2.5 py-1.5 text-right">Dif.</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-[#1e3659]/40">
+                                        {n.muestra_datos.map((m) => (
+                                          <tr key={m.item_id}>
+                                            <td className="px-2.5 py-1 font-semibold text-white">
+                                              {m.item_nombre}
+                                            </td>
+                                            <td className="px-2 py-1 text-right text-slate-300">
+                                              {formatNumber(m.cant_remito)}
+                                            </td>
+                                            <td className="px-2 py-1 text-right font-bold text-cyan-300">
+                                              {formatNumber(m.cant_procesada_prendas)}
+                                            </td>
+                                            <td className="px-2.5 py-1 text-right font-bold">
+                                              {m.diferencia === 0 ? (
+                                                <span className="text-emerald-400">0</span>
+                                              ) : m.diferencia > 0 ? (
+                                                <span className="text-amber-400">+{m.diferencia}</span>
+                                              ) : (
+                                                <span className="text-rose-400">{m.diferencia}</span>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
-            {/* Backend status (Oculto en pantallas muy chicas para no apiñar) */}
+            {/* Backend status (Oculto en pantallas chicas para no apiñar) */}
             <div
               className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
                 backendOnline === true
@@ -395,9 +396,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
 
             {/* Usuario logueado */}
             {user && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-[#1e3659] bg-[#071326] text-slate-300 max-w-[130px] sm:max-w-none truncate">
+              <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium border border-[#1e3659] bg-[#071326] text-slate-300 max-w-[105px] sm:max-w-none truncate">
                 <User className="h-3.5 w-3.5 text-brand-400 shrink-0" />
-                <span className="font-semibold text-white truncate text-xs">
+                <span className="font-semibold text-white truncate text-[11px] sm:text-xs">
                   {user.hotel_nombre || user.username}
                 </span>
                 <span
@@ -417,27 +418,64 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
             {/* Boton cerrar sesion */}
             <button
               onClick={logout}
-              title="Cerrar sesion"
-              className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+              title="Cerrar sesión"
+              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
             >
               <LogOut className="h-4 w-4" />
             </button>
 
-            {/* Botón hamburguesa (Solo Admin / Operario en pantallas chicas) */}
-            {user?.rol !== 'cliente' && (
+            {/* Botón hamburguesa (En pantallas chicas cuando hay múltiples pestañas) */}
+            {navItems.length > 1 && (
               <button
                 onClick={() => setMobileMenuOpen((v) => !v)}
-                className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="lg:hidden p-2 rounded-xl text-slate-300 hover:text-white bg-[#071326] border border-[#1e3659]"
+                aria-label="Abrir menú de navegación"
               >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
               </button>
             )}
           </div>
         </div>
 
-        {/* Menu móvil desplegable para Admin / Operario */}
-        {mobileMenuOpen && user?.rol !== 'cliente' && (
-          <div className="lg:hidden py-3 border-t border-slate-800 grid grid-cols-2 gap-2 animate-fade-in">
+        {/* Barra rápida táctil de pestañas en Mobile/Tablet (< lg) para acceso directo con 1 toque */}
+        {navItems.length > 1 && (
+          <nav
+            aria-label="Navegación rápida móvil"
+            className="lg:hidden flex items-center gap-1.5 overflow-x-auto py-2 no-scrollbar border-t border-[#1e3659]/60"
+          >
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    onTabChange(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all ${
+                    isActive
+                      ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
+                      : 'bg-[#071326] text-slate-300 border border-[#1e3659] hover:text-white'
+                  }`}
+                >
+                  <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <span>{item.label}</span>
+                  {item.id === 'ai' && (
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        )}
+
+        {/* Menu móvil desplegable en grilla */}
+        {mobileMenuOpen && navItems.length > 1 && (
+          <div className="lg:hidden py-3 border-t border-[#1e3659] grid grid-cols-2 gap-2 animate-fade-in">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -449,11 +487,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                     setMobileMenuOpen(false);
                   }}
                   className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold ${
-                    isActive ? 'bg-brand-600 text-white' : 'bg-slate-800/60 text-slate-300'
+                    isActive ? 'bg-brand-600 text-white shadow-md' : 'bg-[#071326] border border-[#1e3659] text-slate-300'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{item.label}</span>
                 </button>
               );
             })}
@@ -463,4 +501,3 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
     </header>
   );
 };
-

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -173,13 +173,15 @@ export const DashboardView: React.FC = () => {
   const selHotel = hotelFilter === '' ? undefined : hoteles.find((h) => h.id === hotelFilter);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Top Filter Bar */}
-      <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-brand-400" />
-          <span className="text-sm font-semibold text-slate-200">Período de Análisis:</span>
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+      <div className="bg-slate-900/60 p-3.5 sm:p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row flex-wrap md:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-brand-400 shrink-0" />
+            <span className="text-xs sm:text-sm font-semibold text-slate-200">Período de Análisis:</span>
+          </div>
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto no-scrollbar max-w-full">
             {(
               [
                 { id: 'today', label: 'Hoy' },
@@ -192,7 +194,7 @@ export const DashboardView: React.FC = () => {
               <button
                 key={opt.id}
                 onClick={() => setPeriod(opt.id)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                className={`px-2.5 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs font-medium transition-all shrink-0 ${
                   period === opt.id
                     ? 'bg-brand-600 text-white shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -205,29 +207,29 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {period === 'custom' && (
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs w-full sm:w-auto">
             <input
               type="date"
               value={customFrom}
               onChange={(e) => setCustomFrom(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+              className="flex-1 sm:flex-initial bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
             />
             <span className="text-slate-500">hasta</span>
             <input
               type="date"
               value={customTo}
               onChange={(e) => setCustomTo(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+              className="flex-1 sm:flex-initial bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
             />
           </div>
         )}
 
         {/* Filtros por hotel y prenda */}
-        <div className="flex items-center gap-2 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:flex items-center gap-2 text-xs w-full md:w-auto">
           <select
             value={hotelFilter}
             onChange={(e) => setHotelFilter(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 sm:py-1.5 text-slate-200 focus:outline-none focus:border-brand-500 w-full md:w-auto"
           >
             <option value="">Todos los hoteles</option>
             {hoteles.map((h) => (
@@ -237,7 +239,7 @@ export const DashboardView: React.FC = () => {
           <select
             value={itemFilter}
             onChange={(e) => setItemFilter(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500"
+            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 sm:py-1.5 text-slate-200 focus:outline-none focus:border-brand-500 w-full md:w-auto"
           >
             <option value="">Todas las prendas</option>
             {items.map((i) => (
@@ -246,48 +248,50 @@ export const DashboardView: React.FC = () => {
           </select>
         </div>
 
-        <button
-          onClick={loadData}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition-colors ml-auto"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin text-brand-400' : ''}`} />
-          <span>Actualizar</span>
-        </button>
+        <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto">
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="flex-1 md:flex-initial justify-center flex items-center gap-1.5 px-3 py-2 sm:py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition-colors"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin text-brand-400' : ''}`} />
+            <span>Actualizar</span>
+          </button>
 
-        <button
-          onClick={() =>
-            api.exportarCSV({
-              fecha_desde: dateFilter.from,
-              fecha_hasta: dateFilter.to,
-              item_id: itemFilter === '' ? undefined : itemFilter,
-            })
-          }
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-medium transition-colors"
-        >
-          <Download className="h-3.5 w-3.5" />
-          <span>Exportar CSV</span>
-        </button>
+          <button
+            onClick={() =>
+              api.exportarCSV({
+                fecha_desde: dateFilter.from,
+                fecha_hasta: dateFilter.to,
+                item_id: itemFilter === '' ? undefined : itemFilter,
+              })
+            }
+            className="flex-1 md:flex-initial justify-center flex items-center gap-1.5 px-3 py-2 sm:py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-medium transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Exportar CSV</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Procesadas */}
-        <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Procesado</span>
-            <div className="p-2.5 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
-              <Package className="h-5 w-5" />
+        <div className="bg-slate-900/80 p-3.5 sm:p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Procesado</span>
+            <div className="p-2 sm:p-2.5 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
+              <Package className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
-          <div className="text-3xl font-extrabold text-white tracking-tight">
+          <div className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
             {loading ? '...' : formatNumber(resumen?.cantidad_total || 0)}
           </div>
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
             {ctx && <DeltaBadge delta={ctx.cantidad_total} label="vs período anterior" />}
             <span className="text-[10px] text-slate-500">vs anterior</span>
           </div>
-          <div className="mt-2 text-xs text-slate-400 flex items-center gap-1">
+          <div className="mt-2 text-[11px] sm:text-xs text-slate-400 flex items-center gap-1 flex-wrap">
             <span className="text-slate-300 font-medium">{formatDateDisplay(dateFilter.from)}</span>
             <span>al</span>
             <span className="text-slate-300 font-medium">{formatDateDisplay(dateFilter.to)}</span>
@@ -295,44 +299,44 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Facturables */}
-        <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Prendas Facturables</span>
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <TrendingUp className="h-5 w-5" />
+        <div className="bg-slate-900/80 p-3.5 sm:p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <span className="text-[10px] sm:text-xs font-semibold text-emerald-400 uppercase tracking-wider">Facturables</span>
+            <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
-          <div className="text-3xl font-extrabold text-white tracking-tight">
+          <div className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
             {loading ? '...' : formatNumber(resumen?.cantidad_facturable || 0)}
           </div>
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
             {ctx && <DeltaBadge delta={ctx.cantidad_facturable} label="vs período anterior" />}
             <span className="text-[10px] text-slate-500">vs anterior</span>
           </div>
-          <div className="mt-2 text-xs text-emerald-400 font-medium flex items-center gap-1">
+          <div className="mt-2 text-[11px] sm:text-xs text-emerald-400 font-medium flex items-center gap-1 flex-wrap">
             <span>{resumen?.cantidad_total ? formatPercent(resumen.cantidad_facturable / resumen.cantidad_total) : '0%'}</span>
-            <span className="text-slate-400 font-normal">del total de prendas</span>
+            <span className="text-slate-400 font-normal">del total</span>
           </div>
         </div>
 
         {/* Relavado */}
-        <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Prendas de Relavado</span>
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <RotateCcw className="h-5 w-5" />
+        <div className="bg-slate-900/80 p-3.5 sm:p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <span className="text-[10px] sm:text-xs font-semibold text-amber-400 uppercase tracking-wider">Relavado</span>
+            <div className="p-2 sm:p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
-          <div className="text-3xl font-extrabold text-white tracking-tight">
+          <div className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
             {loading ? '...' : formatNumber(resumen?.cantidad_relavado || 0)}
           </div>
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
             {ctx && <DeltaBadge delta={ctx.relavado} invert label="vs período anterior" />}
             <span className="text-[10px] text-slate-500">vs anterior</span>
           </div>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
             <span
-              className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+              className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-semibold ${
                 relavadoRatio > 0.05
                   ? 'bg-rose-950 text-rose-300 border border-rose-800'
                   : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
@@ -340,27 +344,27 @@ export const DashboardView: React.FC = () => {
             >
               {formatPercent(relavadoRatio)}
             </span>
-            <span className="text-xs text-slate-400">tasa de reproceso</span>
+            <span className="text-[11px] sm:text-xs text-slate-400">reproceso</span>
           </div>
         </div>
 
         {/* Facturación Estimada */}
-        <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Facturación Estimada</span>
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-              <DollarSign className="h-5 w-5" />
+        <div className="bg-slate-900/80 p-3.5 sm:p-5 rounded-2xl border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition-all">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <span className="text-[10px] sm:text-xs font-semibold text-cyan-400 uppercase tracking-wider">Facturación Est.</span>
+            <div className="p-2 sm:p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
-          <div className="text-3xl font-extrabold text-white tracking-tight">
+          <div className="text-xl sm:text-3xl font-extrabold text-white tracking-tight truncate">
             {loading ? '...' : formatCurrency(resumen?.facturacion_estimada || 0)}
           </div>
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
             {ctx && <DeltaBadge delta={ctx.facturacion} label="vs período anterior" />}
             <span className="text-[10px] text-slate-500">vs anterior</span>
           </div>
-          <div className="mt-2 text-xs text-slate-400">
-            Calculado con precios unitarios activos
+          <div className="mt-2 text-[11px] sm:text-xs text-slate-400">
+            Precios unitarios activos
           </div>
         </div>
       </div>
@@ -368,18 +372,18 @@ export const DashboardView: React.FC = () => {
       <AlertasPanel alertas={alertas} loading={loading} />
 
       {/* Tendencia + Distribución */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Tendencia Line Chart */}
-        <div className="lg:col-span-2 bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
-          <div className="flex items-center justify-between mb-6">
+        <div className="lg:col-span-2 bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div className="flex items-center gap-2">
               <LineChartIcon className="h-5 w-5 text-brand-400" />
-              <h3 className="font-bold text-slate-100">Tendencia de Volumen</h3>
+              <h3 className="font-bold text-slate-100 text-sm sm:text-base">Tendencia de Volumen</h3>
             </div>
             <span className="text-xs text-slate-400">Agrupado por día</span>
           </div>
 
-          <div className="h-72 w-full">
+          <div className="h-64 sm:h-72 w-full">
             {loading ? (
               <div className="h-full flex items-center justify-center text-slate-500 text-sm">Cargando gráfico...</div>
             ) : tendencia.length === 0 ? (
@@ -388,7 +392,7 @@ export const DashboardView: React.FC = () => {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={tendencia} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <LineChart data={tendencia} margin={{ top: 5, right: 15, left: -10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                   <XAxis dataKey="fecha" stroke="#64748b" fontSize={11} />
                   <YAxis stroke="#64748b" fontSize={11} />
@@ -404,15 +408,15 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Item Distribution Donut */}
-        <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div className="flex items-center gap-2">
               <PieChartIcon className="h-5 w-5 text-cyan-400" />
-              <h3 className="font-bold text-slate-100">Distribución por Prenda</h3>
+              <h3 className="font-bold text-slate-100 text-sm sm:text-base">Distribución por Prenda</h3>
             </div>
           </div>
 
-          <div className="h-72 w-full">
+          <div className="h-64 sm:h-72 w-full">
             {loading ? (
               <div className="h-full flex items-center justify-center text-slate-500 text-sm">Cargando gráfico...</div>
             ) : itemDistribution.length === 0 ? (
@@ -447,18 +451,18 @@ export const DashboardView: React.FC = () => {
       </div>
 
       {/* Ranking Bar Chart */}
-      <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-brand-400" />
-            <h3 className="font-bold text-slate-100">Top Hoteles por Volumen</h3>
+            <h3 className="font-bold text-slate-100 text-sm sm:text-base">Top Hoteles por Volumen</h3>
           </div>
           <span className="text-xs text-slate-400">
             {selHotel ? `Filtrado: ${selHotel.nombre}` : 'Prendas facturables'}
           </span>
         </div>
 
-        <div className="h-72 w-full">
+        <div className="h-64 sm:h-72 w-full">
           {loading ? (
             <div className="h-full flex items-center justify-center text-slate-500 text-sm">Cargando gráfico...</div>
           ) : ranking.length === 0 ? (
@@ -467,9 +471,9 @@ export const DashboardView: React.FC = () => {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={ranking} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                <XAxis type="number" stroke="#64748b" fontSize={12} />
-                <YAxis type="category" dataKey="hotel" stroke="#94a3b8" fontSize={12} width={110} />
+              <BarChart data={ranking} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <XAxis type="number" stroke="#64748b" fontSize={11} />
+                <YAxis type="category" dataKey="hotel" stroke="#94a3b8" fontSize={11} width={100} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem' }}
                   formatter={(val: number) => [`${formatNumber(val)} prendas`, 'Volumen']}
@@ -482,20 +486,20 @@ export const DashboardView: React.FC = () => {
       </div>
 
       {/* Ranking Detailed Table */}
-      <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+      <div className="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
           <div className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-brand-400" />
-            <h3 className="font-bold text-slate-100">Rendimiento por Cliente</h3>
+            <h3 className="font-bold text-slate-100 text-sm sm:text-base">Rendimiento por Cliente</h3>
           </div>
-          <div className="relative">
+          <div className="relative w-full sm:w-64">
             <Search className="h-4 w-4 absolute left-3 top-2.5 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar hotel..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 w-64"
+              className="bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 w-full"
             />
           </div>
         </div>
@@ -504,10 +508,10 @@ export const DashboardView: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-950/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
               <tr>
-                <th className="px-4 py-3">Posición</th>
-                <th className="px-4 py-3">Hotel / Cliente</th>
-                <th className="px-4 py-3 text-right">Prendas Procesadas</th>
-                <th className="px-4 py-3 text-right">% Cuota Período</th>
+                <th className="px-3 sm:px-4 py-3">Pos.</th>
+                <th className="px-3 sm:px-4 py-3">Hotel / Cliente</th>
+                <th className="px-3 sm:px-4 py-3 text-right">Prendas</th>
+                <th className="px-3 sm:px-4 py-3 text-right">% Cuota</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -523,10 +527,10 @@ export const DashboardView: React.FC = () => {
                   const percent = base ? (item.cantidad_total / base) * 100 : 0;
                   return (
                     <tr key={item.hotel_id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="px-4 py-3 font-semibold text-slate-400">#{idx + 1}</td>
-                      <td className="px-4 py-3 font-bold text-slate-200">{item.hotel}</td>
-                      <td className="px-4 py-3 text-right font-medium text-white">{formatNumber(item.cantidad_total)}</td>
-                      <td className="px-4 py-3 text-right text-brand-400 font-semibold">{percent.toFixed(1)}%</td>
+                      <td className="px-3 sm:px-4 py-3 font-semibold text-slate-400">#{idx + 1}</td>
+                      <td className="px-3 sm:px-4 py-3 font-bold text-slate-200">{item.hotel}</td>
+                      <td className="px-3 sm:px-4 py-3 text-right font-medium text-white">{formatNumber(item.cantidad_total)}</td>
+                      <td className="px-3 sm:px-4 py-3 text-right text-brand-400 font-semibold">{percent.toFixed(1)}%</td>
                     </tr>
                   );
                 })

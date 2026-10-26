@@ -17,17 +17,17 @@ export const RemitoPrintableModal: React.FC<RemitoPrintableModalProps> = ({
   const totalDeclaradas = envio.detalles?.reduce((acc, d) => acc + d.cantidad_declarada, 0) || 0;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#0b1a33] border border-[#1e3659] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4 p-4 sm:p-6 animate-fade-in">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-[#0b1a33] border border-[#1e3659] rounded-2xl max-w-3xl w-full max-h-[92dvh] overflow-y-auto shadow-2xl space-y-4 p-3.5 sm:p-6 animate-fade-in">
         {/* Barra de control (oculta en impresion) */}
-        <div className="no-print flex items-center justify-between pb-3 border-b border-[#1e3659]">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm text-white">Certificado Oficial de Remito y Entrega</span>
+        <div className="no-print flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#1e3659]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-xs sm:text-sm text-white">Certificado Oficial de Remito y Entrega</span>
             <span className="font-mono text-xs bg-brand-950 text-brand-300 border border-brand-800 px-2 py-0.5 rounded">
               {envio.codigo_qr}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto">
             <button
               onClick={() => window.print()}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-brand-600/30"
@@ -45,9 +45,9 @@ export const RemitoPrintableModal: React.FC<RemitoPrintableModalProps> = ({
         </div>
 
         {/* Hoja de Impresión Formal (A4) */}
-        <div className="printable-area bg-white text-slate-900 p-6 sm:p-8 rounded-xl border border-slate-200 shadow font-sans text-xs">
+        <div className="printable-area bg-white text-slate-900 p-4 sm:p-8 rounded-xl border border-slate-200 shadow font-sans text-xs">
           {/* Cabecera */}
-          <div className="border-b-2 border-slate-900 pb-4 mb-4 flex justify-between items-start gap-4">
+          <div className="border-b-2 border-slate-900 pb-4 mb-4 flex flex-wrap justify-between items-start gap-4">
             <div className="flex items-start gap-3">
               <img
                 src="/logo-triton.jpg"
@@ -165,7 +165,7 @@ export const RemitoPrintableModal: React.FC<RemitoPrintableModalProps> = ({
           </div>
 
           {/* Firmas de Control */}
-          <div className="mt-8 pt-6 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-[11px]">
+          <div className="mt-8 pt-6 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 sm:gap-8 text-center text-[11px]">
             <div>
               <div className="border-b border-slate-400 w-40 mx-auto mb-1.5"></div>
               <span className="font-bold text-slate-800 block">Chofer / Entrega TRITÓN Lavadero Industrial</span>

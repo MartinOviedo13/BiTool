@@ -277,7 +277,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
                       </button>
 
                       {isExpanded && (
-                        <div className="mt-2 grid grid-cols-2 gap-1.5 bg-[#071326] p-2.5 rounded-xl border border-[#1e3659] text-[11px]">
+                        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5 bg-[#071326] p-2.5 rounded-xl border border-[#1e3659] text-[11px]">
                           {r.detalles.map((d, idx) => (
                             <div key={idx} className="flex justify-between text-slate-300">
                               <span className="truncate pr-2">{d.item_nombre}</span>
@@ -383,7 +383,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
       {/* Modal de Confirmación de Retiro */}
       {modalRetiro && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/75 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0b1a33] border border-[#1e3659] rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-[#0b1a33] border border-[#1e3659] rounded-2xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-[#1e3659]">
               <div className="flex items-center gap-2">
                 <Truck className="w-5 h-5 text-emerald-400" />
@@ -392,7 +392,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
               <button
                 type="button"
                 onClick={() => setModalRetiro(null)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white text-lg px-2"
               >
                 &times;
               </button>
@@ -417,7 +417,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
                 value={observacion}
                 onChange={(e) => setObservacion(e.target.value)}
                 placeholder="Ej: 3 bolsas cerradas / Precinto #12"
-                className="w-full px-3 py-2 bg-[#071326] border border-[#1e3659] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                className="w-full px-3 py-2.5 bg-[#071326] border border-[#1e3659] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
             </div>
 
@@ -425,7 +425,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
               <button
                 type="button"
                 onClick={() => setModalRetiro(null)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800/60"
+                className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800/60"
               >
                 Cancelar
               </button>
@@ -433,7 +433,7 @@ export const RetirosTab: React.FC<RetirosViewProps> = ({ fechaFiltro, onFechaCha
                 type="button"
                 disabled={confirmando}
                 onClick={handleConfirmar}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 shadow-md shadow-emerald-600/30 flex items-center gap-1.5"
+                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 shadow-md shadow-emerald-600/30 flex items-center gap-1.5"
               >
                 <Check className="w-4 h-4" />
                 <span>{confirmando ? 'Registrando...' : 'Confirmar Retiro'}</span>

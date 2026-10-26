@@ -14,6 +14,12 @@ import {
   Unlock,
   X,
   ClipboardCheck,
+  Plus,
+  Minus,
+  ChevronDown,
+  ChevronUp,
+  Building2,
+  Shirt,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import {
@@ -37,6 +43,12 @@ export const MatrixEntryView: React.FC = () => {
   const [validatingHotelId, setValidatingHotelId] = useState<number | null>(null);
   const [modalDespacho, setModalDespacho] = useState<DespachoConciliacion | null>(null);
   const [reopenedHotels, setReopenedHotels] = useState<Set<number>>(new Set());
+
+  // Estados mobile-first para navegación y carga táctil por hotel e ítem
+  const [expandedMobileHotels, setExpandedMobileHotels] = useState<Record<number, boolean>>({});
+  const [activeMobileHotelId, setActiveMobileHotelId] = useState<number | 'all'>('all');
+  const [itemSearchMobile, setItemSearchMobile] = useState<string>('');
+  const [onlyLoadedItemsMobile, setOnlyLoadedItemsMobile] = useState<boolean>(false);
 
   // Matrix data structure: grid[hotelId][itemId] = quantity
   const [grid, setGrid] = useState<Record<number, Record<number, number>>>({});
@@ -76,6 +88,18 @@ export const MatrixEntryView: React.FC = () => {
       const activeHotels = hotelesData.filter((h) => h.activo);
       setHoteles(activeHotels);
       setItems(itemsData);
+
+      // En mobile: abrir el primer hotel por defecto (y aquellos con carga) para mostrar los ítems de inmediato
+      if (activeHotels.length > 0) {
+        setExpandedMobileHotels((prev) => {
+          if (Object.keys(prev).length > 0) return prev;
+          const initialExpanded: Record<number, boolean> = { [activeHotels[0].id]: true };
+          registrosData.forEach((r) => {
+            if (r.cantidad > 0) initialExpanded[r.hotel_id] = true;
+          });
+          return initialExpanded;
+        });
+      }
 
       const dMap: Record<number, DespachoConciliacion> = {};
       despachosData.forEach((d) => {
@@ -266,6 +290,13 @@ export const MatrixEntryView: React.FC = () => {
     cellTimersRef.current.set(requestKey, timer);
   };
 
+  // Ajuste rápido por botones táctiles (+/-) en vista mobile
+  const handleIncrementCell = (hotelId: number, itemId: number, delta: number) => {
+    const current = gridRef.current[hotelId]?.[itemId] ?? grid[hotelId]?.[itemId] ?? 0;
+    const nextQty = Math.max(0, current + delta);
+    handleCellChange(hotelId, itemId, String(nextQty));
+  };
+
   // Guardado automático inmediato por celda al desenfocar o pulsar Enter/Tab
   const handleCellBlur = async (hotelId: number, itemId: number) => {
     const requestKey = `${hotelId}-${itemId}-${selectedDate}`;
@@ -429,24 +460,77 @@ export const MatrixEntryView: React.FC = () => {
     return hoteles.filter((h) => h.nombre.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [hoteles, searchTerm]);
 
+  const mobileVisibleHoteles = useMemo(() => {
+    if (activeMobileHotelId === 'all') return filteredHoteles;
+    return filteredHoteles.filter((h) => h.id === activeMobileHotelId);
+  }, [filteredHoteles, activeMobileHotelId]);
+
+  const toggleMobileHotel = (hotelId: number) => {
+    setExpandedMobileHotels((prev) => ({
+      ...prev,
+      [hotelId]: !prev[hotelId],
+    }));
+  };
+
+  const expandAllMobileHotels = () => {
+    const next: Record<number, boolean> = {};
+    filteredHoteles.forEach((h) => {
+      next[h.id] = true;
+    });
+    setExpandedMobileHotels(next);
+  };
+
+  const collapseAllMobileHotels = () => {
+    setExpandedMobileHotels({});
+  };
+
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 sm:space-y-5 animate-fade-in pb-20 md:pb-0">
       {/* Top Header & Controles de Operación */}
-      <div className="bg-[#0b1a33]/90 p-5 rounded-2xl border border-[#1e3659] shadow-xl shadow-black/20 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-[#0b1a33]/90 p-4 sm:p-5 rounded-2xl border border-[#1e3659] shadow-xl shadow-black/20 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <Layers className="h-6 w-6 text-brand-400" />
-            <h2 className="text-xl font-black text-white tracking-tight">Carga Diaria de Planilla</h2>
+          <div className="flex items-center justify-between sm:justify-start gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <Layers className="h-5 w-5 sm:h-6 sm:w-6 text-brand-400 shrink-0" />
+              <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">Carga Diaria de Planilla</h2>
+            </div>
+            {/* Estado de Auto-Save en Mobile visible arriba a la derecha */}
+            <div className="sm:hidden">
+              {autoSaveStatus === 'saving' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-brand-950 text-brand-300 border border-brand-700/60 text-[10px] font-semibold animate-pulse">
+                  <RefreshCw className="w-3 h-3 animate-spin text-brand-400" />
+                  <span>Guardando</span>
+                </span>
+              )}
+              {autoSaveStatus === 'saved' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  <span>Guardado</span>
+                </span>
+              )}
+              {autoSaveStatus === 'error' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-950/80 text-rose-300 border border-rose-700/60 text-[10px] font-bold">
+                  <AlertCircle className="w-3 h-3 text-rose-400" />
+                  <span>Error</span>
+                </span>
+              )}
+              {autoSaveStatus === 'idle' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#071326] text-slate-400 border border-[#1e3659] text-[10px] font-medium">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                  <span>En vivo</span>
+                </span>
+              )}
+            </div>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Matriz operativa digital: Hoteles en filas $\times$ Prendas en columnas &bull; Conciliación directa con Repartidor
+            Matriz operativa digital: Hoteles $\times$ Prendas &bull; Conciliación directa con Repartidor
           </p>
         </div>
 
         {/* Indicador de Auto-Save & Selector de Fecha */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Indicador de Estado del Guardado Automático */}
-          <div className="mr-1">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3">
+          {/* Indicador de Estado del Guardado Automático (Desktop/Tablet) */}
+          <div className="hidden sm:block mr-1">
             {autoSaveStatus === 'saving' && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-brand-950 text-brand-300 border border-brand-700/60 text-xs font-semibold animate-pulse shadow-sm">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand-400" />
@@ -473,35 +557,40 @@ export const MatrixEntryView: React.FC = () => {
             )}
           </div>
 
-          {/* Selector de Fecha */}
-          <div className="flex items-center gap-2 bg-[#071326] px-3 py-1.5 rounded-xl border border-[#1e3659]">
-            <Calendar className="h-4 w-4 text-brand-400" />
-            <span className="text-xs font-bold text-slate-300">Fecha:</span>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent text-xs text-white focus:outline-none font-bold cursor-pointer"
-            />
-          </div>
+          <div className="grid grid-cols-2 sm:flex items-center gap-2">
+            {/* Selector de Fecha */}
+            <div className="flex items-center gap-2 bg-[#071326] px-3 py-2 sm:py-1.5 rounded-xl border border-[#1e3659]">
+              <Calendar className="h-4 w-4 text-brand-400 shrink-0" />
+              <span className="text-xs font-bold text-slate-300 hidden xs:inline">Fecha:</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent text-xs text-white focus:outline-none font-bold cursor-pointer w-full"
+              />
+            </div>
 
-          {/* Buscador de Hotel */}
-          <div className="relative">
-            <Search className="h-4 w-4 absolute left-3 top-2.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Filtrar hotel..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-[#071326] border border-[#1e3659] rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-400 w-44"
-            />
+            {/* Buscador de Hotel */}
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Filtrar hotel..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setActiveMobileHotelId('all');
+                }}
+                className="bg-[#071326] border border-[#1e3659] rounded-xl pl-9 pr-3 py-2 sm:py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-400 w-full sm:w-44"
+              />
+            </div>
           </div>
 
           {/* Botón manual de Sincronización Total (Fallback) */}
           <button
             onClick={handleSaveBulk}
             disabled={savingBulk || loading}
-            className="flex items-center gap-2 px-3.5 py-1.5 bg-[#132747] hover:bg-[#1e3659] border border-[#1e3659] text-slate-200 hover:text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-3.5 py-2 sm:py-1.5 bg-[#132747] hover:bg-[#1e3659] border border-[#1e3659] text-slate-200 hover:text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
             title="Consolidar y verificar toda la planilla"
           >
             <Save className={`h-3.5 w-3.5 ${savingBulk ? 'animate-spin' : ''}`} />
@@ -528,9 +617,440 @@ export const MatrixEntryView: React.FC = () => {
         </div>
       )}
 
-      {/* Tabla Matriz */}
-      <div className="bg-[#0b1a33]/90 rounded-2xl border border-[#1e3659] overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto max-h-[620px] relative">
+      {/* ===================================================================== */}
+      {/* VISTA MOBILE FIRST (< md): TARJETAS INTERACTIVAS POR HOTEL E ÍTEM     */}
+      {/* ===================================================================== */}
+      <div className="md:hidden space-y-3.5">
+        {/* Barra de Filtros Rápidos de Prendas y Hoteles para Mobile */}
+        <div className="bg-[#0b1a33]/90 p-3.5 rounded-2xl border border-[#1e3659] shadow-lg space-y-3">
+          {/* Buscador de Prenda + Filtro Solo Cargadas */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Shirt className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar ítem / prenda (ej: Sábana, Toalla)..."
+                value={itemSearchMobile}
+                onChange={(e) => setItemSearchMobile(e.target.value)}
+                className="w-full bg-[#071326] border border-[#1e3659] rounded-xl pl-8 pr-7 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-400"
+              />
+              {itemSearchMobile && (
+                <button
+                  type="button"
+                  onClick={() => setItemSearchMobile('')}
+                  className="absolute right-2.5 top-2 text-slate-400 hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setOnlyLoadedItemsMobile((v) => !v)}
+              className={`px-2.5 py-2 rounded-xl text-[11px] font-bold border shrink-0 transition-all ${
+                onlyLoadedItemsMobile
+                  ? 'bg-brand-600 text-white border-brand-500'
+                  : 'bg-[#071326] text-slate-300 border-[#1e3659]'
+              }`}
+            >
+              {onlyLoadedItemsMobile ? 'Cargados' : `Todos (${items.length})`}
+            </button>
+          </div>
+
+          {/* Selector horizontal táctil de Hoteles */}
+          {filteredHoteles.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+              <button
+                type="button"
+                onClick={() => setActiveMobileHotelId('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 border transition-all ${
+                  activeMobileHotelId === 'all'
+                    ? 'bg-brand-600 text-white border-brand-500 shadow-sm'
+                    : 'bg-[#071326] text-slate-300 border-[#1e3659]'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Todos ({filteredHoteles.length})</span>
+              </button>
+
+              {filteredHoteles.map((h) => {
+                const hTotal = getRowTotal(h.id);
+                const isSelected = activeMobileHotelId === h.id;
+                return (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveMobileHotelId(h.id);
+                      setExpandedMobileHotels((prev) => ({ ...prev, [h.id]: true }));
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 border transition-all ${
+                      isSelected
+                        ? 'bg-brand-600 text-white border-brand-500 shadow-sm'
+                        : hTotal > 0
+                        ? 'bg-brand-950/60 text-cyan-300 border-brand-700/60'
+                        : 'bg-[#071326] text-slate-300 border-[#1e3659]'
+                    }`}
+                  >
+                    <span className="truncate max-w-[130px]">{h.nombre}</span>
+                    {hTotal > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-cyan-500/20 text-cyan-300 font-black">
+                        {hTotal}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Controles rápidos Expandir / Colapsar hoteles */}
+          <div className="flex items-center justify-between pt-1 border-t border-[#1e3659]/60 text-[11px]">
+            <span className="text-slate-400 font-medium">
+              Tocá un hotel para cargar sus <strong className="text-white">{items.length} ítems</strong>
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={expandAllMobileHotels}
+                className="text-brand-400 font-bold hover:underline"
+              >
+                Abrir todos
+              </button>
+              <span className="text-slate-600">&bull;</span>
+              <button
+                type="button"
+                onClick={collapseAllMobileHotels}
+                className="text-slate-400 font-semibold hover:text-white"
+              >
+                Cerrar todos
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Listado de Tarjetas de Hoteles con sus Ítems para Cargar */}
+        {loading ? (
+          <div className="bg-[#0b1a33]/90 rounded-2xl border border-[#1e3659] p-12 text-center text-slate-400">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-500 border-t-transparent mb-3" />
+            <p className="text-xs font-semibold">Cargando ítems y hoteles en tiempo real...</p>
+          </div>
+        ) : mobileVisibleHoteles.length === 0 ? (
+          <div className="bg-[#0b1a33]/90 rounded-2xl border border-[#1e3659] p-8 text-center text-slate-400 text-xs">
+            No se encontraron hoteles con ese filtro.
+          </div>
+        ) : (
+          mobileVisibleHoteles.map((hotel) => {
+            const rowTotal = getRowTotal(hotel.id);
+            const despacho = despachosByHotel[hotel.id];
+            const isEntregado = despacho?.estado === 'entregado';
+            const isLocked = isEntregado && !reopenedHotels.has(hotel.id);
+            const isValidatingThis = validatingHotelId === hotel.id;
+            const isExpanded =
+              activeMobileHotelId === hotel.id || !!expandedMobileHotels[hotel.id];
+
+            const visibleItemsForHotel = items.filter((item) => {
+              const matchesSearch = itemSearchMobile
+                ? item.nombre.toLowerCase().includes(itemSearchMobile.toLowerCase())
+                : true;
+              if (!matchesSearch) return false;
+              if (onlyLoadedItemsMobile) {
+                const q = grid[hotel.id]?.[item.id] ?? 0;
+                return q > 0;
+              }
+              return true;
+            });
+
+            return (
+              <div
+                key={hotel.id}
+                className={`rounded-2xl border transition-all overflow-hidden shadow-xl ${
+                  isExpanded
+                    ? 'bg-[#0b1a33] border-brand-500/60'
+                    : 'bg-[#0b1a33]/90 border-[#1e3659]'
+                }`}
+              >
+                {/* Cabecera del Hotel en Mobile */}
+                <div
+                  onClick={() => toggleMobileHotel(hotel.id)}
+                  className="p-3.5 bg-[#071326]/80 flex items-center justify-between gap-2 cursor-pointer select-none"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-black text-white truncate">{hotel.nombre}</h3>
+                      {isLocked && (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-1.5 py-0.5 rounded font-bold">
+                          <Lock className="w-2.5 h-2.5" /> Entregado
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-xs font-extrabold text-cyan-300">
+                        Total: {formatNumber(rowTotal)} u.
+                      </span>
+                      <span className="text-slate-600">&bull;</span>
+                      {!despacho || despacho.estado === 'pendiente' ? (
+                        <span className="text-[10px] font-bold text-slate-400">
+                          Sin validar
+                        </span>
+                      ) : despacho.estado === 'validado_ok' ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+                          <CheckCircle2 className="w-3 h-3" /> Validado OK
+                        </span>
+                      ) : despacho.estado === 'validado_con_diferencia' ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400">
+                          <AlertTriangle className="w-3 h-3" /> Dif. ({despacho.diferencia_prendas > 0 ? `+${despacho.diferencia_prendas}` : despacho.diferencia_prendas})
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-400">
+                          <Truck className="w-3 h-3" /> Entregado
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-2.5 py-1.5 rounded-xl bg-[#132747] border border-[#1e3659] text-[11px] font-bold text-brand-300 flex items-center gap-1">
+                      <span>{isExpanded ? 'Ocultar' : 'Cargar ítems'}</span>
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cuerpo Desplegado: Todos los Ítems para Cargar en este Hotel */}
+                {isExpanded && (
+                  <div className="p-3 space-y-2.5 border-t border-[#1e3659]">
+                    {visibleItemsForHotel.length === 0 ? (
+                      <div className="py-6 text-center text-xs text-slate-400">
+                        No hay ítems que coincidan con el filtro actual.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {visibleItemsForHotel.map((item) => {
+                          const cellKey = `${hotel.id}-${item.id}`;
+                          const qty = grid[hotel.id]?.[item.id] ?? 0;
+                          const isSavingThis = savingCells.has(cellKey);
+                          const isSavedThis = savedCells.has(cellKey);
+
+                          return (
+                            <div
+                              key={item.id}
+                              className={`p-3 rounded-xl border transition-all ${
+                                isSavedThis
+                                  ? 'bg-emerald-950/40 border-emerald-500/70'
+                                  : isSavingThis
+                                  ? 'bg-brand-950/60 border-brand-400 animate-pulse'
+                                  : qty > 0
+                                  ? 'bg-brand-950/40 border-brand-600/60'
+                                  : 'bg-[#071326]/90 border-[#1e3659]'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span
+                                    className={`font-bold text-xs sm:text-sm truncate ${
+                                      !item.se_factura ? 'text-amber-300' : 'text-white'
+                                    }`}
+                                  >
+                                    {item.nombre}
+                                  </span>
+                                  {!item.se_factura && (
+                                    <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800/60 shrink-0">
+                                      relavado
+                                    </span>
+                                  )}
+                                </div>
+
+                                {isSavingThis ? (
+                                  <span className="text-[10px] text-brand-300 font-semibold">
+                                    Guardando...
+                                  </span>
+                                ) : isSavedThis ? (
+                                  <span className="text-[10px] text-emerald-400 font-bold">
+                                    ✓ Guardado
+                                  </span>
+                                ) : qty > 0 ? (
+                                  <span className="text-[11px] font-black text-cyan-300 bg-cyan-950/80 border border-cyan-800/50 px-2 py-0.5 rounded-full">
+                                    {qty} u.
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              {/* Controles de carga táctil: [-], Input numérico, [+] */}
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled={isLocked || qty <= 0}
+                                  onClick={() => handleIncrementCell(hotel.id, item.id, -1)}
+                                  className="w-11 h-10 rounded-xl bg-[#132747] active:bg-[#1e3659] disabled:opacity-30 border border-[#1e3659] text-white flex items-center justify-center touch-manipulation shrink-0"
+                                  aria-label={`Restar ${item.nombre}`}
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </button>
+
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min="0"
+                                  disabled={isLocked}
+                                  value={qty === 0 ? '' : qty}
+                                  placeholder="0"
+                                  onChange={(e) =>
+                                    handleCellChange(hotel.id, item.id, e.target.value)
+                                  }
+                                  onBlur={() => void handleCellBlur(hotel.id, item.id)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      (e.target as HTMLElement).blur();
+                                    }
+                                  }}
+                                  className={`flex-1 h-10 text-center rounded-xl border text-sm font-black transition-all focus:outline-none disabled:opacity-50 ${
+                                    qty > 0
+                                      ? 'bg-brand-950 border-brand-500 text-white'
+                                      : 'bg-[#0b1a33] border-[#1e3659] text-slate-200 focus:border-brand-400'
+                                  }`}
+                                />
+
+                                <button
+                                  type="button"
+                                  disabled={isLocked}
+                                  onClick={() => handleIncrementCell(hotel.id, item.id, 1)}
+                                  className="w-11 h-10 rounded-xl bg-brand-600 hover:bg-brand-500 active:bg-brand-700 disabled:opacity-30 text-white flex items-center justify-center shadow-sm touch-manipulation shrink-0"
+                                  aria-label={`Sumar ${item.nombre}`}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              </div>
+
+                              {/* Botones rápidos de incremento industrial (+5, +10, +25) */}
+                              {!isLocked && (
+                                <div className="grid grid-cols-3 gap-1.5 mt-2">
+                                  {[5, 10, 25].map((step) => (
+                                    <button
+                                      key={step}
+                                      type="button"
+                                      onClick={() =>
+                                        handleIncrementCell(hotel.id, item.id, step)
+                                      }
+                                      className="py-1 rounded-lg bg-[#132747]/80 active:bg-[#1e3659] border border-[#1e3659] text-[11px] font-bold text-slate-300 touch-manipulation"
+                                    >
+                                      +{step}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Pie de Tarjeta del Hotel: Resumen y Conciliación con Remito */}
+                    <div className="pt-3 mt-2 border-t border-[#1e3659] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-300">
+                          Total cargado en {hotel.nombre}:
+                        </span>
+                        <span className="text-sm font-black text-cyan-300">
+                          {formatNumber(rowTotal)} prendas
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {despacho && despacho.estado !== 'pendiente' && (
+                          <button
+                            type="button"
+                            onClick={() => setModalDespacho(despacho)}
+                            className="flex-1 py-2 px-3 rounded-xl bg-[#071326] border border-[#1e3659] text-xs font-bold text-slate-200 flex items-center justify-center gap-1.5"
+                          >
+                            <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                            <span>Ver Conciliación</span>
+                          </button>
+                        )}
+
+                        {isLocked ? (
+                          user?.rol === 'admin' ? (
+                            <button
+                              type="button"
+                              onClick={() => handleReopenHotel(hotel)}
+                              className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700"
+                            >
+                              <Unlock className="w-4 h-4" />
+                              <span>Reabrir Edición (Admin)</span>
+                            </button>
+                          ) : (
+                            <span className="text-xs text-slate-500 font-semibold">
+                              Entrega cerrada por repartidor
+                            </span>
+                          )
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => void handleValidarHotel(hotel)}
+                            disabled={isValidatingThis}
+                            className="flex-1 py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 active:bg-brand-700 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-brand-600/30"
+                          >
+                            <ClipboardCheck
+                              className={`w-4 h-4 ${isValidatingThis ? 'animate-spin' : ''}`}
+                            />
+                            <span>
+                              {isValidatingThis
+                                ? 'Conciliando...'
+                                : despacho
+                                ? 'Re-validar contra Remito'
+                                : 'Validar y Conciliar Remito'}
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+
+        {/* Barra Inferior Fija en Mobile con Total General del Día */}
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0b1a33]/95 backdrop-blur-md border-t border-[#1e3659] px-4 py-3 shadow-2xl">
+          <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                Total General del Día
+              </span>
+              <span className="text-lg font-black text-emerald-400">
+                {formatNumber(grandTotal)}{' '}
+                <span className="text-xs font-normal text-slate-400">prendas</span>
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSaveBulk}
+              disabled={savingBulk || loading}
+              className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-brand-600/30"
+            >
+              <Save className={`w-4 h-4 ${savingBulk ? 'animate-spin' : ''}`} />
+              <span>{savingBulk ? 'Sincronizando...' : 'Sincronizar Todo'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ===================================================================== */}
+      {/* VISTA WEB / DESKTOP (md:block): TABLA MATRIZ ORIGINAL INTACTA         */}
+      {/* ===================================================================== */}
+      <div className="hidden md:block bg-[#0b1a33]/90 rounded-2xl border border-[#1e3659] overflow-hidden shadow-2xl">
+        <div
+          tabIndex={0}
+          role="region"
+          aria-label="Matriz de carga diaria de planilla"
+          className="overflow-x-auto max-h-[620px] relative"
+        >
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-[#071326] sticky top-0 z-20 shadow-md">
               <tr className="border-b border-[#1e3659] text-slate-400 uppercase tracking-wider">
@@ -551,7 +1071,7 @@ export const MatrixEntryView: React.FC = () => {
                 <th className="px-3 py-3 text-right min-w-[90px] font-bold text-cyan-400 border-l border-[#1e3659] bg-[#071326]">
                   Total Fila
                 </th>
-                <th className="px-4 py-3 text-center sticky right-0 z-30 bg-[#071326] min-w-[215px] font-bold text-white border-l border-[#1e3659]">
+                <th className="px-4 py-3 text-center xl:sticky xl:right-0 z-30 bg-[#071326] min-w-[215px] font-bold text-white border-l border-[#1e3659]">
                   Check / Conciliar Remito
                 </th>
               </tr>
@@ -640,8 +1160,8 @@ export const MatrixEntryView: React.FC = () => {
                         {formatNumber(rowTotal)}
                       </td>
 
-                      {/* Check de Validación / Conciliar con Remito (Sticky derecha) */}
-                      <td className="px-3 py-2 sticky right-0 z-10 bg-[#0b1a33] border-l border-[#1e3659]">
+                      {/* Check de Validación / Conciliar con Remito (Sticky derecha en pantallas amplias) */}
+                      <td className="px-3 py-2 xl:sticky xl:right-0 z-10 bg-[#0b1a33] border-l border-[#1e3659]">
                         <div className="flex items-center justify-between gap-1.5">
                           {/* Estado actual */}
                           <div className="flex-1 min-w-0">
@@ -737,7 +1257,7 @@ export const MatrixEntryView: React.FC = () => {
                   <td className="px-3 py-3 text-right bg-[#071326] text-emerald-400 border-l border-[#1e3659] text-sm font-black">
                     {formatNumber(grandTotal)}
                   </td>
-                  <td className="px-4 py-3 text-center sticky right-0 z-30 bg-[#071326] text-slate-400 border-l border-[#1e3659] text-[10px]">
+                  <td className="px-4 py-3 text-center xl:sticky xl:right-0 z-30 bg-[#071326] text-slate-400 border-l border-[#1e3659] text-[10px]">
                     {Object.values(despachosByHotel).filter((d) => d.estado !== 'pendiente').length} conciliados
                   </td>
                 </tr>
@@ -749,13 +1269,13 @@ export const MatrixEntryView: React.FC = () => {
 
       {/* Modal de Confirmación y Comparativo Remito vs. Procesado */}
       {modalDespacho && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[#0b1a33] border border-[#1e3659] rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-[#0b1a33] border border-[#1e3659] rounded-2xl max-w-2xl w-full max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden">
             {/* Cabecera del Modal */}
-            <div className="p-5 bg-[#071326] border-b border-[#1e3659] flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+            <div className="p-4 sm:p-5 bg-[#071326] border-b border-[#1e3659] flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
                     modalDespacho.estado === 'validado_con_diferencia'
                       ? 'bg-amber-950/80 border-amber-700 text-amber-400'
                       : 'bg-emerald-950/80 border-emerald-700 text-emerald-400'
@@ -767,11 +1287,11 @@ export const MatrixEntryView: React.FC = () => {
                     <ShieldCheck className="w-5 h-5" />
                   )}
                 </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-white">
+                <div className="min-w-0">
+                  <h3 className="text-sm sm:text-lg font-black text-white truncate">
                     Conciliación: {modalDespacho.hotel_nombre}
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-[11px] sm:text-xs text-slate-400 truncate">
                     Fecha: <span className="text-slate-200 font-semibold">{formatDateDisplay(modalDespacho.fecha)}</span>
                     {modalDespacho.codigo_qr && (
                       <>
@@ -784,19 +1304,19 @@ export const MatrixEntryView: React.FC = () => {
               </div>
               <button
                 onClick={() => setModalDespacho(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#132747]"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#132747] shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+            <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
               {/* Banner de Alerta Visual y Aviso enviado al Repartidor */}
               {modalDespacho.estado === 'validado_con_diferencia' ? (
-                <div className="p-4 rounded-xl bg-amber-950/60 border border-amber-700/80 text-amber-200 text-xs flex items-start gap-3">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-amber-950/60 border border-amber-700/80 text-amber-200 text-xs flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <p className="font-black text-amber-300 text-sm">
+                    <p className="font-black text-amber-300 text-xs sm:text-sm">
                       ¡Diferencia detectada contra el Remito del Hotel!
                     </p>
                     <p>
@@ -805,10 +1325,10 @@ export const MatrixEntryView: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-700/80 text-emerald-200 text-xs flex items-start gap-3">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-950/60 border border-emerald-700/80 text-emerald-200 text-xs flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <p className="font-black text-emerald-300 text-sm">
+                    <p className="font-black text-emerald-300 text-xs sm:text-sm">
                       ¡Carga Validada sin Diferencias (OK)!
                     </p>
                     <p>
@@ -819,22 +1339,22 @@ export const MatrixEntryView: React.FC = () => {
               )}
 
               {/* Tarjetas Comparativas: Remito vs. Procesado */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-[#071326] border border-[#1e3659] rounded-xl p-3.5 text-center">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Cant. en Remito
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="bg-[#071326] border border-[#1e3659] rounded-xl p-2.5 sm:p-3.5 text-center">
+                  <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Cant. Remito
                   </span>
-                  <p className="text-xl font-black text-white mt-1">
-                    {formatNumber(modalDespacho.total_remito_prendas)} <span className="text-xs font-normal text-slate-400">u.</span>
+                  <p className="text-base sm:text-xl font-black text-white mt-1">
+                    {formatNumber(modalDespacho.total_remito_prendas)} <span className="text-[10px] sm:text-xs font-normal text-slate-400">u.</span>
                   </p>
                 </div>
 
-                <div className="bg-[#071326] border border-[#1e3659] rounded-xl p-3.5 text-center">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
-                    Cant. Procesada
+                <div className="bg-[#071326] border border-[#1e3659] rounded-xl p-2.5 sm:p-3.5 text-center">
+                  <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-cyan-400 block">
+                    Procesada
                   </span>
-                  <p className="text-xl font-black text-cyan-300 mt-1">
-                    {formatNumber(modalDespacho.total_procesado_prendas)} <span className="text-xs font-normal text-slate-400">u.</span>
+                  <p className="text-base sm:text-xl font-black text-cyan-300 mt-1">
+                    {formatNumber(modalDespacho.total_procesado_prendas)} <span className="text-[10px] sm:text-xs font-normal text-slate-400">u.</span>
                   </p>
                   {modalDespacho.total_procesado_kilos > 0 && (
                     <p className="text-[10px] text-slate-400">
@@ -844,17 +1364,17 @@ export const MatrixEntryView: React.FC = () => {
                 </div>
 
                 <div
-                  className={`rounded-xl p-3.5 text-center border ${
+                  className={`rounded-xl p-2.5 sm:p-3.5 text-center border ${
                     modalDespacho.diferencia_prendas === 0
                       ? 'bg-emerald-950/30 border-emerald-800/60'
                       : 'bg-amber-950/30 border-amber-800/60'
                   }`}
                 >
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">
-                    Diferencia Neta
+                  <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-300 block">
+                    Diferencia
                   </span>
                   <p
-                    className={`text-xl font-black mt-1 ${
+                    className={`text-base sm:text-xl font-black mt-1 ${
                       modalDespacho.diferencia_prendas === 0
                         ? 'text-emerald-400'
                         : modalDespacho.diferencia_prendas > 0
@@ -865,71 +1385,73 @@ export const MatrixEntryView: React.FC = () => {
                     {modalDespacho.diferencia_prendas > 0
                       ? `+${modalDespacho.diferencia_prendas}`
                       : modalDespacho.diferencia_prendas}{' '}
-                    <span className="text-xs font-normal">u.</span>
+                    <span className="text-[10px] sm:text-xs font-normal">u.</span>
                   </p>
                 </div>
               </div>
 
               {/* Muestra Procesada Ítem por Ítem */}
               <div className="rounded-xl border border-[#1e3659] overflow-hidden">
-                <div className="bg-[#071326] px-4 py-2.5 border-b border-[#1e3659] flex items-center justify-between">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider">
-                    Muestra de lo Procesado enviada al Repartidor
+                <div className="bg-[#071326] px-3.5 sm:px-4 py-2.5 border-b border-[#1e3659] flex items-center justify-between">
+                  <span className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-wider">
+                    Muestra enviada al Repartidor
                   </span>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-slate-400 shrink-0">
                     {modalDespacho.muestra_procesado.length} ítems
                   </span>
                 </div>
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-[#071326]/70 text-slate-400 uppercase text-[10px] border-b border-[#1e3659]">
-                    <tr>
-                      <th className="px-4 py-2.5">Ítem / Prenda</th>
-                      <th className="px-3 py-2.5 text-right">Cant. Remito</th>
-                      <th className="px-3 py-2.5 text-right text-cyan-400">Procesado (Prendas / Kg)</th>
-                      <th className="px-4 py-2.5 text-right">Diferencia</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#1e3659]/50">
-                    {modalDespacho.muestra_procesado.length === 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-[#071326]/70 text-slate-400 uppercase text-[10px] border-b border-[#1e3659]">
                       <tr>
-                        <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
-                          No hay prendas registradas ni en remito ni en carga para este hotel en la fecha.
-                        </td>
+                        <th className="px-3 sm:px-4 py-2.5">Ítem / Prenda</th>
+                        <th className="px-2 sm:px-3 py-2.5 text-right">Remito</th>
+                        <th className="px-2 sm:px-3 py-2.5 text-right text-cyan-400">Procesado</th>
+                        <th className="px-3 sm:px-4 py-2.5 text-right">Dif.</th>
                       </tr>
-                    ) : (
-                      modalDespacho.muestra_procesado.map((m) => (
-                        <tr key={m.item_id} className="hover:bg-[#132747]/30">
-                          <td className="px-4 py-2 font-bold text-white">{m.item_nombre}</td>
-                          <td className="px-3 py-2 text-right text-slate-300 font-semibold">
-                            {formatNumber(m.cant_remito)}
-                          </td>
-                          <td className="px-3 py-2 text-right font-black text-cyan-300">
-                            {formatNumber(m.cant_procesada_prendas)} u.
-                            {m.cant_procesada_kilos > 0 && (
-                              <span className="text-[10px] text-slate-400 font-normal ml-1">
-                                ({m.cant_procesada_kilos.toFixed(1)} kg)
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-2 text-right font-bold">
-                            {m.diferencia === 0 ? (
-                              <span className="text-emerald-400">0 (OK)</span>
-                            ) : m.diferencia > 0 ? (
-                              <span className="text-amber-400">+{m.diferencia}</span>
-                            ) : (
-                              <span className="text-rose-400">{m.diferencia}</span>
-                            )}
+                    </thead>
+                    <tbody className="divide-y divide-[#1e3659]/50">
+                      {modalDespacho.muestra_procesado.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                            No hay prendas registradas ni en remito ni en carga para este hotel en la fecha.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        modalDespacho.muestra_procesado.map((m) => (
+                          <tr key={m.item_id} className="hover:bg-[#132747]/30">
+                            <td className="px-3 sm:px-4 py-2 font-bold text-white">{m.item_nombre}</td>
+                            <td className="px-2 sm:px-3 py-2 text-right text-slate-300 font-semibold">
+                              {formatNumber(m.cant_remito)}
+                            </td>
+                            <td className="px-2 sm:px-3 py-2 text-right font-black text-cyan-300">
+                              {formatNumber(m.cant_procesada_prendas)} u.
+                              {m.cant_procesada_kilos > 0 && (
+                                <span className="text-[10px] text-slate-400 font-normal ml-1">
+                                  ({m.cant_procesada_kilos.toFixed(1)} kg)
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 sm:px-4 py-2 text-right font-bold">
+                              {m.diferencia === 0 ? (
+                                <span className="text-emerald-400">0 (OK)</span>
+                              ) : m.diferencia > 0 ? (
+                                <span className="text-amber-400">+{m.diferencia}</span>
+                              ) : (
+                                <span className="text-rose-400">{m.diferencia}</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
-            <div className="p-4 bg-[#071326] border-t border-[#1e3659] flex items-center justify-between">
-              <div className="text-[11px] text-slate-400">
+            <div className="p-3.5 sm:p-4 bg-[#071326] border-t border-[#1e3659] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
+              <div className="text-[11px] text-slate-400 text-center sm:text-left">
                 {modalDespacho.entregado_en ? (
                   <span className="text-emerald-400 font-semibold">
                     ✓ Entregado por {modalDespacho.entregado_por_username || 'Repartidor'} (
@@ -945,7 +1467,7 @@ export const MatrixEntryView: React.FC = () => {
               </div>
               <button
                 onClick={() => setModalDespacho(null)}
-                className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl"
+                className="px-4 py-2.5 sm:py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl"
               >
                 Entendido
               </button>
@@ -956,4 +1478,3 @@ export const MatrixEntryView: React.FC = () => {
     </div>
   );
 };
-

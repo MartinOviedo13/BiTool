@@ -20,6 +20,8 @@ import {
   Building2,
   ChevronDown,
   ChevronUp,
+  Plus,
+  Minus,
 } from 'lucide-react';
 import { RemitoPrintableModal } from '../hotel360/RemitoPrintableModal';
 
@@ -232,13 +234,13 @@ export const AuditoriaView: React.FC = () => {
     : 0;
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 sm:space-y-5 animate-fade-in">
       {/* 1. Encabezado & Lector QR */}
-      <div className="bg-[#0b1a33]/90 border border-[#1e3659] rounded-2xl p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-[#0b1a33]/90 border border-[#1e3659] rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <ClipboardCheck className="w-6 h-6 text-brand-400" />
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <ClipboardCheck className="w-5 h-5 sm:w-6 sm:h-6 text-brand-400 shrink-0" />
+            <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">
               Auditoría y Cruce de Remitos por Hotel
             </h1>
           </div>
@@ -248,9 +250,9 @@ export const AuditoriaView: React.FC = () => {
         </div>
 
         {/* Lector de QR para el Operario */}
-        <form onSubmit={handleBuscarQR} className="flex items-center gap-2 max-w-md w-full md:w-auto">
+        <form onSubmit={handleBuscarQR} className="flex items-center gap-2 md:max-w-md w-full md:w-auto">
           <div className="relative flex-1">
-            <QrCode className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+            <QrCode className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
             <input
               type="text"
               placeholder="Escanear Remito QR (ENV-...)"
@@ -285,8 +287,8 @@ export const AuditoriaView: React.FC = () => {
 
       {/* Detalle de Remito QR Escaneado */}
       {scannedEnvio && (
-        <div className="bg-brand-950/70 border border-brand-700/60 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row items-start justify-between gap-4 animate-fadeIn">
-          <div className="space-y-1.5">
+        <div className="bg-brand-950/70 border border-brand-700/60 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-start justify-between gap-4 animate-fadeIn">
+          <div className="space-y-1.5 w-full">
             <div className="flex items-center gap-2">
               <span className="text-[10px] bg-brand-600 text-white font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
                 Remito Verificado
@@ -322,17 +324,17 @@ export const AuditoriaView: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end">
             <button
               onClick={() => setRemitoParaImprimir(scannedEnvio)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/30 transition-all"
+              className="flex-1 md:flex-initial justify-center flex items-center gap-1.5 px-3 py-2 sm:py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/30 transition-all"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Imprimir Remito</span>
             </button>
             <button
               onClick={() => setScannedEnvio(null)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-[#132747]"
+              className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-[#132747]"
             >
               <X className="w-5 h-5" />
             </button>
@@ -341,8 +343,8 @@ export const AuditoriaView: React.FC = () => {
       )}
 
       {/* 2. Tarjetas de Resumen Global (4 KPIs) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-[#0b1a33]/90 p-4 rounded-xl border border-emerald-800/60 bg-emerald-950/15 shadow-lg">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-emerald-800/60 bg-emerald-950/15 shadow-lg">
           <div className="flex items-center justify-between text-emerald-400 mb-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Coincidencias</span>
             <CheckCircle className="w-4 h-4" />
@@ -351,7 +353,7 @@ export const AuditoriaView: React.FC = () => {
           <p className="text-[10px] text-slate-400">Prendas exactas (OK)</p>
         </div>
 
-        <div className="bg-[#0b1a33]/90 p-4 rounded-xl border border-rose-800/60 bg-rose-950/15 shadow-lg">
+        <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-rose-800/60 bg-rose-950/15 shadow-lg">
           <div className="flex items-center justify-between text-rose-400 mb-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Faltantes</span>
             <AlertOctagon className="w-4 h-4" />
@@ -360,7 +362,7 @@ export const AuditoriaView: React.FC = () => {
           <p className="text-[10px] text-slate-400">Prendas de menos</p>
         </div>
 
-        <div className="bg-[#0b1a33]/90 p-4 rounded-xl border border-amber-800/60 bg-amber-950/15 shadow-lg">
+        <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-amber-800/60 bg-amber-950/15 shadow-lg">
           <div className="flex items-center justify-between text-amber-400 mb-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Sobrantes</span>
             <AlertTriangle className="w-4 h-4" />
@@ -369,7 +371,7 @@ export const AuditoriaView: React.FC = () => {
           <p className="text-[10px] text-slate-400">Prendas contadas de más</p>
         </div>
 
-        <div className="bg-[#0b1a33]/90 p-4 rounded-xl border border-brand-800/60 bg-brand-950/15 shadow-lg">
+        <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-xl border border-brand-800/60 bg-brand-950/15 shadow-lg">
           <div className="flex items-center justify-between text-brand-400 mb-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Pendientes</span>
             <Clock className="w-4 h-4" />
@@ -380,23 +382,23 @@ export const AuditoriaView: React.FC = () => {
       </div>
 
       {/* 3. Barra de Controles y Selector de Pestañas por Hotel */}
-      <div className="bg-[#0b1a33]/90 p-4 rounded-2xl border border-[#1e3659] shadow-xl space-y-3">
+      <div className="bg-[#0b1a33]/90 p-3.5 sm:p-4 rounded-2xl border border-[#1e3659] shadow-xl space-y-3">
         {/* Controles de Filtros Superiores */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row flex-wrap sm:items-center justify-between gap-3">
+          <div className="grid grid-cols-2 sm:flex flex-wrap items-center gap-2 sm:gap-2.5">
             {/* Selector de Fecha */}
-            <div className="flex items-center gap-2 bg-[#071326] px-3 py-1.5 rounded-xl border border-[#1e3659]">
-              <span className="text-xs font-bold text-slate-400">Fecha:</span>
+            <div className="flex items-center gap-1.5 bg-[#071326] px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl border border-[#1e3659]">
+              <span className="text-xs font-bold text-slate-400 hidden xs:inline">Fecha:</span>
               <input
                 type="date"
                 value={fechaFiltro}
                 onChange={(e) => setFechaFiltro(e.target.value)}
-                className="bg-transparent text-xs text-white font-bold focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs text-white font-bold focus:outline-none cursor-pointer w-full"
               />
               {fechaFiltro && (
                 <button
                   onClick={() => setFechaFiltro('')}
-                  className="text-[10px] text-slate-400 hover:text-white underline ml-1"
+                  className="text-[10px] text-slate-400 hover:text-white underline ml-1 shrink-0"
                 >
                   Todas
                 </button>
@@ -406,47 +408,47 @@ export const AuditoriaView: React.FC = () => {
             {/* Toggle Solo con Diferencias */}
             <button
               onClick={() => setSoloConDiferencias(!soloConDiferencias)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
                 soloConDiferencias
                   ? 'bg-amber-950/80 text-amber-300 border-amber-700 shadow-sm'
                   : 'bg-[#071326] text-slate-400 border-[#1e3659] hover:text-slate-200'
               }`}
             >
-              <Filter className="w-3.5 h-3.5" />
-              <span>Solo con Diferencias</span>
+              <Filter className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Con Diferencias</span>
             </button>
 
             {/* Buscador de Prenda */}
-            <div className="relative">
+            <div className="relative col-span-2 sm:col-span-1">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
               <input
                 type="text"
                 placeholder="Buscar prenda..."
                 value={busquedaPrenda}
                 onChange={(e) => setBusquedaPrenda(e.target.value)}
-                className="bg-[#071326] border border-[#1e3659] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-400 w-36 sm:w-44"
+                className="bg-[#071326] border border-[#1e3659] rounded-xl pl-8 pr-3 py-2 sm:py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-400 w-full sm:w-44"
               />
             </div>
           </div>
 
           {/* Acciones de Acordeón: Expandir / Colapsar */}
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-3 sm:flex items-center gap-2">
             <button
               onClick={expandirTodos}
-              className="px-2.5 py-1 text-[11px] font-bold text-slate-300 hover:text-white bg-[#132747] hover:bg-[#1e3659] rounded-lg transition-colors"
+              className="px-2.5 py-1.5 sm:py-1 text-[11px] font-bold text-slate-300 hover:text-white bg-[#132747] hover:bg-[#1e3659] rounded-lg transition-colors text-center"
             >
-              Expandir todos
+              Expandir
             </button>
             <button
               onClick={colapsarTodos}
-              className="px-2.5 py-1 text-[11px] font-bold text-slate-400 hover:text-slate-200 bg-[#071326] border border-[#1e3659] rounded-lg transition-colors"
+              className="px-2.5 py-1.5 sm:py-1 text-[11px] font-bold text-slate-400 hover:text-slate-200 bg-[#071326] border border-[#1e3659] rounded-lg transition-colors text-center"
             >
-              Colapsar todos
+              Colapsar
             </button>
             <button
               onClick={cargarAuditoria}
               disabled={loading}
-              className="px-2.5 py-1 text-[11px] font-bold text-brand-300 hover:text-white bg-brand-950/80 border border-brand-800/60 rounded-lg transition-colors"
+              className="px-2.5 py-1.5 sm:py-1 text-[11px] font-bold text-brand-300 hover:text-white bg-brand-950/80 border border-brand-800/60 rounded-lg transition-colors text-center"
             >
               Actualizar
             </button>
@@ -455,7 +457,7 @@ export const AuditoriaView: React.FC = () => {
 
         {/* Pestañas Rápidas de Hoteles (Tabs Horizontales) */}
         {hotelGroups.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 border-t border-[#1e3659]/60">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 pt-1 border-t border-[#1e3659]/60">
             <button
               onClick={() => setActiveHotelTab('all')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
@@ -465,7 +467,7 @@ export const AuditoriaView: React.FC = () => {
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span>Todos los Hoteles ({hotelGroups.length})</span>
+              <span>Todos ({hotelGroups.length})</span>
             </button>
 
             {hotelGroups.map((g) => {
@@ -565,14 +567,14 @@ export const AuditoriaView: React.FC = () => {
                         )}
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        {group.items.length} prenda(s) auditadas &bull; Declaradas: {formatNumber(group.totalDeclaradas)} u. &bull; Contadas: {formatNumber(group.totalContado)} u.
+                        {group.items.length} prenda(s) &bull; Declaradas: {formatNumber(group.totalDeclaradas)} u. &bull; Contadas: {formatNumber(group.totalContado)} u.
                       </p>
                     </div>
                   </div>
 
                   {/* Badges de Estado y Botón de Despliegue */}
-                  <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#1e3659]/50">
-                    <div className="flex items-center gap-1.5 text-xs">
+                  <div className="flex items-center justify-between md:justify-end gap-2 sm:gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#1e3659]/50">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
                       {group.totalOK > 0 && (
                         <span className="px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 font-semibold text-[11px]">
                           {group.totalOK} OK
@@ -595,170 +597,294 @@ export const AuditoriaView: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="p-1 rounded-lg bg-[#071326] border border-[#1e3659] text-slate-300 hover:text-white">
+                    <div className="p-1.5 rounded-lg bg-[#071326] border border-[#1e3659] text-slate-300 hover:text-white shrink-0">
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </div>
                   </div>
                 </div>
 
-                {/* Contenido Desplegado: Tabla de Prendas del Hotel */}
+                {/* Contenido Desplegado: Mobile Cards (< md) + Desktop Table (md:block) */}
                 {isExpanded && (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead className="bg-[#071326] text-slate-400 font-bold uppercase tracking-wider border-b border-[#1e3659]">
-                        <tr>
-                          <th className="px-4 py-3 min-w-[140px]">Prenda / Artículo</th>
-                          <th className="px-3 py-3 text-right">Cant. Declarada</th>
-                          <th className="px-3 py-3 text-right text-emerald-400">Limpias (OK)</th>
-                          <th className="px-3 py-3 text-right text-amber-400">En Relavado</th>
-                          <th className="px-3 py-3 text-right text-rose-400">Rotas</th>
-                          <th className="px-3 py-3 text-right font-black text-white">Total Contado</th>
-                          <th className="px-3 py-3 text-right font-black">Diferencia</th>
-                          <th className="px-4 py-3 text-center">Estado Auditoría</th>
-                          <th className="px-4 py-3 text-right">Acción</th>
-                        </tr>
-                      </thead>
+                  <>
+                    {/* VISTA MOBILE (< md): Tarjetas de Prenda con Botón Directo de Conteo */}
+                    <div className="md:hidden p-3 space-y-2.5 bg-[#071326]/40">
+                      {itemsVisibles.length === 0 ? (
+                        <div className="py-6 text-center text-xs text-slate-500">
+                          No hay prendas que coincidan con la búsqueda.
+                        </div>
+                      ) : (
+                        itemsVisibles.map((row, idx) => (
+                          <div
+                            key={`${row.fecha}-${row.hotel_id}-${row.item_id}-${idx}`}
+                            className="p-3 rounded-xl bg-[#071326] border border-[#1e3659] space-y-2.5"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <h4 className="font-bold text-white text-sm">{row.item_nombre}</h4>
+                                <div className="mt-1">
+                                  {row.estado === 'OK' && (
+                                    <span className="inline-flex items-center gap-1 bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                      <CheckCircle className="w-3 h-3 text-emerald-400" />
+                                      Coincide (OK)
+                                    </span>
+                                  )}
+                                  {row.estado === 'FALTANTE' && (
+                                    <span className="inline-flex items-center gap-1 bg-rose-950/80 text-rose-300 border border-rose-800/60 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                      <AlertOctagon className="w-3 h-3 text-rose-400" />
+                                      Faltante ({row.diferencia})
+                                    </span>
+                                  )}
+                                  {row.estado === 'SOBRANTE' && (
+                                    <span className="inline-flex items-center gap-1 bg-amber-950/80 text-amber-300 border border-amber-800/60 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                      <AlertTriangle className="w-3 h-3 text-amber-400" />
+                                      Sobrante (+{row.diferencia})
+                                    </span>
+                                  )}
+                                  {row.estado === 'PENDIENTE_LAVADERO' && (
+                                    <span className="inline-flex items-center gap-1 bg-brand-950/80 text-brand-300 border border-brand-800/60 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                      <Clock className="w-3 h-3 text-brand-400" />
+                                      Pendiente
+                                    </span>
+                                  )}
+                                  {row.estado === 'SIN_REMITO' && (
+                                    <span className="inline-flex items-center gap-1 bg-slate-900 text-slate-300 border border-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                      <HelpCircle className="w-3 h-3 text-slate-400" />
+                                      Sin Remito
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
 
-                      <tbody className="divide-y divide-[#1e3659]/50 bg-[#071326]/30">
-                        {itemsVisibles.length === 0 ? (
-                          <tr>
-                            <td colSpan={9} className="px-4 py-6 text-center text-slate-500">
-                              No hay prendas que coincidan con la búsqueda.
-                            </td>
-                          </tr>
-                        ) : (
-                          itemsVisibles.map((row, idx) => (
-                            <tr
-                              key={`${row.fecha}-${row.hotel_id}-${row.item_id}-${idx}`}
-                              className="hover:bg-[#132747]/40 transition-colors"
-                            >
-                              <td className="px-4 py-2.5 font-bold text-white">
-                                {row.item_nombre}
-                              </td>
-                              <td className="px-3 py-2.5 text-right font-semibold text-slate-300">
-                                {formatNumber(row.cantidad_declarada)}
-                              </td>
-                              <td className="px-3 py-2.5 text-right font-bold text-emerald-400">
-                                {formatNumber(row.cantidad_limpia)}
-                              </td>
-                              <td className="px-3 py-2.5 text-right font-semibold text-amber-400">
-                                {row.cantidad_relavado > 0 ? (
-                                  <span className="bg-amber-950/80 text-amber-300 border border-amber-800/60 px-1.5 py-0.5 rounded font-black">
-                                    {row.cantidad_relavado}
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-600">-</span>
-                                )}
-                              </td>
-                              <td className="px-3 py-2.5 text-right font-semibold text-rose-400">
-                                {row.cantidad_rota > 0 ? (
-                                  <span className="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-1.5 py-0.5 rounded font-black">
-                                    {row.cantidad_rota}
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-600">-</span>
-                                )}
-                              </td>
-                              <td className="px-3 py-2.5 text-right font-black text-white">
-                                {formatNumber(row.total_contado)}
-                              </td>
-                              <td className="px-3 py-2.5 text-right font-black">
-                                {row.diferencia > 0 ? (
-                                  <span className="text-amber-400 bg-amber-950/70 border border-amber-800/60 px-1.5 py-0.5 rounded">
-                                    +{row.diferencia}
-                                  </span>
-                                ) : row.diferencia < 0 ? (
-                                  <span className="text-rose-400 bg-rose-950/70 border border-rose-800/60 px-1.5 py-0.5 rounded">
-                                    {row.diferencia}
-                                  </span>
-                                ) : (
-                                  <span className="text-emerald-400">0</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-2.5 text-center">
-                                {row.estado === 'OK' && (
-                                  <span className="inline-flex items-center gap-1 bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                                    <CheckCircle className="w-3 h-3 text-emerald-400" />
-                                    Coincide (OK)
-                                  </span>
-                                )}
-                                {row.estado === 'FALTANTE' && (
-                                  <span className="inline-flex items-center gap-1 bg-rose-950/80 text-rose-300 border border-rose-800/60 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                                    <AlertOctagon className="w-3 h-3 text-rose-400" />
-                                    Faltante ({row.diferencia})
-                                  </span>
-                                )}
-                                {row.estado === 'SOBRANTE' && (
-                                  <span className="inline-flex items-center gap-1 bg-amber-950/80 text-amber-300 border border-amber-800/60 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                                    <AlertTriangle className="w-3 h-3 text-amber-400" />
-                                    Sobrante (+{row.diferencia})
-                                  </span>
-                                )}
-                                {row.estado === 'PENDIENTE_LAVADERO' && (
-                                  <span className="inline-flex items-center gap-1 bg-brand-950/80 text-brand-300 border border-brand-800/60 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                                    <Clock className="w-3 h-3 text-brand-400" />
-                                    Pendiente
-                                  </span>
-                                )}
-                                {row.estado === 'SIN_REMITO' && (
-                                  <span className="inline-flex items-center gap-1 bg-slate-900 text-slate-300 border border-slate-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                                    <HelpCircle className="w-3 h-3 text-slate-400" />
-                                    Sin Remito
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-4 py-2.5 text-right">
-                                <button
-                                  onClick={() => openConteoModal(row)}
-                                  className="px-2.5 py-1 text-[11px] font-bold text-brand-300 hover:text-white bg-brand-600/20 hover:bg-brand-600 rounded-lg inline-flex items-center gap-1 transition-all border border-brand-700/50 shadow-sm"
-                                  title="Ajustar conteo de limpias, relavado o roturas"
+                              <button
+                                onClick={() => openConteoModal(row)}
+                                className="px-3 py-1.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-500 active:bg-brand-700 rounded-xl inline-flex items-center gap-1.5 shadow-sm shrink-0"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>Conteo</span>
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-5 gap-1.5 pt-2 border-t border-[#1e3659]/60 text-center text-[11px]">
+                              <div className="bg-[#0b1a33] rounded-lg p-1.5">
+                                <span className="text-[9px] text-slate-400 uppercase block">Remito</span>
+                                <span className="font-bold text-slate-200">{formatNumber(row.cantidad_declarada)}</span>
+                              </div>
+                              <div className="bg-[#0b1a33] rounded-lg p-1.5">
+                                <span className="text-[9px] text-emerald-400 uppercase block">Limpias</span>
+                                <span className="font-black text-emerald-400">{formatNumber(row.cantidad_limpia)}</span>
+                              </div>
+                              <div className="bg-[#0b1a33] rounded-lg p-1.5">
+                                <span className="text-[9px] text-amber-400 uppercase block">Relav.</span>
+                                <span className="font-bold text-amber-300">{row.cantidad_relavado || 0}</span>
+                              </div>
+                              <div className="bg-[#0b1a33] rounded-lg p-1.5">
+                                <span className="text-[9px] text-rose-400 uppercase block">Rotas</span>
+                                <span className="font-bold text-rose-300">{row.cantidad_rota || 0}</span>
+                              </div>
+                              <div className="bg-[#0b1a33] rounded-lg p-1.5">
+                                <span className="text-[9px] text-slate-300 uppercase block">Dif.</span>
+                                <span
+                                  className={`font-black ${
+                                    row.diferencia > 0
+                                      ? 'text-amber-400'
+                                      : row.diferencia < 0
+                                      ? 'text-rose-400'
+                                      : 'text-emerald-400'
+                                  }`}
                                 >
-                                  <Edit3 className="w-3 h-3" />
-                                  <span>Conteo</span>
-                                </button>
+                                  {row.diferencia > 0 ? `+${row.diferencia}` : row.diferencia}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+
+                      {/* Resumen Total Mobile del Hotel */}
+                      <div className="p-3 rounded-xl bg-[#071326] border border-[#1e3659] flex items-center justify-between text-xs font-bold">
+                        <span className="text-slate-300 uppercase text-[10px]">
+                          Total {group.hotel_nombre}
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-slate-300">
+                            Decl: <strong className="text-white">{formatNumber(group.totalDeclaradas)}</strong>
+                          </span>
+                          <span className="text-emerald-400">
+                            Limpias: <strong>{formatNumber(group.totalLimpias)}</strong>
+                          </span>
+                          <span
+                            className={
+                              group.diferenciaTotal > 0
+                                ? 'text-amber-400'
+                                : group.diferenciaTotal < 0
+                                ? 'text-rose-400'
+                                : 'text-emerald-400'
+                            }
+                          >
+                            Dif: {group.diferenciaTotal > 0 ? `+${group.diferenciaTotal}` : group.diferenciaTotal}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* VISTA DESKTOP (md:block): Tabla Original de 9 Columnas */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-[#071326] text-slate-400 font-bold uppercase tracking-wider border-b border-[#1e3659]">
+                          <tr>
+                            <th className="px-4 py-3 min-w-[140px]">Prenda / Artículo</th>
+                            <th className="px-3 py-3 text-right">Cant. Declarada</th>
+                            <th className="px-3 py-3 text-right text-emerald-400">Limpias (OK)</th>
+                            <th className="px-3 py-3 text-right text-amber-400">En Relavado</th>
+                            <th className="px-3 py-3 text-right text-rose-400">Rotas</th>
+                            <th className="px-3 py-3 text-right font-black text-white">Total Contado</th>
+                            <th className="px-3 py-3 text-right font-black">Diferencia</th>
+                            <th className="px-4 py-3 text-center">Estado Auditoría</th>
+                            <th className="px-4 py-3 text-right">Acción</th>
+                          </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-[#1e3659]/50 bg-[#071326]/30">
+                          {itemsVisibles.length === 0 ? (
+                            <tr>
+                              <td colSpan={9} className="px-4 py-6 text-center text-slate-500">
+                                No hay prendas que coincidan con la búsqueda.
                               </td>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
+                          ) : (
+                            itemsVisibles.map((row, idx) => (
+                              <tr
+                                key={`${row.fecha}-${row.hotel_id}-${row.item_id}-${idx}`}
+                                className="hover:bg-[#132747]/40 transition-colors"
+                              >
+                                <td className="px-4 py-2.5 font-bold text-white">
+                                  {row.item_nombre}
+                                </td>
+                                <td className="px-3 py-2.5 text-right font-semibold text-slate-300">
+                                  {formatNumber(row.cantidad_declarada)}
+                                </td>
+                                <td className="px-3 py-2.5 text-right font-bold text-emerald-400">
+                                  {formatNumber(row.cantidad_limpia)}
+                                </td>
+                                <td className="px-3 py-2.5 text-right font-semibold text-amber-400">
+                                  {row.cantidad_relavado > 0 ? (
+                                    <span className="bg-amber-950/80 text-amber-300 border border-amber-800/60 px-1.5 py-0.5 rounded font-black">
+                                      {row.cantidad_relavado}
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-600">-</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2.5 text-right font-semibold text-rose-400">
+                                  {row.cantidad_rota > 0 ? (
+                                    <span className="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-1.5 py-0.5 rounded font-black">
+                                      {row.cantidad_rota}
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-600">-</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2.5 text-right font-black text-white">
+                                  {formatNumber(row.total_contado)}
+                                </td>
+                                <td className="px-3 py-2.5 text-right font-black">
+                                  {row.diferencia > 0 ? (
+                                    <span className="text-amber-400 bg-amber-950/70 border border-amber-800/60 px-1.5 py-0.5 rounded">
+                                      +{row.diferencia}
+                                    </span>
+                                  ) : row.diferencia < 0 ? (
+                                    <span className="text-rose-400 bg-rose-950/70 border border-rose-800/60 px-1.5 py-0.5 rounded">
+                                      {row.diferencia}
+                                    </span>
+                                  ) : (
+                                    <span className="text-emerald-400">0</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-2.5 text-center">
+                                  {row.estado === 'OK' && (
+                                    <span className="inline-flex items-center gap-1 bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                      <CheckCircle className="w-3 h-3 text-emerald-400" />
+                                      Coincide (OK)
+                                    </span>
+                                  )}
+                                  {row.estado === 'FALTANTE' && (
+                                    <span className="inline-flex items-center gap-1 bg-rose-950/80 text-rose-300 border border-rose-800/60 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                      <AlertOctagon className="w-3 h-3 text-rose-400" />
+                                      Faltante ({row.diferencia})
+                                    </span>
+                                  )}
+                                  {row.estado === 'SOBRANTE' && (
+                                    <span className="inline-flex items-center gap-1 bg-amber-950/80 text-amber-300 border border-amber-800/60 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                      <AlertTriangle className="w-3 h-3 text-amber-400" />
+                                      Sobrante (+{row.diferencia})
+                                    </span>
+                                  )}
+                                  {row.estado === 'PENDIENTE_LAVADERO' && (
+                                    <span className="inline-flex items-center gap-1 bg-brand-950/80 text-brand-300 border border-brand-800/60 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                      <Clock className="w-3 h-3 text-brand-400" />
+                                      Pendiente
+                                    </span>
+                                  )}
+                                  {row.estado === 'SIN_REMITO' && (
+                                    <span className="inline-flex items-center gap-1 bg-slate-900 text-slate-300 border border-slate-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                      <HelpCircle className="w-3 h-3 text-slate-400" />
+                                      Sin Remito
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-2.5 text-right">
+                                  <button
+                                    onClick={() => openConteoModal(row)}
+                                    className="px-2.5 py-1 text-[11px] font-bold text-brand-300 hover:text-white bg-brand-600/20 hover:bg-brand-600 rounded-lg inline-flex items-center gap-1 transition-all border border-brand-700/50 shadow-sm"
+                                    title="Ajustar conteo de limpias, relavado o roturas"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                    <span>Conteo</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
 
-                      {/* Pie de Tabla con Totales del Hotel */}
-                      <tfoot className="bg-[#071326] font-extrabold border-t-2 border-[#1e3659]">
-                        <tr>
-                          <td className="px-4 py-2.5 text-white uppercase text-[10px]">
-                            Total {group.hotel_nombre}
-                          </td>
-                          <td className="px-3 py-2.5 text-right text-slate-200">
-                            {formatNumber(group.totalDeclaradas)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right text-emerald-400">
-                            {formatNumber(group.totalLimpias)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right text-amber-400">
-                            {group.totalRelavado > 0 ? formatNumber(group.totalRelavado) : '-'}
-                          </td>
-                          <td className="px-3 py-2.5 text-right text-rose-400">
-                            {group.totalRotas > 0 ? formatNumber(group.totalRotas) : '-'}
-                          </td>
-                          <td className="px-3 py-2.5 text-right text-white">
-                            {formatNumber(group.totalContado)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right">
-                            {group.diferenciaTotal > 0 ? (
-                              <span className="text-amber-400">+{group.diferenciaTotal}</span>
-                            ) : group.diferenciaTotal < 0 ? (
-                              <span className="text-rose-400">{group.diferenciaTotal}</span>
-                            ) : (
-                              <span className="text-emerald-400">0</span>
-                            )}
-                          </td>
-                          <td colSpan={2} className="px-4 py-2.5 text-right text-slate-400 text-[10px]">
-                            {group.items.length} ítems auditados
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
+                        {/* Pie de Tabla con Totales del Hotel */}
+                        <tfoot className="bg-[#071326] font-extrabold border-t-2 border-[#1e3659]">
+                          <tr>
+                            <td className="px-4 py-2.5 text-white uppercase text-[10px]">
+                              Total {group.hotel_nombre}
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-slate-200">
+                              {formatNumber(group.totalDeclaradas)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-emerald-400">
+                              {formatNumber(group.totalLimpias)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-amber-400">
+                              {group.totalRelavado > 0 ? formatNumber(group.totalRelavado) : '-'}
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-rose-400">
+                              {group.totalRotas > 0 ? formatNumber(group.totalRotas) : '-'}
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-white">
+                              {formatNumber(group.totalContado)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              {group.diferenciaTotal > 0 ? (
+                                <span className="text-amber-400">+{group.diferenciaTotal}</span>
+                              ) : group.diferenciaTotal < 0 ? (
+                                <span className="text-rose-400">{group.diferenciaTotal}</span>
+                              ) : (
+                                <span className="text-emerald-400">0</span>
+                              )}
+                            </td>
+                            <td colSpan={2} className="px-4 py-2.5 text-right text-slate-400 text-[10px]">
+                              {group.items.length} ítems auditados
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </>
                 )}
               </div>
             );
@@ -768,24 +894,24 @@ export const AuditoriaView: React.FC = () => {
 
       {/* 5. Modal para Registrar Conteo de Salida (Océano Corporativo) */}
       {selectedItemForConteo && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[#0b1a33] rounded-2xl border border-[#1e3659] max-w-lg w-full p-6 shadow-2xl relative">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          <div className="bg-[#0b1a33] rounded-2xl border border-[#1e3659] max-w-lg w-full max-h-[92dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl relative">
             <button
               onClick={() => setSelectedItemForConteo(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-[#132747]"
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-[#132747]"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="border-b border-[#1e3659] pb-3 mb-4">
+            <div className="border-b border-[#1e3659] pb-3 mb-4 pr-8">
               <span className="text-[10px] font-bold uppercase tracking-wider text-brand-300 bg-brand-950/80 border border-brand-800/60 px-2 py-0.5 rounded">
                 Registro de Salida y Auditoría
               </span>
-              <h3 className="text-lg font-black text-white mt-1.5">
+              <h3 className="text-base sm:text-lg font-black text-white mt-1.5">
                 {selectedItemForConteo.item_nombre} &bull; {selectedItemForConteo.hotel_nombre}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Fecha del lote: <span className="font-semibold text-slate-200">{selectedItemForConteo.fecha}</span> &bull; Declarado en remito:{' '}
+                Fecha: <span className="font-semibold text-slate-200">{selectedItemForConteo.fecha}</span> &bull; Declarado en remito:{' '}
                 <span className="font-black text-cyan-300">
                   {selectedItemForConteo.cantidad_declarada} prendas
                 </span>
@@ -794,48 +920,99 @@ export const AuditoriaView: React.FC = () => {
 
             <form onSubmit={handleSaveConteo} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase text-emerald-400 mb-1">
+                <label className="block text-xs font-bold uppercase text-emerald-400 mb-1.5">
                   1. Prendas Limpias (Devueltas OK)
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={limpiasInput}
-                  onChange={(e) => setLimpiasInput(parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#071326] border border-[#1e3659] rounded-xl text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[11px] text-slate-400 mt-0.5">Ropa limpia doblada para entregar al hotel.</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLimpiasInput((v) => Math.max(0, v - 1))}
+                    className="w-11 h-10 rounded-xl bg-[#132747] active:bg-[#1e3659] border border-[#1e3659] text-white flex items-center justify-center shrink-0"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    value={limpiasInput}
+                    onChange={(e) => setLimpiasInput(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                    className="flex-1 px-3 py-2 bg-[#071326] border border-[#1e3659] rounded-xl text-center text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setLimpiasInput((v) => v + 1)}
+                    className="w-11 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Ropa limpia doblada para entregar al hotel.</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-amber-400 mb-1 flex items-center gap-1">
+                <label className="block text-xs font-bold uppercase text-amber-400 mb-1.5 flex items-center gap-1">
                   <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
                   2. Prendas para Relavado (Quedan en Lavadero)
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={relavadoInput}
-                  onChange={(e) => setRelavadoInput(parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#071326] border border-amber-800/60 rounded-xl text-sm font-bold text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-                <p className="text-[11px] text-slate-400 mt-0.5">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRelavadoInput((v) => Math.max(0, v - 1))}
+                    className="w-11 h-10 rounded-xl bg-[#132747] active:bg-[#1e3659] border border-[#1e3659] text-white flex items-center justify-center shrink-0"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    value={relavadoInput}
+                    onChange={(e) => setRelavadoInput(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                    className="flex-1 px-3 py-2 bg-[#071326] border border-amber-800/60 rounded-xl text-center text-sm font-bold text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setRelavadoInput((v) => v + 1)}
+                    className="w-11 h-10 rounded-xl bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
                   Prendas manchadas que quedan en la planta para un segundo ciclo.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-rose-400 mb-1">
+                <label className="block text-xs font-bold uppercase text-rose-400 mb-1.5">
                   3. Prendas Rotas / Dadas de Baja
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={rotasInput}
-                  onChange={(e) => setRotasInput(parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#071326] border border-rose-800/60 rounded-xl text-sm font-bold text-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                />
-                <p className="text-[11px] text-slate-400 mt-0.5">Ropa que se descarta o separa por rotura/baja.</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRotasInput((v) => Math.max(0, v - 1))}
+                    className="w-11 h-10 rounded-xl bg-[#132747] active:bg-[#1e3659] border border-[#1e3659] text-white flex items-center justify-center shrink-0"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    value={rotasInput}
+                    onChange={(e) => setRotasInput(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                    className="flex-1 px-3 py-2 bg-[#071326] border border-rose-800/60 rounded-xl text-center text-sm font-bold text-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setRotasInput((v) => v + 1)}
+                    className="w-11 h-10 rounded-xl bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Ropa que se descarta o separa por rotura/baja.</p>
               </div>
 
               {/* Resumen del conteo */}
@@ -860,18 +1037,18 @@ export const AuditoriaView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setSelectedItemForConteo(null)}
-                  className="px-4 py-2 bg-[#132747] hover:bg-[#1e3659] text-slate-300 text-xs font-bold rounded-xl transition-colors"
+                  className="px-4 py-2.5 sm:py-2 bg-[#132747] hover:bg-[#1e3659] text-slate-300 text-xs font-bold rounded-xl transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={savingConteo}
-                  className="px-5 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-brand-600/30 flex items-center gap-1.5 transition-all"
+                  className="px-5 py-2.5 sm:py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-brand-600/30 flex items-center justify-center gap-1.5 transition-all"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>{savingConteo ? 'Guardando...' : 'Guardar y Actualizar'}</span>

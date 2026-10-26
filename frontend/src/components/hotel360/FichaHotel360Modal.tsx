@@ -141,16 +141,16 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-slate-950 border border-slate-800 rounded-3xl max-w-5xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-fade-in">
+      <div className="bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl max-w-5xl w-full max-h-[94dvh] flex flex-col shadow-2xl overflow-hidden animate-fade-in">
         {/* Header Modal */}
-        <div className="no-print bg-slate-900/90 border-b border-slate-800 p-4 sm:p-6 flex flex-wrap items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded-2xl">
-              <Building2 className="w-6 h-6" />
+        <div className="no-print bg-slate-900/90 border-b border-slate-800 p-3.5 sm:p-6 flex flex-wrap items-center justify-between gap-3 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="p-2.5 sm:p-3 bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded-2xl shrink-0">
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-brand-400">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-brand-400">
                   Ficha 360° del Cliente
                 </span>
                 <span
@@ -163,76 +163,77 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
                   {ficha?.activo ?? true ? 'Cuenta Activa' : 'Inactivo'}
                 </span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-black text-white">
+              <h2 className="text-lg sm:text-2xl font-black text-white truncate">
                 {ficha?.hotel_nombre || initialHotelNombre || `Hotel #${hotelId}`}
               </h2>
             </div>
           </div>
 
+          <button
+            onClick={onClose}
+            className="sm:order-3 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors shrink-0"
+            aria-label="Cerrar Ficha 360"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
           {/* Navegación por pestañas */}
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <div className="sm:order-2 flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'dashboard'
                   ? 'bg-brand-600 text-white shadow'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <TrendingUp className="w-3.5 h-3.5" />
+              <TrendingUp className="w-3.5 h-3.5 shrink-0" />
               <span>Dashboard 360°</span>
             </button>
             <button
               onClick={() => setActiveTab('liquidacion')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'liquidacion'
                   ? 'bg-brand-600 text-white shadow'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Liquidación Mensual</span>
+              <FileText className="w-3.5 h-3.5 shrink-0" />
+              <span>Liquidación</span>
             </button>
             <button
               onClick={() => setActiveTab('remitos')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'remitos'
                   ? 'bg-brand-600 text-white shadow'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Truck className="w-3.5 h-3.5" />
+              <Truck className="w-3.5 h-3.5 shrink-0" />
               <span>Remitos ({ficha?.total_envios || 0})</span>
             </button>
           </div>
-
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Barra de Filtros de Período (común para Dashboard y Liquidación) */}
-        <div className="no-print bg-slate-900/40 border-b border-slate-800/80 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-brand-400" />
-            <span className="font-semibold text-slate-300">Período:</span>
+        <div className="no-print bg-slate-900/40 border-b border-slate-800/80 px-3.5 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 text-xs shrink-0">
+          <div className="flex items-center gap-2 max-w-full overflow-x-auto no-scrollbar">
+            <Calendar className="w-4 h-4 text-brand-400 shrink-0" />
+            <span className="font-semibold text-slate-300 hidden sm:inline">Período:</span>
             <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800">
               {(
                 [
                   { id: 'month', label: 'Mes Actual' },
                   { id: 'last_month', label: 'Mes Anterior' },
-                  { id: 'quarter', label: 'Último Trimestre' },
-                  { id: 'year', label: 'Año Corriente' },
+                  { id: 'quarter', label: 'Trimestre' },
+                  { id: 'year', label: 'Año' },
                   { id: 'custom', label: 'Personalizado' },
                 ] as const
               ).map((opt) => (
                 <button
                   key={opt.id}
                   onClick={() => handlePresetChange(opt.id)}
-                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
+                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all whitespace-nowrap ${
                     periodoPreset === opt.id
                       ? 'bg-brand-600 text-white font-bold'
                       : 'text-slate-400 hover:text-white'
@@ -245,19 +246,19 @@ export const FichaHotel360Modal: React.FC<FichaHotel360ModalProps> = ({
           </div>
 
           {periodoPreset === 'custom' && (
-            <form onSubmit={handleCustomSubmit} className="flex items-center gap-2">
+            <form onSubmit={handleCustomSubmit} className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <input
                 type="date"
                 value={fechaDesde}
                 onChange={(e) => setFechaDesde(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200"
+                className="flex-1 sm:flex-initial bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200"
               />
               <span className="text-slate-500">a</span>
               <input
                 type="date"
                 value={fechaHasta}
                 onChange={(e) => setFechaHasta(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200"
+                className="flex-1 sm:flex-initial bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200"
               />
               <button
                 type="submit"

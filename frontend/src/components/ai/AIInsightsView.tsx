@@ -49,23 +49,23 @@ export const AIInsightsView: React.FC = () => {
   }, [items]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-brand-950 via-slate-900 to-indigo-950 p-6 rounded-2xl border border-brand-800/40 relative overflow-hidden shadow-2xl">
+      <div className="bg-gradient-to-r from-brand-950 via-slate-900 to-indigo-950 p-4 sm:p-6 rounded-2xl border border-brand-800/40 relative overflow-hidden shadow-2xl">
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 mb-3">
               <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
               <span>Módulo de IA & Business Intelligence</span>
             </div>
-            <h2 className="text-2xl font-black text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               Diagnóstico Automatizado & Análisis en Lenguaje Natural
             </h2>
             <p className="text-xs text-slate-300 mt-2 leading-relaxed">
               El Asistente opera mediante el estándar Model Context Protocol (MCP) conectando Gemini a 9 herramientas de auditoría en tiempo real (KPIs, Ficha 360, remitos, calidad, tarifas y proyección de personal). Hacé preguntas en lenguaje natural para auditar la operatoria.
             </p>
           </div>
-          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 backdrop-blur-sm">
+          <div className="hidden sm:block p-4 rounded-2xl bg-slate-950/60 border border-slate-800 backdrop-blur-sm">
             <BrainCircuit className="h-12 w-12 text-brand-400 animate-pulse" />
           </div>
         </div>
@@ -174,7 +174,7 @@ export const AIInsightsView: React.FC = () => {
       )}
 
       {/* Chat Assistant */}
-      <div className="h-[520px]">
+      <div className="h-[460px] sm:h-[520px]">
         <ChatWidget />
       </div>
     </div>
