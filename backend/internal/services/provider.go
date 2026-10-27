@@ -23,6 +23,7 @@ type ToolCall struct {
 
 // ToolResult contiene el resultado de ejecutar una herramienta.
 type ToolResult struct {
+	ID      string `json:"id,omitempty"`
 	Name    string `json:"name"`
 	Content string `json:"content"`
 	IsError bool   `json:"is_error,omitempty"`

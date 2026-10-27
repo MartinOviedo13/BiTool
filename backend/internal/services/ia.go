@@ -143,6 +143,7 @@ func (s *IAService) AskWithMCP(ctx context.Context, pregunta string, desde, hast
 			conversation = append(conversation, Message{
 				Role: "function",
 				ToolResponse: &ToolResult{
+					ID:      tc.ID,
 					Name:    tc.Name,
 					Content: resultContent,
 					IsError: isError,

@@ -229,11 +229,13 @@ func (c *GeminiClient) GenerateWithTools(ctx context.Context, system string, his
 				parts = append(parts, part)
 			}
 		} else if role == "function" || m.ToolResponse != nil {
-			role = "function"
+			role = "user"
 			name := "tool_result"
+			id := ""
 			contentStr := m.Content
 			if m.ToolResponse != nil {
 				name = m.ToolResponse.Name
+				id = m.ToolResponse.ID
 				contentStr = m.ToolResponse.Content
 			}
 			// Parsear contenido a JSON si es posible para entregarlo estructurado a la IA
@@ -241,13 +243,17 @@ func (c *GeminiClient) GenerateWithTools(ctx context.Context, system string, his
 			if err := json.Unmarshal([]byte(contentStr), &parsedResponse); err != nil {
 				parsedResponse = map[string]any{"output": contentStr}
 			}
-			parts = append(parts, map[string]any{
-				"functionResponse": map[string]any{
-					"name": name,
-					"response": map[string]any{
-						"result": parsedResponse,
-					},
+			fnResp := map[string]any{
+				"name": name,
+				"response": map[string]any{
+					"result": parsedResponse,
 				},
+			}
+			if id != "" {
+				fnResp["id"] = id
+			}
+			parts = append(parts, map[string]any{
+				"functionResponse": fnResp,
 			})
 		} else {
 			// user
@@ -258,10 +264,15 @@ func (c *GeminiClient) GenerateWithTools(ctx context.Context, system string, his
 		}
 
 		if len(parts) > 0 {
-			contents = append(contents, map[string]any{
-				"role":  role,
-				"parts": parts,
-			})
+			if len(contents) > 0 && contents[len(contents)-1]["role"] == role {
+				prevParts, _ := contents[len(contents)-1]["parts"].([]map[string]any)
+				contents[len(contents)-1]["parts"] = append(prevParts, parts...)
+			} else {
+				contents = append(contents, map[string]any{
+					"role":  role,
+					"parts": parts,
+				})
+			}
 		}
 	}
 
