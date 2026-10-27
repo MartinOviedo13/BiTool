@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,7 +24,7 @@ func NewApp(db *pgxpool.Pool) *App {
 		db:  db,
 		mcp: mcpServer,
 	}
-	if strings.TrimSpace(os.Getenv("GEMINI_API_KEY")) != "" {
+	if services.ResolveGeminiAPIKey() != "" {
 		app.ia = services.NewIAService(db, services.NewGeminiClient(), mcpServer)
 	}
 	return app
@@ -45,8 +43,10 @@ func (a *App) RoutesWithAllowedOrigins(allowedOrigins []string) http.Handler {
 	router.Get("/health", a.handleHealth)
 	router.Post("/auth/login", a.login)
 
-	// Endpoint estándar MCP (JSON-RPC 2.0) para Gemini y clientes externos
+	// Endpoint estándar MCP (Streamable HTTP + SSE + JSON-RPC 2.0) para Gemini y clientes externos
+	router.Get("/api/mcp", a.handleMCP)
 	router.Post("/api/mcp", a.handleMCP)
+	router.Delete("/api/mcp", a.handleMCP)
 
 	// ── Autenticado general (todos los roles) ─────────────────────
 	router.Group(func(r chi.Router) {

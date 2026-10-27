@@ -35,7 +35,7 @@ type iaAskResponse struct {
 // askIA recibe una pregunta en lenguaje natural, opcionalmente con rango de fechas
 // e historial reciente, y procesa la consulta invocando herramientas MCP según se requiera.
 func (a *App) askIA(w http.ResponseWriter, r *http.Request) {
-	apiKey := strings.TrimSpace(os.Getenv("GEMINI_API_KEY"))
+	apiKey := services.ResolveGeminiAPIKey()
 	if apiKey == "" || a.ia == nil {
 		writeError(w, http.StatusServiceUnavailable, "Módulo de IA no configurado (falta GEMINI_API_KEY en backend/.env).")
 		return
@@ -106,6 +106,56 @@ func (a *App) handleMCP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	sessionID := strings.TrimSpace(r.Header.Get("Mcp-Session-Id"))
+	if sessionID == "" {
+		sessionID = "triton-mcp-session-1"
+	}
+	w.Header().Set("Mcp-Session-Id", sessionID)
+
+	if r.Method == http.MethodDelete {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method == http.MethodGet {
+		accept := strings.ToLower(r.Header.Get("Accept"))
+		if strings.Contains(accept, "text/event-stream") || r.URL.Query().Get("sse") == "1" {
+			flusher, ok := w.(http.Flusher)
+			if !ok {
+				writeError(w, http.StatusInternalServerError, "Streaming SSE no soportado.")
+				return
+			}
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.Header().Set("Cache-Control", "no-cache")
+			w.Header().Set("Connection", "keep-alive")
+			w.WriteHeader(http.StatusOK)
+			_, _ = fmt.Fprintf(w, "event: endpoint\ndata: /api/mcp\n\n")
+			flusher.Flush()
+
+			ticker := time.NewTicker(15 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-r.Context().Done():
+					return
+				case <-ticker.C:
+					_, _ = fmt.Fprintf(w, ": ping\n\n")
+					flusher.Flush()
+				}
+			}
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"status":          "ok",
+			"server":          "lavadero-bi-mcp",
+			"version":         "1.0.0",
+			"protocolVersion": "2025-03-26",
+			"tools_count":     len(a.mcp.ListTools()),
+			"resources_count": len(a.mcp.ListResources()),
+		})
+		return
+	}
+
 	reqBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "No se pudo leer el cuerpo de la petición.")
@@ -114,7 +164,7 @@ func (a *App) handleMCP(w http.ResponseWriter, r *http.Request) {
 
 	respBytes := a.mcp.HandleJSONRPC(r.Context(), reqBytes)
 	if respBytes == nil {
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusAccepted)
 		return
 	}
 

@@ -49,6 +49,12 @@ func NewServer(name, version string) *Server {
 func (s *Server) RegisterTool(tool Tool, handler ToolHandler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if tool.InputSchema.Type == "" {
+		tool.InputSchema.Type = "object"
+	}
+	if tool.InputSchema.Properties == nil {
+		tool.InputSchema.Properties = make(map[string]ToolProperty)
+	}
 	s.tools[tool.Name] = registeredTool{
 		Tool:    tool,
 		Handler: handler,
@@ -118,8 +124,42 @@ func (s *Server) ReadResource(ctx context.Context, uri string) (*ResourceContent
 	return rr.Reader(ctx, uri)
 }
 
-// HandleJSONRPC procesa un mensaje JSON-RPC del protocolo MCP y genera la respuesta correspondiente.
+// HandleJSONRPC procesa un mensaje JSON-RPC (o un batch de mensajes) del protocolo MCP y genera la respuesta correspondiente.
 func (s *Server) HandleJSONRPC(ctx context.Context, reqBytes []byte) []byte {
+	trimmed := bytesTrimSpace(reqBytes)
+	if len(trimmed) > 0 && trimmed[0] == '[' {
+		var batch []json.RawMessage
+		if err := json.Unmarshal(trimmed, &batch); err != nil {
+			resp, _ := json.Marshal(JSONRPCResponse{
+				JSONRPC: JSONRPCVersion,
+				Error:   &JSONRPCError{Code: CodeParseError, Message: "Parse error: " + err.Error()},
+			})
+			return resp
+		}
+		responses := make([]json.RawMessage, 0, len(batch))
+		for _, item := range batch {
+			if r := s.handleSingleJSONRPC(ctx, item); r != nil {
+				responses = append(responses, r)
+			}
+		}
+		if len(responses) == 0 {
+			return nil
+		}
+		out, _ := json.Marshal(responses)
+		return out
+	}
+	return s.handleSingleJSONRPC(ctx, trimmed)
+}
+
+func bytesTrimSpace(b []byte) []byte {
+	start := 0
+	for start < len(b) && (b[start] == ' ' || b[start] == '\t' || b[start] == '\n' || b[start] == '\r') {
+		start++
+	}
+	return b[start:]
+}
+
+func (s *Server) handleSingleJSONRPC(ctx context.Context, reqBytes []byte) []byte {
 	var req JSONRPCRequest
 	if err := json.Unmarshal(reqBytes, &req); err != nil {
 		resp, _ := json.Marshal(JSONRPCResponse{
@@ -137,8 +177,16 @@ func (s *Server) HandleJSONRPC(ctx context.Context, reqBytes []byte) []byte {
 
 	switch req.Method {
 	case "initialize":
+		protoVer := LatestProtocolVersion
+		var initParams InitializeParams
+		if len(req.Params) > 0 && json.Unmarshal(req.Params, &initParams) == nil {
+			switch initParams.ProtocolVersion {
+			case "2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25":
+				protoVer = initParams.ProtocolVersion
+			}
+		}
 		result = InitializeResult{
-			ProtocolVersion: LatestProtocolVersion,
+			ProtocolVersion: protoVer,
 			ServerInfo: ImplementationInfo{
 				Name:    s.name,
 				Version: s.version,
@@ -151,13 +199,13 @@ func (s *Server) HandleJSONRPC(ctx context.Context, reqBytes []byte) []byte {
 			Instructions: "Servidor MCP de Lavadero BI (TRITÓN / Poseidón SRL). Provee herramientas de Business Intelligence, auditoría, trazabilidad y proyección de demanda.",
 		}
 
-	case "notifications/initialized":
+	case "notifications/initialized", "notifications/cancelled":
 		if isNotification {
 			return nil
 		}
 		result = map[string]any{}
 
-	case "ping":
+	case "ping", "logging/setLevel":
 		result = map[string]any{}
 
 	case "tools/list":
@@ -194,10 +242,17 @@ func (s *Server) HandleJSONRPC(ctx context.Context, reqBytes []byte) []byte {
 		}
 		result = ReadResourceResult{Contents: []ResourceContent{*content}}
 
-	case "prompts/list":
-		result = map[string]any{"prompts": []any{}}
+	case "prompts/list", "resources/templates/list":
+		if req.Method == "resources/templates/list" {
+			result = map[string]any{"resourceTemplates": []any{}}
+		} else {
+			result = map[string]any{"prompts": []any{}}
+		}
 
 	default:
+		if isNotification {
+			return nil
+		}
 		rpcErr = &JSONRPCError{Code: CodeMethodNotFound, Message: fmt.Sprintf("Método '%s' no implementado", req.Method)}
 	}
 

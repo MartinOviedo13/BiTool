@@ -98,9 +98,9 @@ type Tool struct {
 
 // ToolSchema define la estructura JSON Schema para los argumentos de una tool
 type ToolSchema struct {
-	Type       string                 `json:"type"`
-	Properties map[string]ToolProperty `json:"properties,omitempty"`
-	Required   []string               `json:"required,omitempty"`
+	Type       string                  `json:"type"`
+	Properties map[string]ToolProperty `json:"properties"`
+	Required   []string                `json:"required,omitempty"`
 }
 
 type ToolProperty struct {
