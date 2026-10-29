@@ -216,8 +216,17 @@ export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({
     };
 
     return (
-      <div className="mt-2 w-full" style={{ height: chartHeight }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div
+        className="mt-2 w-full min-w-0 overflow-hidden"
+        style={{ height: chartHeight, minHeight: isExpanded ? 360 : 220 }}
+      >
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          debounce={50}
+          minWidth={100}
+          minHeight={isExpanded ? 360 : 220}
+        >
           {chartType === 'pie' ? (
             <PieChart>
               <Tooltip content={customTooltip} />
@@ -323,7 +332,7 @@ export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({
     const sizeKB = artifact.size_bytes ? Math.round(artifact.size_bytes / 1024) : null;
 
     return (
-      <div className="mt-2.5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-triton-teal/40 p-3.5 sm:p-4 text-xs shadow-lg">
+      <div className="mt-2.5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-triton-teal/40 p-3.5 sm:p-4 text-xs shadow-lg w-full min-w-0 overflow-hidden">
         {/* Cabecera del archivo */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
           <div className="flex items-center gap-2.5">
@@ -390,7 +399,7 @@ export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({
 
   // ── Render para Gráficos Interactivos (Chart)
   return (
-    <div className="mt-2.5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-triton-teal/30 p-3.5 sm:p-4 text-xs shadow-lg">
+    <div className="mt-2.5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-triton-teal/30 p-3.5 sm:p-4 text-xs shadow-lg w-full min-w-0 overflow-hidden">
       {/* Cabecera del Gráfico */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
         <div>

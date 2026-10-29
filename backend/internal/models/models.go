@@ -15,6 +15,8 @@ type Item struct {
 	Nombre         string   `json:"nombre"`
 	PrecioUnitario *float64 `json:"precio_unitario"`
 	SeFactura      bool     `json:"se_factura"`
+	Sector         string   `json:"sector"`
+	Activo         bool     `json:"activo"`
 }
 
 type Registro struct {

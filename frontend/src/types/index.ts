@@ -9,6 +9,8 @@ export interface Item {
   nombre: string;
   precio_unitario: number | null;
   se_factura: boolean;
+  sector?: 'planchado' | 'secadora';
+  activo?: boolean;
 }
 
 export interface Registro {
@@ -244,6 +246,8 @@ export interface ItemConsumoDetalle {
   item_nombre: string;
   precio_unitario: number | null;
   se_factura: boolean;
+  sector?: 'planchado' | 'secadora';
+  activo?: boolean;
   cantidad_facturable: number;
   cantidad_relavado: number;
   cantidad_rota: number;

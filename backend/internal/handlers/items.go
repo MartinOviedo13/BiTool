@@ -11,14 +11,19 @@ type itemPayload struct {
 	Nombre         *string  `json:"nombre"`
 	PrecioUnitario *float64 `json:"precio_unitario"`
 	SeFactura      *bool    `json:"se_factura"`
+	Sector         *string  `json:"sector"`
+	Activo         *bool    `json:"activo"`
 }
 
 func (a *App) listItems(w http.ResponseWriter, r *http.Request) {
-	rows, err := a.db.Query(r.Context(), `
-		SELECT id, nombre, precio_unitario, se_factura
+	all := r.URL.Query().Get("all") == "true"
+	query := `
+		SELECT id, nombre, precio_unitario, se_factura, sector, activo
 		FROM items
-		ORDER BY nombre
-	`)
+		WHERE ($1::bool = true OR activo = true)
+		ORDER BY CASE WHEN sector = 'planchado' THEN 1 ELSE 2 END, id
+	`
+	rows, err := a.db.Query(r.Context(), query, all)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "No se pudieron listar los items.")
 		return
@@ -28,7 +33,7 @@ func (a *App) listItems(w http.ResponseWriter, r *http.Request) {
 	items := []models.Item{}
 	for rows.Next() {
 		var item models.Item
-		if err := rows.Scan(&item.ID, &item.Nombre, &item.PrecioUnitario, &item.SeFactura); err != nil {
+		if err := rows.Scan(&item.ID, &item.Nombre, &item.PrecioUnitario, &item.SeFactura, &item.Sector, &item.Activo); err != nil {
 			writeError(w, http.StatusInternalServerError, "No se pudo leer un item.")
 			return
 		}
@@ -60,16 +65,28 @@ func (a *App) createItem(w http.ResponseWriter, r *http.Request) {
 		seFactura = *payload.SeFactura
 	}
 
+	sector := "planchado"
+	if payload.Sector != nil && (*payload.Sector == "planchado" || *payload.Sector == "secadora") {
+		sector = *payload.Sector
+	}
+
+	activo := true
+	if payload.Activo != nil {
+		activo = *payload.Activo
+	}
+
 	var item models.Item
 	err := a.db.QueryRow(r.Context(), `
-		INSERT INTO items (nombre, precio_unitario, se_factura)
-		VALUES ($1, $2, $3)
-		RETURNING id, nombre, precio_unitario, se_factura
-	`, nombre, payload.PrecioUnitario, seFactura).Scan(
+		INSERT INTO items (nombre, precio_unitario, se_factura, sector, activo)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, nombre, precio_unitario, se_factura, sector, activo
+	`, nombre, payload.PrecioUnitario, seFactura, sector, activo).Scan(
 		&item.ID,
 		&item.Nombre,
 		&item.PrecioUnitario,
 		&item.SeFactura,
+		&item.Sector,
+		&item.Activo,
 	)
 	if err != nil {
 		writeDBError(w, err, "Item no encontrado.")
@@ -106,6 +123,11 @@ func (a *App) updateItem(w http.ResponseWriter, r *http.Request) {
 		nombre = &clean
 	}
 
+	var sector *string
+	if payload.Sector != nil && (*payload.Sector == "planchado" || *payload.Sector == "secadora") {
+		sector = payload.Sector
+	}
+
 	var item models.Item
 	err = a.db.QueryRow(r.Context(), `
 		UPDATE items
@@ -113,14 +135,18 @@ func (a *App) updateItem(w http.ResponseWriter, r *http.Request) {
 			nombre = COALESCE($2, nombre),
 			precio_unitario = COALESCE($3, precio_unitario),
 			se_factura = COALESCE($4, se_factura),
+			sector = COALESCE($5, sector),
+			activo = COALESCE($6, activo),
 			updated_at = now()
 		WHERE id = $1
-		RETURNING id, nombre, precio_unitario, se_factura
-	`, id, nombre, payload.PrecioUnitario, payload.SeFactura).Scan(
+		RETURNING id, nombre, precio_unitario, se_factura, sector, activo
+	`, id, nombre, payload.PrecioUnitario, payload.SeFactura, sector, payload.Activo).Scan(
 		&item.ID,
 		&item.Nombre,
 		&item.PrecioUnitario,
 		&item.SeFactura,
+		&item.Sector,
+		&item.Activo,
 	)
 	if err != nil {
 		writeDBError(w, err, "Item no encontrado.")

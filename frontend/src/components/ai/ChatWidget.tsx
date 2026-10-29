@@ -56,19 +56,37 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const [canvasOpen, setCanvasOpen] = useState<boolean>(false);
   const [activeArtifact, setActiveArtifact] = useState<IAArtifact | null>(null);
 
-  const endRef = useRef<HTMLDivElement>(null);
+  // Refs de scroll para evitar que scrollIntoView mueva la ventana principal
+  const regularScrollRef = useRef<HTMLDivElement>(null);
+  const canvasScrollRef = useRef<HTMLDivElement>(null);
 
   // Recolectar todos los artefactos de la conversación
   const allArtifacts = mensajes.flatMap((m) => m.artifacts || []);
 
+  // Scroll suave exclusivo al interior del contenedor de mensajes
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [mensajes, loading]);
+    const scrollToBottom = (el: HTMLDivElement | null) => {
+      if (el) {
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+    };
+    scrollToBottom(regularScrollRef.current);
+    if (canvasOpen) {
+      scrollToBottom(canvasScrollRef.current);
+    }
+  }, [mensajes, loading, canvasOpen]);
 
   const rango = getDateRange(period, customFrom, customTo);
 
-  const handleOpenCanvas = (art: IAArtifact) => {
-    setActiveArtifact(art);
+  const handleOpenCanvas = (art?: IAArtifact) => {
+    if (art) {
+      setActiveArtifact(art);
+    } else if (!activeArtifact && allArtifacts.length > 0) {
+      setActiveArtifact(allArtifacts[allArtifacts.length - 1]);
+    }
     setCanvasOpen(true);
   };
 
@@ -119,8 +137,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   const periodLabel = formatDateDisplay(rango.from) + ' → ' + formatDateDisplay(rango.to);
 
-  const chatContent = (
-    <div className="flex flex-col h-full bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+  // Renderizador unificado del panel de chat (reutilizado tanto en sidebar como en canvas)
+  const renderChatPanel = (inCanvas: boolean) => (
+    <div className="flex flex-col h-full bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-xl min-w-0">
       {/* Header */}
       <div className="px-3.5 sm:px-4 py-3 border-b border-slate-800 bg-slate-950/70">
         <div className="flex items-center justify-between gap-2 mb-2">
@@ -132,20 +151,22 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               <h3 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
                 Asistente IA
                 <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800/60 flex items-center gap-1">
-                  <Sparkles className="h-2.5 w-2.5" /> Gemini 3.8 + Canvas
+                  <Sparkles className="h-2.5 w-2.5" /> {inCanvas ? 'Gemini 3.8 + Canvas' : 'Gemini 3.8'}
                 </span>
               </h3>
               <p className="text-[10px] text-slate-400">
-                Gráficos interactivos & Descarga de Excel en vivo
+                {inCanvas
+                  ? 'Consultas y ejecución de herramientas en vivo'
+                  : 'Gráficos interactivos & Descarga de Excel'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1">
-            {!isEmbeddedInCanvas && (
+            {!inCanvas && (
               <button
                 type="button"
-                onClick={() => setCanvasOpen(true)}
+                onClick={() => handleOpenCanvas()}
                 className="px-2.5 py-1 rounded-xl bg-triton-teal/20 hover:bg-triton-teal/40 text-triton-aqua border border-triton-teal/40 text-[11px] font-bold flex items-center gap-1 transition-all"
                 title="Abrir en espacio de trabajo Canvas dividido"
               >
@@ -154,7 +175,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               </button>
             )}
 
-            {onClose && (
+            {!inCanvas && onClose && (
               <button
                 type="button"
                 onClick={onClose}
@@ -212,12 +233,15 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         <p className="text-[10px] text-slate-500 mt-1">Contexto temporal: {periodLabel}</p>
       </div>
 
-      {/* Mensajes */}
-      <div className="flex-1 overflow-y-auto px-3.5 sm:px-4 py-4 space-y-3.5 min-h-[240px]">
+      {/* Contenedor de Mensajes con ref de scroll interno */}
+      <div
+        ref={inCanvas ? canvasScrollRef : regularScrollRef}
+        className="flex-1 overflow-y-auto px-3.5 sm:px-4 py-4 space-y-3.5 min-h-[240px] min-w-0"
+      >
         {mensajes.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} min-w-0`}>
             <div
-              className={`max-w-[92%] sm:max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+              className={`max-w-[92%] sm:max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed min-w-0 overflow-hidden ${
                 m.role === 'user'
                   ? 'bg-triton-aqua text-triton-ink font-semibold rounded-br-sm shadow-md'
                   : 'bg-slate-800/90 text-slate-200 rounded-bl-sm border border-slate-700/80 shadow-md'
@@ -244,13 +268,13 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
               {/* Artefactos Visuales y Descargas Inline */}
               {m.artifacts && m.artifacts.length > 0 && (
-                <div className="mt-3 space-y-2.5">
+                <div className="mt-3 space-y-2.5 min-w-0">
                   {m.artifacts.map((art) => (
                     <ArtifactRenderer
                       key={art.id}
                       artifact={art}
                       isExpanded={false}
-                      onOpenCanvas={!isEmbeddedInCanvas ? handleOpenCanvas : undefined}
+                      onOpenCanvas={inCanvas ? (selected) => setActiveArtifact(selected) : handleOpenCanvas}
                     />
                   ))}
                 </div>
@@ -266,7 +290,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             </div>
           </div>
         )}
-        <div ref={endRef} />
       </div>
 
       {/* Sugerencias Rápidas */}
@@ -314,9 +337,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   return (
     <>
-      {chatContent}
+      {renderChatPanel(isEmbeddedInCanvas)}
 
-      {/* Modal Híbrido Canvas (Vista Dividida / Pantalla Completa) */}
+      {/* Modal Híbrido Canvas con Estado Compartido Unificado */}
       {!isEmbeddedInCanvas && (
         <CanvasModal
           isOpen={canvasOpen}
@@ -324,12 +347,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           activeArtifact={activeArtifact}
           allArtifacts={allArtifacts}
           onSelectArtifact={(art) => setActiveArtifact(art)}
-          chatChildren={
-            <ChatWidget
-              isEmbeddedInCanvas={true}
-              onClose={() => setCanvasOpen(false)}
-            />
-          }
+          chatChildren={renderChatPanel(true)}
+          onSendMessage={(prompt) => enviar(prompt)}
+          loading={loading}
         />
       )}
     </>

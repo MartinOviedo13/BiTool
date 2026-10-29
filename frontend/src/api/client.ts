@@ -100,12 +100,12 @@ export const api = {
 
   // Items / Prendas
   getItems: () => request<Item[]>('/items'),
-  createItem: (data: { nombre: string; precio_unitario?: number | null; se_factura?: boolean }) =>
+  createItem: (data: { nombre: string; precio_unitario?: number | null; se_factura?: boolean; sector?: 'planchado' | 'secadora'; activo?: boolean }) =>
     request<Item>('/items', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  updateItem: (id: number, data: { nombre?: string; precio_unitario?: number | null; se_factura?: boolean }) =>
+  updateItem: (id: number, data: { nombre?: string; precio_unitario?: number | null; se_factura?: boolean; sector?: 'planchado' | 'secadora'; activo?: boolean }) =>
     request<Item>(`/items/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),

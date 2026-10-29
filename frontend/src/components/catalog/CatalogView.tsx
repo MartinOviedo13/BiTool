@@ -29,6 +29,7 @@ export const CatalogView: React.FC = () => {
   const [newItemName, setNewItemName] = useState<string>('');
   const [newItemPrice, setNewItemPrice] = useState<string>('');
   const [newItemSeFactura, setNewItemSeFactura] = useState<boolean>(true);
+  const [newItemSector, setNewItemSector] = useState<'planchado' | 'secadora'>('planchado');
   const [addingItem, setAddingItem] = useState<boolean>(false);
 
   // Editing price state
@@ -90,6 +91,7 @@ export const CatalogView: React.FC = () => {
         nombre: newItemName.trim(),
         precio_unitario: price,
         se_factura: newItemSeFactura,
+        sector: newItemSector,
       });
       setItems((prev) => [...prev, created]);
       setNewItemName('');
@@ -250,6 +252,14 @@ export const CatalogView: React.FC = () => {
               onChange={(e) => setNewItemPrice(e.target.value)}
               className="bg-triton-deep border border-triton-slate/60 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua w-full sm:w-36"
             />
+            <select
+              value={newItemSector}
+              onChange={(e) => setNewItemSector(e.target.value as 'planchado' | 'secadora')}
+              className="bg-triton-deep border border-triton-slate/60 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-triton-aqua"
+            >
+              <option value="planchado">🥌 Sector Planchado / Calandra</option>
+              <option value="secadora">🌀 Sector Secadoras / Felpa</option>
+            </select>
             <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
               <input
                 type="checkbox"
@@ -386,15 +396,26 @@ export const CatalogView: React.FC = () => {
                         <span className="text-[11px] text-slate-500 font-mono">#{item.id}</span>
                         <span className="text-sm font-bold text-slate-100">{item.nombre}</span>
                       </div>
-                      <span
-                        className={`inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                          item.se_factura
-                            ? 'bg-brand-950 text-brand-300 border-brand-800'
-                            : 'bg-amber-950 text-amber-300 border-amber-800'
-                        }`}
-                      >
-                        {item.se_factura ? 'Facturable' : 'Relavado (No facturable)'}
-                      </span>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            item.sector === 'planchado'
+                              ? 'bg-indigo-950 text-indigo-300 border-indigo-800'
+                              : 'bg-teal-950 text-teal-300 border-teal-800'
+                          }`}
+                        >
+                          {item.sector === 'planchado' ? '🥌 Planchado' : '🌀 Secadora'}
+                        </span>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                            item.se_factura
+                              ? 'bg-brand-950 text-brand-300 border-brand-800'
+                              : 'bg-amber-950 text-amber-300 border-amber-800'
+                          }`}
+                        >
+                          {item.se_factura ? 'Facturable' : 'Relavado'}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="text-right">
@@ -455,6 +476,7 @@ export const CatalogView: React.FC = () => {
                   <tr>
                     <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3">Tipo de Prenda / Concepto</th>
+                    <th className="px-4 py-3">Sector de Planta</th>
                     <th className="px-4 py-3">Tipo de Facturación</th>
                     <th className="px-4 py-3 text-right">Precio Unitario</th>
                     <th className="px-4 py-3 text-right">Acción</th>
@@ -467,13 +489,24 @@ export const CatalogView: React.FC = () => {
                       <td className="px-4 py-3 font-semibold text-slate-200">{item.nombre}</td>
                       <td className="px-4 py-3">
                         <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                            item.sector === 'planchado'
+                              ? 'bg-indigo-950 text-indigo-300 border-indigo-800'
+                              : 'bg-teal-950 text-teal-300 border-teal-800'
+                          }`}
+                        >
+                          {item.sector === 'planchado' ? '🥌 Planchado / Calandra' : '🌀 Secadoras / Felpa'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
                             item.se_factura
                               ? 'bg-brand-950 text-brand-300 border-brand-800'
                               : 'bg-amber-950 text-amber-300 border-amber-800'
                           }`}
                         >
-                          {item.se_factura ? 'Facturable' : 'Relavado (No facturable)'}
+                          {item.se_factura ? 'Facturable' : 'Relavado'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right font-medium">

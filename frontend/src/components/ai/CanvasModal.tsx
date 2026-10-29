@@ -6,6 +6,14 @@ import {
   Columns,
   Layers,
   FileSpreadsheet,
+  BarChart3,
+  TrendingUp,
+  Users,
+  FileText,
+  AlertTriangle,
+  Loader2,
+  Plus,
+  ArrowRight,
 } from 'lucide-react';
 import { IAArtifact } from '../../types';
 import { ArtifactRenderer } from './ArtifactRenderer';
@@ -15,9 +23,68 @@ interface CanvasModalProps {
   onClose: () => void;
   activeArtifact: IAArtifact | null;
   allArtifacts: IAArtifact[];
-  onSelectArtifact: (art: IAArtifact) => void;
+  onSelectArtifact: (art: IAArtifact | null) => void;
   chatChildren: React.ReactNode;
+  onSendMessage?: (prompt: string) => void;
+  loading?: boolean;
 }
+
+const QUICK_ACTIONS = [
+  {
+    id: 'ranking',
+    icon: BarChart3,
+    color: 'text-cyan-400 bg-cyan-950/60 border-cyan-800/60 hover:border-cyan-500',
+    iconBg: 'bg-cyan-500/10 text-cyan-400',
+    title: 'Ranking de Facturación',
+    desc: 'Gráfico interactivo con el top de hoteles por facturación del período con porcentajes.',
+    prompt: 'Generame un gráfico del ranking de facturación por hotel',
+  },
+  {
+    id: 'excel',
+    icon: FileSpreadsheet,
+    color: 'text-emerald-400 bg-emerald-950/60 border-emerald-800/60 hover:border-emerald-500',
+    iconBg: 'bg-emerald-500/10 text-emerald-400',
+    title: 'Reporte Ejecutivo Excel',
+    desc: 'Generar planilla .xlsx completa con KPIs, facturación y operaciones lista para descargar.',
+    prompt: 'Generame el reporte ejecutivo completo en Excel para descargar',
+  },
+  {
+    id: 'evolucion',
+    icon: TrendingUp,
+    color: 'text-indigo-400 bg-indigo-950/60 border-indigo-800/60 hover:border-indigo-500',
+    iconBg: 'bg-indigo-500/10 text-indigo-400',
+    title: 'Evolución de Producción',
+    desc: 'Curva diaria de prendas y kilos procesados con comparación entre turnos.',
+    prompt: 'Mostrame un gráfico con la evolución diaria de producción',
+  },
+  {
+    id: 'dotacion',
+    icon: Users,
+    color: 'text-amber-400 bg-amber-950/60 border-amber-800/60 hover:border-amber-500',
+    iconBg: 'bg-amber-500/10 text-amber-400',
+    title: 'Proyección de Dotación',
+    desc: 'Estimación inteligente de turnos y operarios requeridos para la próxima semana.',
+    prompt: '¿Cuántos operarios y turnos necesitamos la próxima semana?',
+  },
+  {
+    id: 'liquidacion',
+    icon: FileText,
+    color: 'text-teal-400 bg-teal-950/60 border-teal-800/60 hover:border-teal-500',
+    iconBg: 'bg-teal-500/10 text-teal-400',
+    title: 'Liquidación en Excel',
+    desc: 'Generar liquidación detallada en Excel del Hotel King David lista para facturación.',
+    prompt: 'Generame la liquidación de servicios del Hotel King David en Excel',
+  },
+  {
+    id: 'alertas',
+    icon: AlertTriangle,
+    color: 'text-rose-400 bg-rose-950/60 border-rose-800/60 hover:border-rose-500',
+    iconBg: 'bg-rose-500/10 text-rose-400',
+    title: 'Auditoría de Alertas',
+    desc: 'Revisar anomalías en entregas, prendas manchadas o demoras operativas en planta.',
+    prompt: '¿Hay alertas operativas o de calidad detectadas?',
+  },
+];
 
 export const CanvasModal: React.FC<CanvasModalProps> = ({
   isOpen,
@@ -26,10 +93,13 @@ export const CanvasModal: React.FC<CanvasModalProps> = ({
   allArtifacts,
   onSelectArtifact,
   chatChildren,
+  onSendMessage,
+  loading = false,
 }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [fullscreenCanvas, setFullscreenCanvas] = useState<boolean>(false);
+  const [showLaunchpad, setShowLaunchpad] = useState<boolean>(false);
 
   // Abrir y cerrar el modal nativo usando la API estándar showModal()
   useEffect(() => {
@@ -100,6 +170,8 @@ export const CanvasModal: React.FC<CanvasModalProps> = ({
 
   if (!isOpen) return null;
 
+  const currentArtifact = showLaunchpad ? null : activeArtifact;
+
   return (
     <dialog
       ref={dialogRef}
@@ -121,18 +193,18 @@ export const CanvasModal: React.FC<CanvasModalProps> = ({
               </span>
             </h2>
             <p className="text-[11px] text-slate-400 hidden sm:block">
-              Generación de gráficos, reportes interactivos y planillas Excel en vivo
+              Generación de gráficos interactivos, proyecciones y planillas Excel en vivo
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Alternar pantalla completa para el lienzo */}
-          {activeArtifact && (
+          {currentArtifact && (
             <button
               type="button"
               onClick={() => setFullscreenCanvas((v) => !v)}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors hidden md:flex items-center gap-1.5 text-xs"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors hidden md:flex items-center gap-1.5 text-xs font-medium"
               title={fullscreenCanvas ? 'Vista dividida Chat + Lienzo' : 'Maximizar lienzo'}
             >
               {fullscreenCanvas ? (
@@ -162,7 +234,7 @@ export const CanvasModal: React.FC<CanvasModalProps> = ({
 
       {/* Contenido Principal Dividido */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden divide-y md:divide-y-0 md:divide-x divide-slate-800">
-        {/* Panel Izquierdo: Chat */}
+        {/* Panel Izquierdo: Chat Integrado */}
         <div
           className={`${
             fullscreenCanvas ? 'hidden' : 'flex'
@@ -175,21 +247,24 @@ export const CanvasModal: React.FC<CanvasModalProps> = ({
         <div
           className={`${
             fullscreenCanvas ? 'w-full' : 'flex-1'
-          } flex flex-col h-full overflow-y-auto p-4 sm:p-6 bg-slate-950/80`}
+          } flex flex-col h-full overflow-y-auto p-4 sm:p-6 bg-slate-950/80 min-w-0`}
         >
-          {/* Selector de Artefactos Generados si hay más de 1 */}
-          {allArtifacts.length > 1 && (
-            <div className="mb-4 flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800">
+          {/* Barra superior de pestañas de artefactos */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
               <span className="text-xs font-semibold text-slate-400 flex items-center gap-1 shrink-0">
-                <Layers className="h-3.5 w-3.5 text-triton-aqua" /> Artefactos:
+                <Layers className="h-3.5 w-3.5 text-triton-aqua" /> Artefactos ({allArtifacts.length}):
               </span>
               {allArtifacts.map((art, idx) => (
                 <button
                   key={art.id || idx}
                   type="button"
-                  onClick={() => onSelectArtifact(art)}
+                  onClick={() => {
+                    setShowLaunchpad(false);
+                    onSelectArtifact(art);
+                  }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-all ${
-                    activeArtifact?.id === art.id
+                    !showLaunchpad && currentArtifact?.id === art.id
                       ? 'bg-triton-teal text-white shadow-md'
                       : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
                   }`}
@@ -203,31 +278,103 @@ export const CanvasModal: React.FC<CanvasModalProps> = ({
                 </button>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowLaunchpad((v) => !v);
+              }}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                showLaunchpad
+                  ? 'bg-triton-teal text-white'
+                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+              }`}
+              title="Ver generador de acciones rápidas"
+            >
+              <Plus className="h-3.5 w-3.5 text-triton-aqua" />
+              <span>Plantillas Rápidas</span>
+            </button>
+          </div>
+
+          {/* Banner si hay una consulta ejecutándose en segundo plano */}
+          {loading && (
+            <div className="mb-4 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-cyan-950/50 border border-cyan-800/60 text-cyan-200 text-xs shadow-md animate-pulse">
+              <Loader2 className="h-4 w-4 animate-spin text-triton-aqua shrink-0" />
+              <span>Ejecutando herramientas MCP y generando nuevo artefacto interactivo…</span>
+            </div>
           )}
 
-          {activeArtifact ? (
+          {/* Estado A: Artefacto Activo */}
+          {currentArtifact ? (
             <div className="space-y-4">
-              <ArtifactRenderer artifact={activeArtifact} isExpanded={true} />
+              <ArtifactRenderer artifact={currentArtifact} isExpanded={true} />
             </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-500">
-              <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 mb-4">
-                <Sparkles className="h-10 w-10 text-triton-aqua/60 animate-pulse" />
+          ) : loading ? (
+            /* Estado B: Cargando sin artefacto previo */
+            <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
+              <div className="p-4 rounded-3xl bg-slate-900 border border-triton-teal/40 mb-4 shadow-lg shadow-triton-aqua/10">
+                <Loader2 className="h-10 w-10 text-triton-aqua animate-spin" />
               </div>
-              <h3 className="text-base font-bold text-slate-300">
-                Lienzo de Análisis TRITÓN listo
+              <h3 className="text-base font-bold text-white">
+                Generando análisis interactivo en tiempo real…
               </h3>
               <p className="text-xs text-slate-400 max-w-md mt-2 leading-relaxed">
-                Hacé una pregunta en el chat como: <br />
-                <span className="text-triton-aqua font-semibold">
-                  "Generame un gráfico del ranking de facturación"
-                </span>{' '}
-                o <br />
-                <span className="text-emerald-400 font-semibold">
-                  "Generame el reporte ejecutivo en Excel para descargar"
-                </span>
-                .
+                Gemini 3.8 está ejecutando herramientas del servidor MCP de TRITÓN, consultando las bases de datos y proyectando el lienzo.
               </p>
+            </div>
+          ) : (
+            /* Estado C: Panel de Lanzamiento Rápido con 6 Acciones Interactivas */
+            <div className="flex-1 flex flex-col justify-start py-4">
+              <div className="text-center max-w-2xl mx-auto mb-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-triton-teal/40 text-triton-aqua text-xs font-semibold mb-3">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Lienzo Analítico Multimodal</span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-100">
+                  ¿Qué análisis o reporte querés proyectar?
+                </h3>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                  Hacé clic en cualquiera de las acciones recomendadas a continuación para generarla al instante, o realizá cualquier consulta personalizada en el chat:
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 max-w-5xl mx-auto w-full">
+                {QUICK_ACTIONS.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.id}
+                      type="button"
+                      onClick={() => {
+                        setShowLaunchpad(false);
+                        onSendMessage?.(action.prompt);
+                      }}
+                      className={`text-left p-4 rounded-2xl bg-slate-900/90 border transition-all duration-200 hover:scale-[1.02] hover:shadow-xl flex flex-col justify-between group ${action.color}`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2.5">
+                          <div className={`p-2 rounded-xl ${action.iconBg}`}>
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <span className="text-[10px] uppercase font-mono tracking-wider opacity-60 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                            Generar <ArrowRight className="h-3 w-3" />
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-white text-sm mb-1 group-hover:text-triton-aqua transition-colors">
+                          {action.title}
+                        </h4>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          {action.desc}
+                        </p>
+                      </div>
+                      <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                        <span className="font-mono text-[10px] text-slate-500">MCP Tool</span>
+                        <span className="font-bold text-triton-aqua">1 Clic</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

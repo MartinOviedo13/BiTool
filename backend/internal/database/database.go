@@ -33,6 +33,11 @@ func Open(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 
+	if err := ensureSectoresSchema(ctx, db); err != nil {
+		db.Close()
+		return nil, err
+	}
+
 	return db, nil
 }
 
@@ -85,3 +90,21 @@ func ensureConciliacionSchema(ctx context.Context, db *pgxpool.Pool) error {
 	return err
 }
 
+func ensureSectoresSchema(ctx context.Context, db *pgxpool.Pool) error {
+	_, err := db.Exec(ctx, `
+		ALTER TABLE items ADD COLUMN IF NOT EXISTS sector VARCHAR(20) NOT NULL DEFAULT 'planchado' CHECK (sector IN ('planchado', 'secadora'));
+		ALTER TABLE items ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT true;
+
+		UPDATE items SET sector = 'planchado' WHERE nombre IN ('1 PZ', '2 PZ', 'Fundas', 'Fundon', 'Cubrecamas', 'Mant.', 'Cb Mant.', 'Serv.');
+		UPDATE items SET sector = 'secadora' WHERE nombre IN ('Toallones', 'Toallas', 'Alfombras', 'Toallon Pileta', 'Batas');
+
+		INSERT INTO items (nombre, se_factura, sector, activo) VALUES
+			('Acolchados', true, 'secadora', true),
+			('Pillow', true, 'secadora', true),
+			('Almohada', true, 'secadora', true)
+		ON CONFLICT (nombre) DO UPDATE SET sector = 'secadora', activo = true;
+
+		UPDATE items SET activo = false WHERE nombre IN ('Relav.', 'Otras prendas');
+	`)
+	return err
+}

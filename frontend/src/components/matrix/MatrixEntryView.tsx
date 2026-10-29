@@ -50,6 +50,10 @@ export const MatrixEntryView: React.FC = () => {
   const [itemSearchMobile, setItemSearchMobile] = useState<string>('');
   const [onlyLoadedItemsMobile, setOnlyLoadedItemsMobile] = useState<boolean>(false);
 
+  // Estados para separación por sector de planta (Opción 3)
+  const [selectedSector, setSelectedSector] = useState<'all' | 'planchado' | 'secadora'>('all');
+  const [hotelActiveSector, setHotelActiveSector] = useState<Record<number, 'planchado' | 'secadora'>>({});
+
   // Matrix data structure: grid[hotelId][itemId] = quantity
   const [grid, setGrid] = useState<Record<number, Record<number, number>>>({});
   // Registros preexistentes de la fecha en base de datos
@@ -443,6 +447,23 @@ export const MatrixEntryView: React.FC = () => {
     return Object.values(row).reduce((sum, val) => sum + (val || 0), 0);
   };
 
+  // Filtros y totales por sector físico de planta
+  const planchadoItems = useMemo(() => items.filter((i) => i.sector === 'planchado'), [items]);
+  const secadoraItems = useMemo(() => items.filter((i) => i.sector === 'secadora'), [items]);
+
+  const desktopVisibleItems = useMemo(() => {
+    if (selectedSector === 'planchado') return planchadoItems;
+    if (selectedSector === 'secadora') return secadoraItems;
+    return items;
+  }, [items, selectedSector, planchadoItems, secadoraItems]);
+
+  const getSectorTotal = (hotelId: number, sector: 'planchado' | 'secadora') => {
+    const row = grid[hotelId];
+    if (!row) return 0;
+    const itemList = sector === 'planchado' ? planchadoItems : secadoraItems;
+    return itemList.reduce((sum, it) => sum + (row[it.id] || 0), 0);
+  };
+
   // Totales de columna (por prenda)
   const getColumnTotal = (itemId: number) => {
     return Object.values(grid).reduce((sum, row) => sum + (row[itemId] || 0), 0);
@@ -525,6 +546,48 @@ export const MatrixEntryView: React.FC = () => {
           <p className="text-xs text-slate-400 mt-1">
             Matriz operativa digital: Hoteles $\times$ Prendas &bull; Conciliación directa con Repartidor
           </p>
+
+          {/* Selector de Puesto de Trabajo / Sector de Planta */}
+          <div className="flex items-center gap-1.5 mt-2.5">
+            <span className="text-[11px] font-bold text-slate-400 hidden sm:inline mr-1">Sector:</span>
+            <div className="inline-flex items-center bg-triton-deep p-1 rounded-xl border border-triton-slate/50">
+              <button
+                type="button"
+                onClick={() => setSelectedSector('all')}
+                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedSector === 'all'
+                    ? 'bg-triton-aqua text-triton-navy font-black shadow-md shadow-triton-aqua/25'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Toda la Planta ({items.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedSector('planchado')}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedSector === 'planchado'
+                    ? 'bg-indigo-600 text-white font-black shadow-md shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>🥌 Planchado</span>
+                <span className="text-[10px] opacity-80 font-mono">({planchadoItems.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedSector('secadora')}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedSector === 'secadora'
+                    ? 'bg-teal-600 text-white font-black shadow-md shadow-teal-600/30'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>🌀 Secadoras</span>
+                <span className="text-[10px] opacity-80 font-mono">({secadoraItems.length})</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Indicador de Auto-Save & Selector de Fecha */}
@@ -749,7 +812,20 @@ export const MatrixEntryView: React.FC = () => {
             const isExpanded =
               activeMobileHotelId === hotel.id || !!expandedMobileHotels[hotel.id];
 
+            // Sector activo en la tarjeta del hotel (respeta el filtro global si está activo)
+            const activeSectorForHotel =
+              selectedSector !== 'all' ? selectedSector : (hotelActiveSector[hotel.id] ?? 'planchado');
+            const hotelPlanchadoTotal = getSectorTotal(hotel.id, 'planchado');
+            const hotelSecadoraTotal = getSectorTotal(hotel.id, 'secadora');
+
             const visibleItemsForHotel = items.filter((item) => {
+              // Si no hay búsqueda manual por texto, mostrar solo las prendas del sector seleccionado en la tarjeta
+              if (!itemSearchMobile && selectedSector === 'all' && item.sector !== activeSectorForHotel) {
+                return false;
+              }
+              if (selectedSector !== 'all' && item.sector !== selectedSector) {
+                return false;
+              }
               const matchesSearch = itemSearchMobile
                 ? item.nombre.toLowerCase().includes(itemSearchMobile.toLowerCase())
                 : true;
@@ -821,9 +897,42 @@ export const MatrixEntryView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Cuerpo Desplegado: Todos los Ítems para Cargar en este Hotel */}
+                {/* Cuerpo Desplegado: Separado por Sector de Planta (Opción 3) */}
                 {isExpanded && (
-                  <div className="p-3 space-y-2.5 border-t border-triton-slate/50">
+                  <div className="p-3 space-y-3 border-t border-triton-slate/50">
+                    {/* Sub-Pestañas Táctiles por Sector dentro del Hotel */}
+                    {selectedSector === 'all' && (
+                      <div className="grid grid-cols-2 gap-2 p-1 bg-triton-deep rounded-xl border border-triton-slate/50">
+                        <button
+                          type="button"
+                          onClick={() => setHotelActiveSector((prev) => ({ ...prev, [hotel.id]: 'planchado' }))}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                            activeSectorForHotel === 'planchado'
+                              ? 'bg-indigo-600 text-white shadow-md'
+                              : 'text-slate-400 hover:text-slate-200 bg-triton-navy/50'
+                          }`}
+                        >
+                          <span>🥌 Planchado</span>
+                          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/30 font-black">
+                            {hotelPlanchadoTotal} u.
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHotelActiveSector((prev) => ({ ...prev, [hotel.id]: 'secadora' }))}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                            activeSectorForHotel === 'secadora'
+                              ? 'bg-teal-600 text-white shadow-md'
+                              : 'text-slate-400 hover:text-slate-200 bg-triton-navy/50'
+                          }`}
+                        >
+                          <span>🌀 Secadoras</span>
+                          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/30 font-black">
+                            {hotelSecadoraTotal} u.
+                          </span>
+                        </button>
+                      </div>
+                    )}
                     {visibleItemsForHotel.length === 0 ? (
                       <div className="py-6 text-center text-xs text-slate-400">
                         No hay ítems que coincidan con el filtro actual.
@@ -951,13 +1060,26 @@ export const MatrixEntryView: React.FC = () => {
 
                     {/* Pie de Tarjeta del Hotel: Resumen y Conciliación con Remito */}
                     <div className="pt-3 mt-2 border-t border-triton-slate/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-300">
-                          Total cargado en {hotel.nombre}:
-                        </span>
-                        <span className="text-sm font-black text-cyan-300">
-                          {formatNumber(rowTotal)} prendas
-                        </span>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-slate-300">
+                            Total cargado en {hotel.nombre}:
+                          </span>
+                          <span className="text-sm font-black text-cyan-300">
+                            {formatNumber(rowTotal)} prendas
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block"></span>
+                            Planchado: <strong className="text-indigo-300">{formatNumber(hotelPlanchadoTotal)}</strong>
+                          </span>
+                          <span>&bull;</span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-teal-500 inline-block"></span>
+                            Secadoras: <strong className="text-teal-300">{formatNumber(hotelSecadoraTotal)}</strong>
+                          </span>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -1053,19 +1175,48 @@ export const MatrixEntryView: React.FC = () => {
         >
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-triton-deep sticky top-0 z-20 shadow-md">
+              {/* Nivel 1: Agrupador Visual de Sectores (cuando se visualiza toda la planta) */}
+              {selectedSector === 'all' && (
+                <tr className="border-b border-triton-slate/60 text-center font-black uppercase text-[11px] tracking-wider">
+                  <th className="px-4 py-2 sticky left-0 z-30 bg-triton-deep border-r border-triton-slate/50"></th>
+                  {planchadoItems.length > 0 && (
+                    <th
+                      colSpan={planchadoItems.length}
+                      className="py-1.5 px-3 bg-indigo-950/80 text-indigo-300 border-r border-indigo-800/60 font-black text-center"
+                    >
+                      🥌 SECTOR PLANCHADO / CALANDRA ({planchadoItems.length} prendas)
+                    </th>
+                  )}
+                  {secadoraItems.length > 0 && (
+                    <th
+                      colSpan={secadoraItems.length}
+                      className="py-1.5 px-3 bg-teal-950/80 text-teal-300 border-r border-teal-800/60 font-black text-center"
+                    >
+                      🌀 SECTOR SECADORAS / FELPA ({secadoraItems.length} prendas)
+                    </th>
+                  )}
+                  <th className="px-3 py-2 bg-triton-deep border-l border-triton-slate/50"></th>
+                  <th className="px-4 py-2 xl:sticky xl:right-0 z-30 bg-triton-deep border-l border-triton-slate/50"></th>
+                </tr>
+              )}
+              {/* Nivel 2: Prendas Individuales */}
               <tr className="border-b border-triton-slate/50 text-slate-400 uppercase tracking-wider">
                 <th className="px-4 py-3 sticky left-0 z-30 bg-triton-deep min-w-[200px] font-bold text-white border-r border-triton-slate/50">
                   Hotel / Cliente
                 </th>
-                {items.map((item) => (
+                {desktopVisibleItems.map((item) => (
                   <th
                     key={item.id}
-                    className={`px-3 py-3 text-center min-w-[85px] font-bold ${
-                      !item.se_factura ? 'text-amber-400 bg-amber-950/30' : 'text-slate-300'
+                    className={`px-3 py-2 text-center min-w-[85px] font-bold ${
+                      item.sector === 'planchado'
+                        ? 'text-indigo-200 bg-indigo-950/30 border-r border-indigo-900/30'
+                        : 'text-teal-200 bg-teal-950/30 border-r border-teal-900/30'
                     }`}
                   >
                     <div>{item.nombre}</div>
-                    {!item.se_factura && <span className="text-[9px] lowercase font-normal">(relav)</span>}
+                    <span className="text-[9px] font-normal opacity-70 block capitalize">
+                      {item.sector === 'planchado' ? 'Planchado' : 'Secadora'}
+                    </span>
                   </th>
                 ))}
                 <th className="px-3 py-3 text-right min-w-[90px] font-bold text-cyan-400 border-l border-triton-slate/50 bg-triton-deep">
@@ -1080,7 +1231,7 @@ export const MatrixEntryView: React.FC = () => {
             <tbody className="divide-y divide-triton-slate/40 bg-triton-navy/40">
               {loading ? (
                 <tr>
-                  <td colSpan={items.length + 3} className="px-4 py-16 text-center text-slate-400">
+                  <td colSpan={desktopVisibleItems.length + 3} className="px-4 py-16 text-center text-slate-400">
                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-500 border-t-transparent mb-3" />
                     <p className="text-xs font-semibold">Cargando matriz operativa en tiempo real...</p>
                   </td>
@@ -1119,8 +1270,8 @@ export const MatrixEntryView: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Inputs de Cantidad con Auto-Save on Blur */}
-                      {items.map((item) => {
+                      {/* Inputs de Cantidad con Auto-Save on Blur (desktopVisibleItems) */}
+                      {desktopVisibleItems.map((item) => {
                         const cellKey = `${hotel.id}-${item.id}`;
                         const qty = grid[hotel.id]?.[item.id] ?? 0;
                         const isSavingThis = savingCells.has(cellKey);
@@ -1246,7 +1397,7 @@ export const MatrixEntryView: React.FC = () => {
                   <td className="px-4 py-3 sticky left-0 z-30 bg-triton-deep text-white border-r border-triton-slate/50 uppercase tracking-wider text-xs">
                     TOTAL GENERAL DEL DÍA
                   </td>
-                  {items.map((item) => {
+                  {desktopVisibleItems.map((item) => {
                     const colTotal = getColumnTotal(item.id);
                     return (
                       <td key={item.id} className="px-3 py-3 text-center text-slate-200 border-r border-triton-slate/50/40 font-extrabold">
