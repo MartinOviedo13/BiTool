@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"lavadero-bi/backend/internal/mcp"
 	"lavadero-bi/backend/internal/services"
 )
 
@@ -28,8 +29,9 @@ type iaAskPayload struct {
 }
 
 type iaAskResponse struct {
-	Respuesta   string   `json:"respuesta"`
-	ToolsUsadas []string `json:"tools_usadas,omitempty"`
+	Respuesta   string                `json:"respuesta"`
+	ToolsUsadas []string              `json:"tools_usadas,omitempty"`
+	Artifacts   []mcp.ArtifactPayload `json:"artifacts,omitempty"`
 }
 
 // askIA recibe una pregunta en lenguaje natural, opcionalmente con rango de fechas
@@ -82,6 +84,7 @@ func (a *App) askIA(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, iaAskResponse{
 		Respuesta:   res.Respuesta,
 		ToolsUsadas: res.ToolsUsadas,
+		Artifacts:   res.Artifacts,
 	})
 }
 

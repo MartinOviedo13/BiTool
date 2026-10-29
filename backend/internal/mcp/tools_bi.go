@@ -23,6 +23,8 @@ func RegisterAllBITools(s *Server, db *pgxpool.Pool) {
 	registerTendenciaProduccionTool(s, db)
 	registerQueryReadOnlySQLTool(s, db)
 	registerPredictStaffingTool(s, db)
+	registerGenerarGraficoTool(s, db)
+	registerGenerarReporteExcelTool(s, db)
 }
 
 func jsonResult(data any) (*CallToolResult, error) {

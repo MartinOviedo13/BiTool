@@ -50,6 +50,41 @@
   animation: slide-in 0.25s ease-out;
 }
 
+/* Reglas nativas para modales <dialog> (Guía modern-web-guidance) */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+dialog[open].canvas-dialog {
+  display: flex;
+}
+
+/* Reglas para tablas responsivas en el Canvas (Guía modern-web-guidance) */
+.ai-table-wrapper {
+  overflow: auto;
+  max-inline-size: 100%;
+  container-type: inline-size;
+}
+.ai-table-wrapper table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.ai-table-wrapper thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+}
+.ai-table-wrapper tbody th {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+}
+
 /* ==========================================================================
    MODO OSCURO (DARK THEME)
    Fondo Negro/Gris Carbón + Superficies Grafito + Detalles del Landing Tritón

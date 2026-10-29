@@ -301,9 +301,46 @@ export interface ImportJob {
   creado_en: string;
 }
 
+export interface ChartSeries {
+  key: string;
+  label: string;
+  color?: string;
+  is_currency?: boolean;
+}
+
+export interface ArtifactKPI {
+  label: string;
+  value: string;
+  tone?: 'brand' | 'emerald' | 'amber' | 'rose' | string;
+}
+
+export interface SheetPreview {
+  name: string;
+  headers: string[];
+  rows: string[][];
+}
+
+export interface IAArtifact {
+  id: string;
+  type: 'chart' | 'excel';
+  title: string;
+  subtitle?: string;
+  chart_type?: 'bar' | 'line' | 'area' | 'pie';
+  x_key?: string;
+  series?: ChartSeries[];
+  data?: Record<string, any>[];
+  kpis?: ArtifactKPI[];
+  filename?: string;
+  mime_type?: string;
+  file_base64?: string;
+  size_bytes?: number;
+  sheets_preview?: SheetPreview[];
+}
+
 export interface IAAskResponse {
   respuesta: string;
   tools_usadas?: string[];
+  artifacts?: IAArtifact[];
 }
 
 export type EstadoConciliacion =

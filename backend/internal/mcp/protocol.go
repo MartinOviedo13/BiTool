@@ -125,8 +125,49 @@ type ToolContent struct {
 }
 
 type CallToolResult struct {
-	Content []ToolContent `json:"content"`
-	IsError bool          `json:"isError,omitempty"`
+	Content  []ToolContent    `json:"content"`
+	IsError  bool             `json:"isError,omitempty"`
+	Artifact *ArtifactPayload `json:"artifact,omitempty"`
+}
+
+// ChartSeries describe una serie numérica para gráficos interactivos en el Canvas IA.
+type ChartSeries struct {
+	Key        string `json:"key"`
+	Label      string `json:"label"`
+	Color      string `json:"color,omitempty"`
+	IsCurrency bool   `json:"is_currency,omitempty"`
+}
+
+// ArtifactKPI representa un indicador sintético destacado sobre un gráfico o reporte.
+type ArtifactKPI struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
+	Tone  string `json:"tone,omitempty"` // "brand", "emerald", "amber", "rose"
+}
+
+// SheetPreview permite previsualizar hojas de un Excel o tabla en el Canvas antes o después de descargar.
+type SheetPreview struct {
+	Name    string     `json:"name"`
+	Headers []string   `json:"headers"`
+	Rows    [][]string `json:"rows"`
+}
+
+// ArtifactPayload representa un artefacto enriquecido (gráfico interactivo o archivo Excel descargable) generado por una tool MCP.
+type ArtifactPayload struct {
+	ID            string           `json:"id"`
+	Type          string           `json:"type"`                 // "chart" | "excel"
+	Title         string           `json:"title"`
+	Subtitle      string           `json:"subtitle,omitempty"`
+	ChartType     string           `json:"chart_type,omitempty"` // "bar" | "line" | "area" | "pie"
+	XKey          string           `json:"x_key,omitempty"`
+	Series        []ChartSeries    `json:"series,omitempty"`
+	Data          []map[string]any `json:"data,omitempty"`
+	KPIs          []ArtifactKPI    `json:"kpis,omitempty"`
+	Filename      string           `json:"filename,omitempty"`
+	MimeType      string           `json:"mime_type,omitempty"`
+	FileBase64    string           `json:"file_base64,omitempty"`
+	SizeBytes     int              `json:"size_bytes,omitempty"`
+	SheetsPreview []SheetPreview   `json:"sheets_preview,omitempty"`
 }
 
 // Resource representa un recurso informativo contextual de MCP

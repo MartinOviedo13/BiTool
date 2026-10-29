@@ -33,20 +33,23 @@ func (s *IAService) GetMCPServer() *mcp.Server {
 }
 
 const iaSystemPrompt = `Sos el asistente de inteligencia de negocio y auditoría operativa del lavadero industrial Poseidón SRL (marca comercial TRITÓN).
-Tenés acceso a herramientas del protocolo MCP (Model Context Protocol) para consultar en tiempo real métricas de negocio, rankings, fichas de clientes, alertas, remitos B2B y proyecciones de personal.
+Tenés acceso a herramientas del protocolo MCP (Model Context Protocol) para consultar en tiempo real métricas de negocio, rankings, fichas de clientes, alertas, remitos B2B, proyecciones de personal, generar gráficos interactivos ('generar_grafico_bi') y emitir reportes Excel descargables ('generar_reporte_excel').
 
 REGLAS DE ACTUACIÓN:
 1. Usá las herramientas MCP para responder con datos precisos. NUNCA inventes números ni nombres de clientes.
-2. Si la pregunta requiere datos que están disponibles en una herramienta (ej. qué hotel facturó menos, tasa de relavado, quién es el principal cliente, estado de remitos con diferencias, o dotación de personal), INVOCÁ la herramienta correspondiente.
-3. Respondé en español argentino, con tono profesional y ejecutivo, claro y conciso para los directores y operarios del lavadero.
-4. Cuando cites cantidades monetarias, expresalas en pesos argentinos (ARS).
-5. Si detectás tasas de relavado > 5% o roturas > 2%, mencioná la recomendación de control de calidad correspondiente.
-6. Si una pregunta no puede responderse con ninguna de las herramientas disponibles, explicalo amablemente.`
+2. Si el usuario pide un GRÁFICO, visualización, comparativa visual, ranking visual o evolución temporal, INVOCÁ la herramienta 'generar_grafico_bi'. Esto creará un artefacto interactivo en el chat con gráficos interactivos y tablas de datos.
+3. Si el usuario pide un EXCEL, reporte descargable, planilla, liquidación en archivo o exportar datos, INVOCÁ la herramienta 'generar_reporte_excel'. Esto creará un archivo .xlsx profesional multi-hoja con botón de descarga inmediata y vista previa en el chat.
+4. Si la pregunta requiere datos de negocio (ej. qué hotel facturó menos, tasa de relavado, quién es el principal cliente, estado de remitos con diferencias, o dotación de personal), INVOCÁ la herramienta correspondiente.
+5. Respondé en español argentino, con tono profesional y ejecutivo, claro y conciso para los directores y operarios del lavadero.
+6. Cuando cites cantidades monetarias, expresalas en pesos argentinos (ARS).
+7. Si detectás tasas de relavado > 5% o roturas > 2%, mencioná la recomendación de control de calidad correspondiente.
+8. Si una pregunta no puede responderse con ninguna de las herramientas disponibles, explicalo amablemente.`
 
-// IAResponse agrupa la respuesta generada y las herramientas MCP que se utilizaron.
+// IAResponse agrupa la respuesta generada, las herramientas MCP utilizadas y los artefactos visuales/descargables.
 type IAResponse struct {
-	Respuesta   string   `json:"respuesta"`
-	ToolsUsadas []string `json:"tools_usadas"`
+	Respuesta   string                `json:"respuesta"`
+	ToolsUsadas []string              `json:"tools_usadas"`
+	Artifacts   []mcp.ArtifactPayload `json:"artifacts,omitempty"`
 }
 
 // AskWithMCP ejecuta el ciclo agéntico de Tool Calling con el servidor MCP.
@@ -85,6 +88,7 @@ func (s *IAService) AskWithMCP(ctx context.Context, pregunta string, desde, hast
 	conversation = append(conversation, Message{Role: "user", Content: promptActual})
 
 	toolsUsadasMap := make(map[string]bool)
+	artifactsList := make([]mcp.ArtifactPayload, 0)
 	const maxRounds = 4
 
 	// 4. Ciclo agéntico (Loop de Tool Calling)
@@ -104,6 +108,7 @@ func (s *IAService) AskWithMCP(ctx context.Context, pregunta string, desde, hast
 			return &IAResponse{
 				Respuesta:   resp.Text,
 				ToolsUsadas: toolsList,
+				Artifacts:   artifactsList,
 			}, nil
 		}
 
@@ -128,9 +133,16 @@ func (s *IAService) AskWithMCP(ctx context.Context, pregunta string, desde, hast
 				if err != nil {
 					isError = true
 					resultContent = fmt.Sprintf(`{"error": "%s"}`, err.Error())
-				} else if len(callRes.Content) > 0 {
-					resultContent = callRes.Content[0].Text
+				} else if callRes != nil {
+					if len(callRes.Content) > 0 {
+						resultContent = callRes.Content[0].Text
+					} else {
+						resultContent = `{"resultado": "ok"}`
+					}
 					isError = callRes.IsError
+					if callRes.Artifact != nil {
+						artifactsList = append(artifactsList, *callRes.Artifact)
+					}
 				} else {
 					resultContent = `{"resultado": "ok"}`
 				}
@@ -166,6 +178,7 @@ func (s *IAService) AskWithMCP(ctx context.Context, pregunta string, desde, hast
 	return &IAResponse{
 		Respuesta:   finalResp,
 		ToolsUsadas: toolsList,
+		Artifacts:   artifactsList,
 	}, nil
 }
 
