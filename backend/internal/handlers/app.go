@@ -64,6 +64,8 @@ func (a *App) RoutesWithAllowedOrigins(allowedOrigins []string) http.Handler {
 		r.Use(requireRole("cliente", "admin", "operario"))
 
 		r.Post("/api/envios", a.createEnvio)
+		r.Get("/api/envios/{id}", a.getEnvioByID)
+		r.Delete("/api/envios/{id}", a.deleteEnvio)
 		r.Get("/api/portal/dashboard", a.portalHotelDashboard)
 
 		// Ficha 360 y Liquidacion

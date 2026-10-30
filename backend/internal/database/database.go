@@ -43,6 +43,11 @@ func Open(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 
+	if err := ensureRemitosManualesSchema(ctx, db); err != nil {
+		db.Close()
+		return nil, err
+	}
+
 	return db, nil
 }
 
@@ -139,6 +144,21 @@ func ensureCostosSchema(ctx context.Context, db *pgxpool.Pool) error {
 			END
 		WHERE precio_unitario IS NOT NULL AND precio_unitario > 0
 		  AND (costo_quimico = 0 OR costo_energia = 0 OR costo_mano_obra = 0);
+	`)
+	return err
+}
+
+func ensureRemitosManualesSchema(ctx context.Context, db *pgxpool.Pool) error {
+	_, err := db.Exec(ctx, `
+		ALTER TABLE envios ADD COLUMN IF NOT EXISTS numero_remito VARCHAR(100);
+		ALTER TABLE envios ADD COLUMN IF NOT EXISTS observaciones TEXT;
+		ALTER TABLE envios DROP CONSTRAINT IF EXISTS envios_hotel_id_fecha_key;
+		ALTER TABLE envios DROP CONSTRAINT IF EXISTS uq_envios_hotel_fecha;
+		CREATE INDEX IF NOT EXISTS idx_envios_numero_remito ON envios(numero_remito);
+		CREATE INDEX IF NOT EXISTS idx_envios_hotel_fecha ON envios(hotel_id, fecha);
+		CREATE UNIQUE INDEX IF NOT EXISTS uq_envios_hotel_numero_remito
+			ON envios(hotel_id, numero_remito)
+			WHERE numero_remito IS NOT NULL AND numero_remito <> '';
 	`)
 	return err
 }

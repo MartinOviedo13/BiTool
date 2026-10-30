@@ -131,7 +131,7 @@ func (a *App) validarConciliacion(w http.ResponseWriter, r *http.Request) {
 
 	var remitoID *int
 	var idEnvio int
-	if err := tx.QueryRow(ctx, "SELECT id FROM envios WHERE hotel_id = $1 AND fecha = $2::date", req.HotelID, req.Fecha).Scan(&idEnvio); err == nil {
+	if err := tx.QueryRow(ctx, "SELECT id FROM envios WHERE hotel_id = $1 AND fecha = $2::date ORDER BY id DESC LIMIT 1", req.HotelID, req.Fecha).Scan(&idEnvio); err == nil {
 		remitoID = &idEnvio
 	}
 

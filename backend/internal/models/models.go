@@ -133,6 +133,9 @@ type Envio struct {
 	Hotel               *Hotel         `json:"hotel,omitempty"`
 	Fecha               time.Time      `json:"fecha"`
 	CodigoQR            string         `json:"codigo_qr"`
+	NumeroRemito        *string        `json:"numero_remito,omitempty"`
+	Observaciones       *string        `json:"observaciones,omitempty"`
+	TotalPrendas        int            `json:"total_prendas,omitempty"`
 	Estado              string         `json:"estado"` // listo_para_retiro, retirado, en_planta, entregado
 	RetiradoPorID       *int           `json:"retirado_por_id,omitempty"`
 	RetiradoPorUsername *string        `json:"retirado_por_username,omitempty"`
@@ -175,8 +178,11 @@ type EnvioDetalle struct {
 }
 
 type CreateEnvioRequest struct {
-	Fecha    string            `json:"fecha"` // YYYY-MM-DD
-	Detalles []CreateEnvioItem `json:"detalles"`
+	HotelID       *int              `json:"hotel_id,omitempty"`
+	Fecha         string            `json:"fecha"` // YYYY-MM-DD
+	NumeroRemito  string            `json:"numero_remito,omitempty"`
+	Observaciones string            `json:"observaciones,omitempty"`
+	Detalles      []CreateEnvioItem `json:"detalles"`
 }
 
 type CreateEnvioItem struct {
@@ -197,6 +203,7 @@ type AuditoriaItem struct {
 	TotalContado      int    `json:"total_contado"`
 	Diferencia        int    `json:"diferencia"`
 	Estado            string `json:"estado"` // OK, FALTANTE, SOBRANTE, PENDIENTE_LAVADERO, SIN_REMITO
+	NumerosRemito     string `json:"numeros_remito,omitempty"`
 }
 
 type ConteoRequest struct {

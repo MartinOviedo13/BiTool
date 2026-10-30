@@ -21,6 +21,12 @@ func (a *App) createEnvio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var req models.CreateEnvioRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Cuerpo JSON invalido.")
+		return
+	}
+
 	var hotelID int
 	if claims.Rol == "cliente" {
 		if claims.HotelID == nil {
@@ -29,26 +35,24 @@ func (a *App) createEnvio(w http.ResponseWriter, r *http.Request) {
 		}
 		hotelID = *claims.HotelID
 	} else {
-		hotelIDStr := r.URL.Query().Get("hotel_id")
-		if hotelIDStr != "" {
-			var err error
-			hotelID, err = strconv.Atoi(hotelIDStr)
-			if err != nil {
-				writeError(w, http.StatusBadRequest, "hotel_id invalido.")
+		if req.HotelID != nil && *req.HotelID > 0 {
+			hotelID = *req.HotelID
+		} else {
+			hotelIDStr := r.URL.Query().Get("hotel_id")
+			if hotelIDStr != "" {
+				var err error
+				hotelID, err = strconv.Atoi(hotelIDStr)
+				if err != nil {
+					writeError(w, http.StatusBadRequest, "hotel_id invalido.")
+					return
+				}
+			} else if claims.HotelID != nil {
+				hotelID = *claims.HotelID
+			} else {
+				writeError(w, http.StatusBadRequest, "Falta especificar hotel_id.")
 				return
 			}
-		} else if claims.HotelID != nil {
-			hotelID = *claims.HotelID
-		} else {
-			writeError(w, http.StatusBadRequest, "Falta especificar hotel_id.")
-			return
 		}
-	}
-
-	var req models.CreateEnvioRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "Cuerpo JSON invalido.")
-		return
 	}
 
 	req.Fecha = strings.TrimSpace(req.Fecha)
@@ -73,18 +77,43 @@ func (a *App) createEnvio(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(r.Context())
 
-	codigoQR := fmt.Sprintf("ENV-%d-%s-%d", hotelID, fecha.Format("20060102"), time.Now().Unix()%10000)
+	numeroRemito := strings.TrimSpace(req.NumeroRemito)
+	observaciones := strings.TrimSpace(req.Observaciones)
 
 	var envioID int
-	err = tx.QueryRow(r.Context(), `
-		INSERT INTO envios (hotel_id, fecha, codigo_qr, estado)
-		VALUES ($1, $2, $3, 'listo_para_retiro')
-		ON CONFLICT (hotel_id, fecha)
-		DO UPDATE SET codigo_qr = EXCLUDED.codigo_qr, estado = 'listo_para_retiro'
-		RETURNING id, codigo_qr
-	`, hotelID, fecha, codigoQR).Scan(&envioID, &codigoQR)
+	var codigoQR string
+
+	// Buscar si ya existe un remito para actualizar
+	if numeroRemito != "" {
+		_ = tx.QueryRow(r.Context(), "SELECT id, codigo_qr FROM envios WHERE hotel_id = $1 AND numero_remito = $2 LIMIT 1", hotelID, numeroRemito).Scan(&envioID, &codigoQR)
+	} else {
+		_ = tx.QueryRow(r.Context(), "SELECT id, codigo_qr FROM envios WHERE hotel_id = $1 AND fecha = $2::date AND (numero_remito IS NULL OR numero_remito = '') LIMIT 1", hotelID, fecha).Scan(&envioID, &codigoQR)
+	}
+
+	if envioID > 0 {
+		// Actualizar remito existente
+		err = tx.QueryRow(r.Context(), `
+			UPDATE envios
+			SET fecha = $1, numero_remito = $2, observaciones = $3, estado = 'listo_para_retiro'
+			WHERE id = $4
+			RETURNING id, codigo_qr
+		`, fecha, nullableString(numeroRemito), nullableString(observaciones), envioID).Scan(&envioID, &codigoQR)
+	} else {
+		// Insertar nuevo remito
+		if numeroRemito != "" {
+			codigoQR = fmt.Sprintf("REM-%d-%s-%d", hotelID, strings.ReplaceAll(numeroRemito, " ", ""), time.Now().Unix()%1000)
+		} else {
+			codigoQR = fmt.Sprintf("ENV-%d-%s-%d", hotelID, fecha.Format("20060102"), time.Now().Unix()%10000)
+		}
+
+		err = tx.QueryRow(r.Context(), `
+			INSERT INTO envios (hotel_id, fecha, codigo_qr, numero_remito, observaciones, estado)
+			VALUES ($1, $2, $3, $4, $5, 'listo_para_retiro')
+			RETURNING id, codigo_qr
+		`, hotelID, fecha, codigoQR, nullableString(numeroRemito), nullableString(observaciones)).Scan(&envioID, &codigoQR)
+	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Error al crear envio: %v", err))
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Error al guardar remito: %v", err))
 		return
 	}
 
@@ -121,8 +150,13 @@ func (a *App) createEnvio(w http.ResponseWriter, r *http.Request) {
 		totalPrendasDeclaradas += d.CantidadDeclarada
 	}
 
-	notifTitulo := fmt.Sprintf("%s: Pedido listo para retiro", hotelNombre)
-	notifMensaje := fmt.Sprintf("Remito %s generado con %d prendas para el %s. Ya se encuentra listo para retirar.", codigoQR, totalPrendasDeclaradas, fecha.Format("02/01/2006"))
+	identificadorRemito := codigoQR
+	if numeroRemito != "" {
+		identificadorRemito = fmt.Sprintf("N° %s (%s)", numeroRemito, codigoQR)
+	}
+
+	notifTitulo := fmt.Sprintf("%s: Remito cargado (%s)", hotelNombre, fecha.Format("02/01/2006"))
+	notifMensaje := fmt.Sprintf("Remito %s registrado con %d prendas para el %s. Ya disponible para auditoría y retiro.", identificadorRemito, totalPrendasDeclaradas, fecha.Format("02/01/2006"))
 	_, _ = tx.Exec(r.Context(), `
 		INSERT INTO notificaciones_operativas (rol_destino, hotel_id, despacho_id, tipo, severidad, titulo, mensaje, muestra_datos)
 		VALUES ('repartidor', $1, NULL, 'REMITO_LISTO_RETIRO', 'info', $2, $3, '[]'::jsonb)
@@ -137,6 +171,7 @@ func (a *App) createEnvio(w http.ResponseWriter, r *http.Request) {
 	GetBroker().Broadcast("REMITO_LISTO_RETIRO", hotelID, notifTitulo, notifMensaje, map[string]any{
 		"envio_id":      envioID,
 		"codigo_qr":     codigoQR,
+		"numero_remito": numeroRemito,
 		"total_prendas": totalPrendasDeclaradas,
 		"fecha":         fecha.Format("2006-01-02"),
 		"hotel_nombre":  hotelNombre,
@@ -152,6 +187,7 @@ func (a *App) createEnvio(w http.ResponseWriter, r *http.Request) {
 }
 
 // listEnvios devuelve los remitos/envios. Si es cliente, solo los de su hotel.
+// Soporta filtrado por hotel_id, fecha, fecha_desde, fecha_hasta, y busqueda de numero_remito o QR.
 func (a *App) listEnvios(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(claimsKey).(*jwtClaims)
 	if !ok || claims == nil {
@@ -171,21 +207,35 @@ func (a *App) listEnvios(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fechaParam := r.URL.Query().Get("fecha")
+	fechaParam := strings.TrimSpace(r.URL.Query().Get("fecha"))
+	fechaDesdeParam := strings.TrimSpace(r.URL.Query().Get("fecha_desde"))
+	fechaHastaParam := strings.TrimSpace(r.URL.Query().Get("fecha_hasta"))
+	remitoParam := strings.TrimSpace(r.URL.Query().Get("remito"))
+	if remitoParam == "" {
+		remitoParam = strings.TrimSpace(r.URL.Query().Get("numero_remito"))
+	}
+	if remitoParam == "" {
+		remitoParam = strings.TrimSpace(r.URL.Query().Get("q"))
+	}
 
 	query := `
 		SELECT e.id, e.hotel_id, h.nombre, e.fecha, e.codigo_qr, e.creado_en,
-		       COALESCE(e.estado, 'listo_para_retiro'), e.retirado_por_id, u.username, e.retirado_en, e.observacion_retiro
+		       COALESCE(e.estado, 'listo_para_retiro'), e.retirado_por_id, u.username, e.retirado_en, e.observacion_retiro,
+		       e.numero_remito, e.observaciones,
+		       COALESCE((SELECT SUM(ed.cantidad_declarada)::int FROM envio_detalles ed WHERE ed.envio_id = e.id), 0) AS total_prendas
 		FROM envios e
 		JOIN hoteles h ON h.id = e.hotel_id
 		LEFT JOIN usuarios u ON u.id = e.retirado_por_id
 		WHERE ($1::int IS NULL OR e.hotel_id = $1)
 		  AND ($2::date IS NULL OR e.fecha = $2::date)
+		  AND ($3::date IS NULL OR e.fecha >= $3::date)
+		  AND ($4::date IS NULL OR e.fecha <= $4::date)
+		  AND ($5::text IS NULL OR e.numero_remito ILIKE '%' || $5 || '%' OR e.codigo_qr ILIKE '%' || $5 || '%')
 		ORDER BY e.fecha DESC, e.creado_en DESC
-		LIMIT 50
+		LIMIT 200
 	`
 
-	rows, err := a.db.Query(r.Context(), query, hotelIDFilter, nullableString(fechaParam))
+	rows, err := a.db.Query(r.Context(), query, hotelIDFilter, nullableString(fechaParam), nullableString(fechaDesdeParam), nullableString(fechaHastaParam), nullableString(remitoParam))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Error consultando envios: %v", err))
 		return
@@ -196,13 +246,18 @@ func (a *App) listEnvios(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var e models.Envio
 		var h models.Hotel
+		var numRemito *string
+		var obs *string
 		if err := rows.Scan(&e.ID, &e.HotelID, &h.Nombre, &e.Fecha, &e.CodigoQR, &e.CreadoEn,
-			&e.Estado, &e.RetiradoPorID, &e.RetiradoPorUsername, &e.RetiradoEn, &e.ObservacionRetiro); err != nil {
+			&e.Estado, &e.RetiradoPorID, &e.RetiradoPorUsername, &e.RetiradoEn, &e.ObservacionRetiro,
+			&numRemito, &obs, &e.TotalPrendas); err != nil {
 			writeError(w, http.StatusInternalServerError, "Error leyendo envios.")
 			return
 		}
 		h.ID = e.HotelID
 		e.Hotel = &h
+		e.NumeroRemito = numRemito
+		e.Observaciones = obs
 		lista = append(lista, e)
 	}
 
@@ -241,18 +296,66 @@ func (a *App) listEnvios(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, lista)
 }
 
-// getEnvioByQR busca un envio por su codigo QR escaneado.
+// getEnvioByID obtiene un remito/envio por su ID numérico.
+func (a *App) getEnvioByID(w http.ResponseWriter, r *http.Request) {
+	envioID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || envioID <= 0 {
+		writeError(w, http.StatusBadRequest, "ID de remito invalido.")
+		return
+	}
+
+	envio, err := a.getEnvioByIDInternal(r.Context(), envioID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Remito no encontrado.")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, envio)
+}
+
+// deleteEnvio elimina un remito/envio y sus detalles (ON DELETE CASCADE).
+func (a *App) deleteEnvio(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(claimsKey).(*jwtClaims)
+	if !ok || claims == nil {
+		writeError(w, http.StatusUnauthorized, "No autenticado.")
+		return
+	}
+	if claims.Rol != "admin" && claims.Rol != "operario" {
+		writeError(w, http.StatusForbidden, "No tienes permisos para eliminar remitos.")
+		return
+	}
+
+	envioID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || envioID <= 0 {
+		writeError(w, http.StatusBadRequest, "ID de remito invalido.")
+		return
+	}
+
+	res, err := a.db.Exec(r.Context(), "DELETE FROM envios WHERE id = $1", envioID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Error eliminando remito: %v", err))
+		return
+	}
+	if res.RowsAffected() == 0 {
+		writeError(w, http.StatusNotFound, "Remito no encontrado.")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"success": true, "message": "Remito eliminado correctamente."})
+}
+
+// getEnvioByQR busca un envio por su codigo QR escaneado o por numero de remito.
 func (a *App) getEnvioByQR(w http.ResponseWriter, r *http.Request) {
-	codigoQR := chi.URLParam(r, "codigo_qr")
-	if strings.TrimSpace(codigoQR) == "" {
-		writeError(w, http.StatusBadRequest, "Codigo QR requerido.")
+	codigo := strings.TrimSpace(chi.URLParam(r, "codigo_qr"))
+	if codigo == "" {
+		writeError(w, http.StatusBadRequest, "Codigo QR o numero de remito requerido.")
 		return
 	}
 
 	var envioID int
-	err := a.db.QueryRow(r.Context(), "SELECT id FROM envios WHERE codigo_qr = $1", codigoQR).Scan(&envioID)
+	err := a.db.QueryRow(r.Context(), "SELECT id FROM envios WHERE codigo_qr = $1 OR numero_remito = $1 ORDER BY id DESC LIMIT 1", codigo).Scan(&envioID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "Remito/Envio no encontrado con ese codigo QR.")
+		writeError(w, http.StatusNotFound, "Remito/Envio no encontrado con ese codigo QR o numero.")
 		return
 	}
 
@@ -268,20 +371,27 @@ func (a *App) getEnvioByQR(w http.ResponseWriter, r *http.Request) {
 func (a *App) getEnvioByIDInternal(ctx context.Context, envioID int) (*models.Envio, error) {
 	var e models.Envio
 	var h models.Hotel
+	var numRemito *string
+	var obs *string
 	err := a.db.QueryRow(ctx, `
 		SELECT e.id, e.hotel_id, h.nombre, e.fecha, e.codigo_qr, e.creado_en,
-		       COALESCE(e.estado, 'listo_para_retiro'), e.retirado_por_id, u.username, e.retirado_en, e.observacion_retiro
+		       COALESCE(e.estado, 'listo_para_retiro'), e.retirado_por_id, u.username, e.retirado_en, e.observacion_retiro,
+		       e.numero_remito, e.observaciones,
+		       COALESCE((SELECT SUM(ed.cantidad_declarada)::int FROM envio_detalles ed WHERE ed.envio_id = e.id), 0) AS total_prendas
 		FROM envios e
 		JOIN hoteles h ON h.id = e.hotel_id
 		LEFT JOIN usuarios u ON u.id = e.retirado_por_id
 		WHERE e.id = $1
 	`, envioID).Scan(&e.ID, &e.HotelID, &h.Nombre, &e.Fecha, &e.CodigoQR, &e.CreadoEn,
-		&e.Estado, &e.RetiradoPorID, &e.RetiradoPorUsername, &e.RetiradoEn, &e.ObservacionRetiro)
+		&e.Estado, &e.RetiradoPorID, &e.RetiradoPorUsername, &e.RetiradoEn, &e.ObservacionRetiro,
+		&numRemito, &obs, &e.TotalPrendas)
 	if err != nil {
 		return nil, err
 	}
 	h.ID = e.HotelID
 	e.Hotel = &h
+	e.NumeroRemito = numRemito
+	e.Observaciones = obs
 
 	rows, err := a.db.Query(ctx, `
 		SELECT ed.id, ed.envio_id, ed.item_id, i.nombre, ed.cantidad_declarada
@@ -458,8 +568,15 @@ func (a *App) portalHotelDashboard(w http.ResponseWriter, r *http.Request) {
 
 // auditoriaComparacion cruza lo declarado por los hoteles en envios vs lo procesado por el lavadero en registros.
 func (a *App) auditoriaComparacion(w http.ResponseWriter, r *http.Request) {
-	fechaParam := r.URL.Query().Get("fecha")
-	hotelParam := r.URL.Query().Get("hotel_id")
+	fechaParam := strings.TrimSpace(r.URL.Query().Get("fecha"))
+	hotelParam := strings.TrimSpace(r.URL.Query().Get("hotel_id"))
+	remitoParam := strings.TrimSpace(r.URL.Query().Get("remito"))
+	if remitoParam == "" {
+		remitoParam = strings.TrimSpace(r.URL.Query().Get("numero_remito"))
+	}
+	if remitoParam == "" {
+		remitoParam = strings.TrimSpace(r.URL.Query().Get("q"))
+	}
 
 	var hotelID *int
 	if hotelParam != "" {
@@ -469,13 +586,31 @@ func (a *App) auditoriaComparacion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := `
-		WITH declarados AS (
-			SELECT e.fecha, e.hotel_id, ed.item_id, SUM(ed.cantidad_declarada)::int AS declarada
+		WITH remitos_base AS (
+			SELECT
+				e.id,
+				e.fecha,
+				e.hotel_id,
+				e.numero_remito,
+				e.codigo_qr
 			FROM envios e
-			JOIN envio_detalles ed ON ed.envio_id = e.id
 			WHERE ($1::date IS NULL OR e.fecha = $1::date)
 			  AND ($2::int IS NULL OR e.hotel_id = $2)
-			GROUP BY e.fecha, e.hotel_id, ed.item_id
+			  AND ($3::text IS NULL OR e.numero_remito ILIKE '%' || $3 || '%' OR e.codigo_qr ILIKE '%' || $3 || '%')
+		),
+		declarados AS (
+			SELECT rb.fecha, rb.hotel_id, ed.item_id, SUM(ed.cantidad_declarada)::int AS declarada
+			FROM remitos_base rb
+			JOIN envio_detalles ed ON ed.envio_id = rb.id
+			GROUP BY rb.fecha, rb.hotel_id, ed.item_id
+		),
+		remitos_resumen AS (
+			SELECT
+				rb.fecha,
+				rb.hotel_id,
+				STRING_AGG(DISTINCT COALESCE(NULLIF(rb.numero_remito, ''), rb.codigo_qr), ', ') AS numeros_remito
+			FROM remitos_base rb
+			GROUP BY rb.fecha, rb.hotel_id
 		),
 		procesados AS (
 			SELECT
@@ -488,6 +623,7 @@ func (a *App) auditoriaComparacion(w http.ResponseWriter, r *http.Request) {
 			FROM registros r
 			WHERE ($1::date IS NULL OR r.fecha = $1::date)
 			  AND ($2::int IS NULL OR r.hotel_id = $2)
+			  AND ($3::text IS NULL OR EXISTS (SELECT 1 FROM remitos_base rb WHERE rb.hotel_id = r.hotel_id AND rb.fecha = r.fecha))
 			GROUP BY r.fecha, r.hotel_id, r.item_id
 		),
 		unidos AS (
@@ -514,14 +650,16 @@ func (a *App) auditoriaComparacion(w http.ResponseWriter, r *http.Request) {
 			u.relavado,
 			u.rota,
 			(u.limpia + u.relavado + u.rota) AS total_contado,
-			((u.limpia + u.relavado + u.rota) - u.declarada) AS diferencia
+			((u.limpia + u.relavado + u.rota) - u.declarada) AS diferencia,
+			COALESCE(rr.numeros_remito, '') AS numeros_remito
 		FROM unidos u
 		JOIN hoteles h ON h.id = u.hotel_id
 		JOIN items i ON i.id = u.item_id
+		LEFT JOIN remitos_resumen rr ON rr.hotel_id = u.hotel_id AND rr.fecha = u.fecha
 		ORDER BY u.fecha DESC, h.nombre ASC, i.nombre ASC
 	`
 
-	rows, err := a.db.Query(r.Context(), query, nullableString(fechaParam), hotelID)
+	rows, err := a.db.Query(r.Context(), query, nullableString(fechaParam), hotelID, nullableString(remitoParam))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Error ejecutando auditoria: %v", err))
 		return
@@ -543,6 +681,7 @@ func (a *App) auditoriaComparacion(w http.ResponseWriter, r *http.Request) {
 			&item.CantidadRota,
 			&item.TotalContado,
 			&item.Diferencia,
+			&item.NumerosRemito,
 		); err != nil {
 			writeError(w, http.StatusInternalServerError, "Error leyendo auditoria.")
 			return

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/client';
-import { AuditoriaItem, Envio } from '../../types';
+import { AuditoriaItem, Envio, Hotel } from '../../types';
 import { formatNumber } from '../../utils/formatters';
 import {
   ClipboardCheck,
@@ -22,8 +22,14 @@ import {
   ChevronUp,
   Plus,
   Minus,
+  FileText,
+  History,
+  Trash2,
+  Calendar,
+  Hash,
 } from 'lucide-react';
 import { RemitoPrintableModal } from '../hotel360/RemitoPrintableModal';
+import { CargarRemitoModal } from './CargarRemitoModal';
 
 interface HotelAuditoriaGroup {
   hotel_id: number;
@@ -47,7 +53,25 @@ export const AuditoriaView: React.FC = () => {
   const [fechaFiltro, setFechaFiltro] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
 
-  // Estados de navegación por Hotel: Acordeón y Pestaña activa
+  // Selector de vista principal: Auditoría de Prendas vs Historial de Remitos
+  const [vistaActiva, setVistaActiva] = useState<'auditoria' | 'historial'>('auditoria');
+
+  // Filtro por número de remito / QR (búsqueda global en auditoría e historial)
+  const [busquedaRemito, setBusquedaRemito] = useState<string>('');
+
+  // Modal para Cargar / Modificar Remito en Papel
+  const [modalCargarRemitoOpen, setModalCargarRemitoOpen] = useState(false);
+  const [remitoParaEditar, setRemitoParaEditar] = useState<Envio | null>(null);
+  const [hotelPreseleccionado, setHotelPreseleccionado] = useState<number | undefined>(undefined);
+
+  // Lista de Remitos y Catálogo de Hoteles para Historial
+  const [remitos, setRemitos] = useState<Envio[]>([]);
+  const [hotelesLista, setHotelesLista] = useState<Hotel[]>([]);
+  const [loadingRemitos, setLoadingRemitos] = useState(false);
+  const [filtroHotelHistorial, setFiltroHotelHistorial] = useState<number | 'all'>('all');
+  const [filtroFechaHistorial, setFiltroFechaHistorial] = useState<string>('');
+
+  // Estados de navegación por Hotel en Auditoría: Acordeón y Pestaña activa
   const [expandedHotels, setExpandedHotels] = useState<Record<number, boolean>>({});
   const [activeHotelTab, setActiveHotelTab] = useState<number | 'all'>('all');
   const [soloConDiferencias, setSoloConDiferencias] = useState<boolean>(false);
@@ -69,19 +93,77 @@ export const AuditoriaView: React.FC = () => {
 
   useEffect(() => {
     cargarAuditoria();
-  }, [fechaFiltro]);
+  }, [fechaFiltro, busquedaRemito]);
+
+  useEffect(() => {
+    cargarHistorialRemitos();
+  }, [filtroFechaHistorial, filtroHotelHistorial, busquedaRemito]);
+
+  useEffect(() => {
+    api.getHoteles().then((res) => {
+      setHotelesLista(Array.isArray(res) ? res : []);
+    }).catch(() => {});
+  }, []);
 
   const cargarAuditoria = async () => {
     setLoading(true);
     try {
       const data = await api.getAuditoria({
         fecha: fechaFiltro || undefined,
+        remito: busquedaRemito.trim() || undefined,
       });
       setItems(data);
     } catch (err) {
       console.error('Error cargando auditoria:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const cargarHistorialRemitos = async () => {
+    setLoadingRemitos(true);
+    try {
+      const data = await api.getEnvios({
+        fecha: filtroFechaHistorial || undefined,
+        hotel_id: filtroHotelHistorial !== 'all' ? filtroHotelHistorial : undefined,
+        remito: busquedaRemito.trim() || undefined,
+      });
+      setRemitos(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error cargando historial de remitos:', err);
+    } finally {
+      setLoadingRemitos(false);
+    }
+  };
+
+  const abrirCargarRemitoModal = (hotelId?: number) => {
+    setRemitoParaEditar(null);
+    setHotelPreseleccionado(hotelId || (activeHotelTab !== 'all' ? activeHotelTab : undefined));
+    setModalCargarRemitoOpen(true);
+  };
+
+  const abrirEditarRemito = (env: Envio) => {
+    setRemitoParaEditar(env);
+    setHotelPreseleccionado(env.hotel_id);
+    setModalCargarRemitoOpen(true);
+  };
+
+  const handleRemitoGuardado = async (_saved: Envio) => {
+    setModalCargarRemitoOpen(false);
+    setRemitoParaEditar(null);
+    await Promise.all([cargarAuditoria(), cargarHistorialRemitos()]);
+  };
+
+  const handleDeleteRemito = async (id: number, numRemito?: string | null) => {
+    const ident = numRemito ? `N° ${numRemito}` : `ID #${id}`;
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el remito ${ident}? Esta acción descontará las prendas de la auditoría.`)) {
+      return;
+    }
+    try {
+      await api.deleteEnvio(id);
+      await Promise.all([cargarAuditoria(), cargarHistorialRemitos()]);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error eliminando remito');
     }
   };
 
@@ -235,41 +317,87 @@ export const AuditoriaView: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-5 animate-fade-in">
-      {/* 1. Encabezado & Lector QR */}
-      <div className="bg-triton-navy/95 border border-triton-slate/50 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <ClipboardCheck className="w-5 h-5 sm:w-6 sm:h-6 text-triton-aqua shrink-0" />
-            <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">
-              Auditoría y Cruce de Remitos por Hotel
-            </h1>
+      {/* 1. Encabezado & Acciones Principales */}
+      <div className="bg-triton-navy/95 border border-triton-slate/50 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <ClipboardCheck className="w-5 h-5 sm:w-6 sm:h-6 text-triton-aqua shrink-0" />
+              <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">
+                Auditoría y Gestión de Remitos por Hotel
+              </h1>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Control cruzado de remitos (en papel o digital) vs. prendas procesadas en lavadero, con historial y búsqueda.
+            </p>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Control individualizado por cliente: prendas declaradas vs. limpias, relavadas y roturas.
-          </p>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Botón Principal: Cargar Remito en Papel */}
+            <button
+              type="button"
+              onClick={() => abrirCargarRemitoModal()}
+              className="px-4 py-2 bg-gradient-to-r from-triton-teal to-triton-aqua hover:from-triton-teal-light hover:to-triton-aqua-hover text-triton-navy text-xs font-black rounded-xl shadow-lg shadow-triton-aqua/20 flex items-center gap-2 transition-all hover:scale-[1.02] shrink-0"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Cargar Remito en Papel</span>
+            </button>
+
+            {/* Lector de QR / Búsqueda Directa */}
+            <form onSubmit={handleBuscarQR} className="flex items-center gap-1.5 flex-1 sm:flex-initial">
+              <div className="relative flex-1 sm:w-64">
+                <QrCode className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Escanear QR o N° Remito..."
+                  value={qrCodeInput}
+                  onChange={(e) => setQrCodeInput(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-triton-deep border border-triton-slate/50 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua font-mono"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={scanning}
+                className="px-3 py-2 bg-triton-aqua hover:bg-triton-aqua-hover disabled:opacity-40 text-triton-navy text-xs font-black rounded-xl shadow-md shadow-triton-aqua/20 flex items-center gap-1 transition-all shrink-0"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Buscar</span>
+              </button>
+            </form>
+          </div>
         </div>
 
-        {/* Lector de QR para el Operario */}
-        <form onSubmit={handleBuscarQR} className="flex items-center gap-2 md:max-w-md w-full md:w-auto">
-          <div className="relative flex-1">
-            <QrCode className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Escanear Remito QR (ENV-...)"
-              value={qrCodeInput}
-              onChange={(e) => setQrCodeInput(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-triton-deep border border-triton-slate/50 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua font-mono"
-            />
-          </div>
+        {/* Pestañas de Vista: Auditoría de Prendas vs Historial de Remitos */}
+        <div className="flex items-center gap-2 border-t border-triton-slate/50/60 pt-3">
           <button
-            type="submit"
-            disabled={scanning}
-            className="px-4 py-2 bg-triton-aqua hover:bg-triton-aqua-hover disabled:opacity-40 text-triton-navy text-xs font-black rounded-xl shadow-md shadow-triton-aqua/20 flex items-center gap-1.5 transition-all shrink-0"
+            type="button"
+            onClick={() => setVistaActiva('auditoria')}
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all ${
+              vistaActiva === 'auditoria'
+                ? 'bg-triton-aqua text-triton-navy shadow-md shadow-triton-aqua/25'
+                : 'bg-triton-deep text-slate-400 hover:text-slate-200 border border-triton-slate/50'
+            }`}
           >
-            <Search className="w-3.5 h-3.5" />
-            <span>Consultar</span>
+            <ClipboardCheck className="w-4 h-4" />
+            <span>Auditoría de Prendas</span>
           </button>
-        </form>
+
+          <button
+            type="button"
+            onClick={() => setVistaActiva('historial')}
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all ${
+              vistaActiva === 'historial'
+                ? 'bg-triton-aqua text-triton-navy shadow-md shadow-triton-aqua/25'
+                : 'bg-triton-deep text-slate-400 hover:text-slate-200 border border-triton-slate/50'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            <span>Historial de Remitos</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-triton-navy/60 font-mono font-bold">
+              {remitos.length}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Alerta de Error QR */}
@@ -342,94 +470,118 @@ export const AuditoriaView: React.FC = () => {
         </div>
       )}
 
-      {/* 2. Tarjetas de Resumen Global (4 KPIs) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
-        <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-emerald-800/60 bg-emerald-950/15 shadow-lg">
-          <div className="flex items-center justify-between text-emerald-400 mb-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Coincidencias</span>
-            <CheckCircle className="w-4 h-4" />
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-white">{totalOK}</p>
-          <p className="text-[10px] text-slate-400">Prendas exactas (OK)</p>
-        </div>
+      {/* SECCIÓN 1: VISTA DE AUDITORÍA Y CRUCE DE PRENDAS */}
+      {vistaActiva === 'auditoria' && (
+        <>
+          {/* 2. Tarjetas de Resumen Global (4 KPIs) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+            <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-emerald-800/60 bg-emerald-950/15 shadow-lg">
+              <div className="flex items-center justify-between text-emerald-400 mb-1">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Coincidencias</span>
+                <CheckCircle className="w-4 h-4" />
+              </div>
+              <p className="text-xl sm:text-2xl font-black text-white">{totalOK}</p>
+              <p className="text-[10px] text-slate-400">Prendas exactas (OK)</p>
+            </div>
 
-        <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-rose-800/60 bg-rose-950/15 shadow-lg">
-          <div className="flex items-center justify-between text-rose-400 mb-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Faltantes</span>
-            <AlertOctagon className="w-4 h-4" />
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-rose-400">{totalFaltantes}</p>
-          <p className="text-[10px] text-slate-400">Prendas de menos</p>
-        </div>
+            <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-rose-800/60 bg-rose-950/15 shadow-lg">
+              <div className="flex items-center justify-between text-rose-400 mb-1">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Faltantes</span>
+                <AlertOctagon className="w-4 h-4" />
+              </div>
+              <p className="text-xl sm:text-2xl font-black text-rose-400">{totalFaltantes}</p>
+              <p className="text-[10px] text-slate-400">Prendas de menos</p>
+            </div>
 
-        <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-amber-800/60 bg-amber-950/15 shadow-lg">
-          <div className="flex items-center justify-between text-amber-400 mb-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Sobrantes</span>
-            <AlertTriangle className="w-4 h-4" />
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-amber-400">{totalSobrantes}</p>
-          <p className="text-[10px] text-slate-400">Prendas contadas de más</p>
-        </div>
+            <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-amber-800/60 bg-amber-950/15 shadow-lg">
+              <div className="flex items-center justify-between text-amber-400 mb-1">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Sobrantes</span>
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <p className="text-xl sm:text-2xl font-black text-amber-400">{totalSobrantes}</p>
+              <p className="text-[10px] text-slate-400">Prendas contadas de más</p>
+            </div>
 
-        <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-brand-800/60 bg-brand-950/15 shadow-lg">
-          <div className="flex items-center justify-between text-triton-aqua mb-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Pendientes</span>
-            <Clock className="w-4 h-4" />
+            <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-xl border border-brand-800/60 bg-brand-950/15 shadow-lg">
+              <div className="flex items-center justify-between text-triton-aqua mb-1">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Pendientes</span>
+                <Clock className="w-4 h-4" />
+              </div>
+              <p className="text-xl sm:text-2xl font-black text-brand-300">{totalPendientes}</p>
+              <p className="text-[10px] text-slate-400">En proceso de lavado</p>
+            </div>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-brand-300">{totalPendientes}</p>
-          <p className="text-[10px] text-slate-400">En proceso de lavado</p>
-        </div>
-      </div>
 
-      {/* 3. Barra de Controles y Selector de Pestañas por Hotel */}
-      <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-2xl border border-triton-slate/50 shadow-xl space-y-3">
-        {/* Controles de Filtros Superiores */}
-        <div className="flex flex-col sm:flex-row flex-wrap sm:items-center justify-between gap-3">
-          <div className="grid grid-cols-2 sm:flex flex-wrap items-center gap-2 sm:gap-2.5">
-            {/* Selector de Fecha */}
-            <div className="flex items-center gap-1.5 bg-triton-deep px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl border border-triton-slate/50">
-              <span className="text-xs font-bold text-slate-400 hidden xs:inline">Fecha:</span>
-              <input
-                type="date"
-                value={fechaFiltro}
-                onChange={(e) => setFechaFiltro(e.target.value)}
-                className="bg-transparent text-xs text-white font-bold focus:outline-none cursor-pointer w-full"
-              />
-              {fechaFiltro && (
+          {/* 3. Barra de Controles y Selector de Pestañas por Hotel */}
+          <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-2xl border border-triton-slate/50 shadow-xl space-y-3">
+            {/* Controles de Filtros Superiores */}
+            <div className="flex flex-col sm:flex-row flex-wrap sm:items-center justify-between gap-3">
+              <div className="grid grid-cols-2 sm:flex flex-wrap items-center gap-2 sm:gap-2.5">
+                {/* Selector de Fecha */}
+                <div className="flex items-center gap-1.5 bg-triton-deep px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl border border-triton-slate/50">
+                  <span className="text-xs font-bold text-slate-400 hidden xs:inline">Fecha:</span>
+                  <input
+                    type="date"
+                    value={fechaFiltro}
+                    onChange={(e) => setFechaFiltro(e.target.value)}
+                    className="bg-transparent text-xs text-white font-bold focus:outline-none cursor-pointer w-full"
+                  />
+                  {fechaFiltro && (
+                    <button
+                      onClick={() => setFechaFiltro('')}
+                      className="text-[10px] text-slate-400 hover:text-white underline ml-1 shrink-0"
+                    >
+                      Todas
+                    </button>
+                  )}
+                </div>
+
+                {/* Buscador de Remito */}
+                <div className="relative col-span-2 sm:col-span-1">
+                  <Hash className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="N° Remito o QR..."
+                    value={busquedaRemito}
+                    onChange={(e) => setBusquedaRemito(e.target.value)}
+                    className="bg-triton-deep border border-triton-slate/50 rounded-xl pl-8 pr-7 py-2 sm:py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua w-full sm:w-36 font-mono"
+                  />
+                  {busquedaRemito && (
+                    <button
+                      onClick={() => setBusquedaRemito('')}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white"
+                      title="Limpiar filtro de remito"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Toggle Solo con Diferencias */}
                 <button
-                  onClick={() => setFechaFiltro('')}
-                  className="text-[10px] text-slate-400 hover:text-white underline ml-1 shrink-0"
+                  onClick={() => setSoloConDiferencias(!soloConDiferencias)}
+                  className={`px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                    soloConDiferencias
+                      ? 'bg-amber-950/80 text-amber-300 border-amber-700 shadow-sm'
+                      : 'bg-triton-deep text-slate-400 border-triton-slate/50 hover:text-slate-200'
+                  }`}
                 >
-                  Todas
+                  <Filter className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Con Diferencias</span>
                 </button>
-              )}
-            </div>
 
-            {/* Toggle Solo con Diferencias */}
-            <button
-              onClick={() => setSoloConDiferencias(!soloConDiferencias)}
-              className={`px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                soloConDiferencias
-                  ? 'bg-amber-950/80 text-amber-300 border-amber-700 shadow-sm'
-                  : 'bg-triton-deep text-slate-400 border-triton-slate/50 hover:text-slate-200'
-              }`}
-            >
-              <Filter className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">Con Diferencias</span>
-            </button>
-
-            {/* Buscador de Prenda */}
-            <div className="relative col-span-2 sm:col-span-1">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Buscar prenda..."
-                value={busquedaPrenda}
-                onChange={(e) => setBusquedaPrenda(e.target.value)}
-                className="bg-triton-deep border border-triton-slate/50 rounded-xl pl-8 pr-3 py-2 sm:py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua w-full sm:w-44"
-              />
-            </div>
-          </div>
+                {/* Buscador de Prenda */}
+                <div className="relative col-span-2 sm:col-span-1">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Buscar prenda..."
+                    value={busquedaPrenda}
+                    onChange={(e) => setBusquedaPrenda(e.target.value)}
+                    className="bg-triton-deep border border-triton-slate/50 rounded-xl pl-8 pr-3 py-2 sm:py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua w-full sm:w-40"
+                  />
+                </div>
+              </div>
 
           {/* Acciones de Acordeón: Expandir / Colapsar */}
           <div className="grid grid-cols-3 sm:flex items-center gap-2">
@@ -552,6 +704,12 @@ export const AuditoriaView: React.FC = () => {
                         <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
                           {group.hotel_nombre}
                         </h2>
+                        {group.items[0]?.numeros_remito && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800">
+                            <Hash className="w-3 h-3 text-cyan-400" />
+                            Remito: {group.items[0].numeros_remito}
+                          </span>
+                        )}
                         {hasDiff ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-800">
                             <AlertTriangle className="w-3 h-3" />
@@ -572,8 +730,21 @@ export const AuditoriaView: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Badges de Estado y Botón de Despliegue */}
+                  {/* Badges de Estado y Acciones Rápidas */}
                   <div className="flex items-center justify-between md:justify-end gap-2 sm:gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-triton-slate/50/50">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        abrirCargarRemitoModal(group.hotel_id);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-triton-aqua/15 hover:bg-triton-aqua/25 text-triton-aqua border border-triton-aqua/40 text-[11px] font-bold flex items-center gap-1 transition-all"
+                      title="Cargar o actualizar remito en papel para este hotel"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>{group.items[0]?.numeros_remito ? 'Editar Remito' : '+ Cargar Remito'}</span>
+                    </button>
+
                     <div className="flex flex-wrap items-center gap-1.5 text-xs">
                       {group.totalOK > 0 && (
                         <span className="px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 font-semibold text-[11px]">
@@ -891,6 +1062,225 @@ export const AuditoriaView: React.FC = () => {
           })}
         </div>
       )}
+    </>
+  )}
+
+      {/* SECCIÓN 2: HISTORIAL DE REMITOS */}
+      {vistaActiva === 'historial' && (
+        <div className="space-y-4 animate-fade-in">
+          {/* Barra de Filtros del Historial */}
+          <div className="bg-triton-navy/90 p-3.5 sm:p-4 rounded-2xl border border-triton-slate/50 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              {/* Filtro por Hotel */}
+              <div className="flex items-center gap-1.5 bg-triton-deep px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl border border-triton-slate/50">
+                <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-xs font-bold text-slate-400">Hotel:</span>
+                <select
+                  value={filtroHotelHistorial}
+                  onChange={(e) =>
+                    setFiltroHotelHistorial(
+                      e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10)
+                    )
+                  }
+                  className="bg-transparent text-xs text-white font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="all" className="bg-triton-navy text-white">
+                    Todos los hoteles
+                  </option>
+                  {hotelesLista.map((h) => (
+                    <option key={h.id} value={h.id} className="bg-triton-navy text-white">
+                      {h.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filtro por Fecha */}
+              <div className="flex items-center gap-1.5 bg-triton-deep px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl border border-triton-slate/50">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-xs font-bold text-slate-400">Fecha:</span>
+                <input
+                  type="date"
+                  value={filtroFechaHistorial}
+                  onChange={(e) => setFiltroFechaHistorial(e.target.value)}
+                  className="bg-transparent text-xs text-white font-bold focus:outline-none cursor-pointer"
+                />
+                {filtroFechaHistorial && (
+                  <button
+                    onClick={() => setFiltroFechaHistorial('')}
+                    className="text-[10px] text-slate-400 hover:text-white underline ml-1"
+                  >
+                    Todas
+                  </button>
+                )}
+              </div>
+
+              {/* Búsqueda por N° de Remito o QR */}
+              <div className="relative">
+                <Hash className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Buscar N° Remito o QR..."
+                  value={busquedaRemito}
+                  onChange={(e) => setBusquedaRemito(e.target.value)}
+                  className="bg-triton-deep border border-triton-slate/50 rounded-xl pl-8 pr-7 py-2 sm:py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-triton-aqua font-mono w-48 sm:w-56"
+                />
+                {busquedaRemito && (
+                  <button
+                    onClick={() => setBusquedaRemito('')}
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 justify-end">
+              <button
+                onClick={cargarHistorialRemitos}
+                disabled={loadingRemitos}
+                className="px-3 py-2 sm:py-1.5 bg-triton-deep hover:bg-slate-800 border border-triton-slate/50 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-colors"
+              >
+                Actualizar
+              </button>
+              <button
+                onClick={() => abrirCargarRemitoModal()}
+                className="px-3.5 py-2 sm:py-1.5 bg-gradient-to-r from-triton-teal to-triton-aqua hover:from-triton-teal-light hover:to-triton-aqua-hover text-triton-navy text-xs font-black rounded-xl shadow-md shadow-triton-aqua/20 flex items-center gap-1.5 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span>+ Cargar Remito</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Tabla / Tarjetas de Remitos */}
+          {loadingRemitos ? (
+            <div className="bg-triton-navy/90 rounded-2xl border border-triton-slate/50 p-16 text-center shadow-xl">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-triton-aqua border-t-transparent mb-3" />
+              <p className="text-xs text-slate-400 font-semibold">Cargando historial de remitos...</p>
+            </div>
+          ) : remitos.length === 0 ? (
+            <div className="bg-triton-navy/90 rounded-2xl border border-triton-slate/50 p-14 text-center text-slate-400 text-xs shadow-xl space-y-3">
+              <FileText className="w-10 h-10 text-slate-600 mx-auto" />
+              <p className="font-semibold text-slate-300">No se encontraron remitos para los filtros seleccionados.</p>
+              <p className="text-[11px] text-slate-500">
+                Puedes registrar un remito físico enviado por el hotel haciendo clic en "+ Cargar Remito".
+              </p>
+              <button
+                onClick={() => abrirCargarRemitoModal()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-triton-aqua text-triton-navy font-black text-xs rounded-xl shadow-md shadow-triton-aqua/20"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Cargar Primer Remito</span>
+              </button>
+            </div>
+          ) : (
+            <div className="bg-triton-navy/90 rounded-2xl border border-triton-slate/50 shadow-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-triton-slate/50 bg-triton-deep text-[11px] uppercase tracking-wider text-slate-400 font-black">
+                      <th className="py-3 px-4">Fecha</th>
+                      <th className="py-3 px-4">Hotel / Cliente</th>
+                      <th className="py-3 px-4">N° Remito Papel</th>
+                      <th className="py-3 px-4">Código / Ref</th>
+                      <th className="py-3 px-4 text-right">Prendas Declaradas</th>
+                      <th className="py-3 px-4 text-center">Estado</th>
+                      <th className="py-3 px-4 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-triton-slate/40">
+                    {remitos.map((rem) => {
+                      const totalP =
+                        rem.total_prendas ||
+                        rem.detalles?.reduce((acc, d) => acc + d.cantidad_declarada, 0) ||
+                        0;
+
+                      return (
+                        <tr key={rem.id} className="hover:bg-triton-deep/40 transition-colors">
+                          <td className="py-3 px-4 font-semibold text-white whitespace-nowrap">
+                            {new Date(rem.fecha).toLocaleDateString('es-AR')}
+                          </td>
+                          <td className="py-3 px-4 font-bold text-slate-200">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-3.5 h-3.5 text-triton-aqua shrink-0" />
+                              <span>{rem.hotel?.nombre || `Hotel #${rem.hotel_id}`}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 font-mono font-black text-triton-aqua">
+                            {rem.numero_remito ? (
+                              <span className="bg-triton-deep border border-triton-teal/50 px-2 py-0.5 rounded-md">
+                                {rem.numero_remito}
+                              </span>
+                            ) : (
+                              <span className="text-slate-500 font-normal italic">Sin número</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-[11px] text-slate-400">
+                            {rem.codigo_qr}
+                          </td>
+                          <td className="py-3 px-4 text-right font-black text-white text-sm">
+                            {formatNumber(totalP)} u.
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-brand-950/80 text-brand-300 border border-brand-800">
+                              {rem.estado || 'listo_para_retiro'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* Ver / Imprimir */}
+                              <button
+                                onClick={() => setRemitoParaImprimir(rem)}
+                                className="p-1.5 rounded-lg bg-triton-deep hover:bg-slate-800 text-slate-300 hover:text-white border border-triton-slate/50 transition-colors"
+                                title="Ver / Imprimir Remito Oficial"
+                              >
+                                <Printer className="w-3.5 h-3.5" />
+                              </button>
+                              {/* Modificar */}
+                              <button
+                                onClick={() => abrirEditarRemito(rem)}
+                                className="p-1.5 rounded-lg bg-triton-deep hover:bg-slate-800 text-slate-300 hover:text-white border border-triton-slate/50 transition-colors"
+                                title="Editar Remito y Cantidades"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              {/* Auditar directamente */}
+                              <button
+                                onClick={() => {
+                                  const fStr = typeof rem.fecha === 'string' ? rem.fecha.split('T')[0] : new Date(rem.fecha).toISOString().split('T')[0];
+                                  setFechaFiltro(fStr);
+                                  setActiveHotelTab(rem.hotel_id);
+                                  setExpandedHotels({ [rem.hotel_id]: true });
+                                  setVistaActiva('auditoria');
+                                }}
+                                className="px-2 py-1 rounded-lg bg-brand-600/30 hover:bg-brand-600 text-brand-300 hover:text-white border border-brand-700/60 font-bold text-[11px] flex items-center gap-1 transition-colors"
+                                title="Ver cruce de auditoría para este remito y fecha"
+                              >
+                                <ClipboardCheck className="w-3 h-3" />
+                                <span>Auditar</span>
+                              </button>
+                              {/* Eliminar */}
+                              <button
+                                onClick={() => handleDeleteRemito(rem.id, rem.numero_remito)}
+                                className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900 text-rose-400 hover:text-rose-200 border border-rose-800/50 transition-colors"
+                                title="Eliminar remito"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 5. Modal para Registrar Conteo de Salida (Océano Corporativo) */}
       {selectedItemForConteo && (
@@ -1065,6 +1455,21 @@ export const AuditoriaView: React.FC = () => {
           envio={remitoParaImprimir}
           hotelNombre={remitoParaImprimir.hotel?.nombre || ''}
           onClose={() => setRemitoParaImprimir(null)}
+        />
+      )}
+
+      {/* Modal para Cargar o Modificar Remito en Papel */}
+      {modalCargarRemitoOpen && (
+        <CargarRemitoModal
+          isOpen={modalCargarRemitoOpen}
+          onClose={() => {
+            setModalCargarRemitoOpen(false);
+            setRemitoParaEditar(null);
+          }}
+          onSuccess={handleRemitoGuardado}
+          initialHotelId={hotelPreseleccionado}
+          initialFecha={fechaFiltro || undefined}
+          remitoParaEditar={remitoParaEditar}
         />
       )}
     </div>

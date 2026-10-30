@@ -32,6 +32,7 @@ export const PortalHotelView: React.FC = () => {
 
   // Formulario nuevo remito
   const [fechaEnvio, setFechaEnvio] = useState(new Date().toISOString().split('T')[0]);
+  const [numeroRemito, setNumeroRemito] = useState('');
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
   const [filtroPrenda, setFiltroPrenda] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -109,10 +110,12 @@ export const PortalHotelView: React.FC = () => {
 
       const nuevo = await api.createEnvio({
         fecha: fechaEnvio,
+        numero_remito: numeroRemito.trim() || undefined,
         detalles,
       });
 
       setCreatedEnvio(nuevo);
+      setNumeroRemito('');
       setCantidades({});
       await cargarDatos();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -297,9 +300,9 @@ export const PortalHotelView: React.FC = () => {
       {/* 1. VISTA CARGA DE REMITO (MOBILE FIRST PARA MUCAMAS) */}
       {activeTab === 'nuevo_remito' && (
         <div className="space-y-4">
-          {/* Barra de Fecha y Buscador */}
+          {/* Barra de Fecha, Número de Remito y Buscador */}
           <div className="bg-triton-navy/90 border border-triton-slate/50 p-4 rounded-2xl shadow-xl flex flex-col sm:flex-row gap-3">
-            <div className="sm:w-48">
+            <div className="sm:w-44">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Fecha de Entrega
               </label>
@@ -309,7 +312,22 @@ export const PortalHotelView: React.FC = () => {
                   type="date"
                   value={fechaEnvio}
                   onChange={(e) => setFechaEnvio(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-triton-deep border border-triton-slate/50 rounded-xl text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full pl-9 pr-3 py-2 bg-triton-deep border border-triton-slate/50 rounded-xl text-xs sm:text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            <div className="sm:w-44">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                N° Remito Interno (Opcional)
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Ej: 0001-0023"
+                  value={numeroRemito}
+                  onChange={(e) => setNumeroRemito(e.target.value)}
+                  className="w-full px-3 py-2 bg-triton-deep border border-triton-slate/50 rounded-xl text-xs sm:text-sm font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </div>
@@ -593,6 +611,11 @@ export const PortalHotelView: React.FC = () => {
                       <span className="font-mono text-[11px] bg-triton-deep text-brand-300 border border-triton-slate/50 px-2 py-0.5 rounded font-bold">
                         {env.codigo_qr}
                       </span>
+                      {env.numero_remito && (
+                        <span className="font-mono text-[11px] bg-cyan-950/80 text-cyan-300 border border-cyan-800 px-2 py-0.5 rounded font-black">
+                          N° {env.numero_remito}
+                        </span>
+                      )}
                       {env.estado === 'retirado' ? (
                         <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800 flex items-center gap-1">
                           <Clock className="w-3 h-3 text-blue-400" />

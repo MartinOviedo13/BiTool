@@ -145,6 +145,9 @@ export interface Envio {
   hotel?: Hotel;
   fecha: string;
   codigo_qr: string;
+  numero_remito?: string | null;
+  observaciones?: string | null;
+  total_prendas?: number;
   estado?: 'listo_para_retiro' | 'retirado' | 'en_planta' | 'entregado' | string;
   retirado_por_id?: number | null;
   retirado_por_username?: string | null;
@@ -184,7 +187,10 @@ export interface CreateEnvioItem {
 }
 
 export interface CreateEnvioRequest {
+  hotel_id?: number;
   fecha: string;
+  numero_remito?: string;
+  observaciones?: string;
   detalles: CreateEnvioItem[];
 }
 
@@ -201,6 +207,7 @@ export interface AuditoriaItem {
   total_contado: number;
   diferencia: number;
   estado: 'OK' | 'FALTANTE' | 'SOBRANTE' | 'PENDIENTE_LAVADERO' | 'SIN_REMITO';
+  numeros_remito?: string;
 }
 
 export interface ConteoRequest {

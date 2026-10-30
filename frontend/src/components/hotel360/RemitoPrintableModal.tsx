@@ -72,10 +72,20 @@ export const RemitoPrintableModal: React.FC<RemitoPrintableModalProps> = ({
               <div className="inline-block bg-slate-100 border border-slate-300 rounded-lg p-2.5 text-right">
                 <span className="text-[9px] font-bold uppercase text-slate-500 tracking-wider block">Documento de Traslado</span>
                 <span className="text-sm font-extrabold text-slate-900">REMITO DE ENTREGA / AUDITORÍA</span>
-                <p className="font-mono text-xs font-black text-brand-700 mt-0.5">{envio.codigo_qr}</p>
+                {envio.numero_remito && (
+                  <p className="font-mono text-xs font-black text-brand-700 mt-0.5">
+                    N° Remito Papel: {envio.numero_remito}
+                  </p>
+                )}
+                <p className="font-mono text-[10px] text-slate-500 mt-0.5">QR: {envio.codigo_qr}</p>
                 <span className="text-[10px] text-slate-500 block font-mono">
                   Fecha: {new Date(envio.fecha).toLocaleDateString('es-AR')}
                 </span>
+                {envio.observaciones && (
+                  <span className="text-[9px] text-slate-600 block mt-1 italic">
+                    Obs: {envio.observaciones}
+                  </span>
+                )}
               </div>
             </div>
           </div>

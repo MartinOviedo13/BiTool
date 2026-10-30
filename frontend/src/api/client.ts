@@ -241,29 +241,40 @@ importPreview: (file: File) => {
 
   // Portal B2B (Envios / Remitos)
   createEnvio: (data: CreateEnvioRequest, hotelId?: number) => {
-    const qs = hotelId ? `?hotel_id=${hotelId}` : '';
+    const targetHotelId = hotelId || data.hotel_id;
+    const qs = targetHotelId ? `?hotel_id=${targetHotelId}` : '';
     return request<Envio>(`/api/envios${qs}`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
-  getEnvios: (params?: { fecha?: string; hotel_id?: number }) => {
+  getEnvios: (params?: { fecha?: string; fecha_desde?: string; fecha_hasta?: string; hotel_id?: number; remito?: string; q?: string }) => {
     const searchParams = new URLSearchParams();
     if (params?.fecha) searchParams.set('fecha', params.fecha);
+    if (params?.fecha_desde) searchParams.set('fecha_desde', params.fecha_desde);
+    if (params?.fecha_hasta) searchParams.set('fecha_hasta', params.fecha_hasta);
     if (params?.hotel_id) searchParams.set('hotel_id', params.hotel_id.toString());
+    if (params?.remito) searchParams.set('remito', params.remito);
+    if (params?.q) searchParams.set('q', params.q);
     const qs = searchParams.toString();
     return request<Envio[]>(`/api/envios${qs ? `?${qs}` : ''}`);
   },
+  getEnvio: (id: number) => request<Envio>(`/api/envios/${id}`),
+  deleteEnvio: (id: number) =>
+    request<{ success: boolean; message?: string }>(`/api/envios/${id}`, {
+      method: 'DELETE',
+    }),
   getEnvioByQR: (codigoQR: string) =>
     request<Envio>(`/api/envios/qr/${encodeURIComponent(codigoQR)}`),
   getPortalDashboard: (hotelId?: number) => {
     const qs = hotelId ? `?hotel_id=${hotelId}` : '';
     return request<PortalHotelDashboard>(`/api/portal/dashboard${qs}`);
   },
-  getAuditoria: (params?: { fecha?: string; hotel_id?: number }) => {
+  getAuditoria: (params?: { fecha?: string; hotel_id?: number; remito?: string }) => {
     const searchParams = new URLSearchParams();
     if (params?.fecha) searchParams.set('fecha', params.fecha);
     if (params?.hotel_id) searchParams.set('hotel_id', params.hotel_id.toString());
+    if (params?.remito) searchParams.set('remito', params.remito);
     const qs = searchParams.toString();
     return request<AuditoriaItem[]>(`/api/auditoria${qs ? `?${qs}` : ''}`);
   },
