@@ -61,7 +61,8 @@ lavadero-bi/
 │   ├── vite.config.ts                   ← Configurado con server.host = true para acceso LAN
 │   └── tsconfig.json
 ├── README.md                            ← Documentación técnica y funcional
-└── PLAN_MEJORAS.md                      ← Roadmap de mejoras operativas y de producto
+├── PLAN_MEJORAS.md                      ← Roadmap de mejoras operativas y de producto
+└── BACKLOG.md                           ← Product & Security Backlog con tracking de issues
 ```
 
 ---
