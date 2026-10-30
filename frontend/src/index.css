@@ -365,11 +365,13 @@ html:not(.dark) .keep-white * {
   }
 
   /* El modal o contenedor imprimible ocupa el 100% */
-  .printable-area {
+  .printable-area,
+  dialog.canvas-dialog {
     position: static !important;
     display: block !important;
     width: 100% !important;
     max-width: 100% !important;
+    max-height: none !important;
     background: #ffffff !important;
     color: #111827 !important;
     padding: 0 !important;

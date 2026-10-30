@@ -329,7 +329,7 @@ export interface IAArtifact {
   type: 'chart' | 'excel';
   title: string;
   subtitle?: string;
-  chart_type?: 'bar' | 'line' | 'area' | 'pie';
+  chart_type?: 'bar' | 'line' | 'area' | 'pie' | 'scatter' | 'heatmap';
   x_key?: string;
   series?: ChartSeries[];
   data?: Record<string, any>[];

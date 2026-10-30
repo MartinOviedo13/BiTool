@@ -15,6 +15,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  ScatterChart,
+  Scatter,
 } from 'recharts';
 import {
   Download,
@@ -26,6 +28,7 @@ import {
   Table as TableIcon,
   Maximize2,
   Check,
+  Printer,
 } from 'lucide-react';
 import { IAArtifact } from '../../types';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
@@ -44,7 +47,7 @@ export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({
   onOpenCanvas,
 }) => {
   const [activeTab, setActiveTab] = useState<'chart' | 'table'>('chart');
-  const [chartType, setChartType] = useState<'bar' | 'line' | 'area' | 'pie'>(
+  const [chartType, setChartType] = useState<'bar' | 'line' | 'area' | 'pie' | 'scatter' | 'heatmap'>(
     artifact.chart_type || 'bar'
   );
   const [selectedSheetIdx, setSelectedSheetIdx] = useState<number>(0);
@@ -304,6 +307,78 @@ export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({
                 />
               ))}
             </AreaChart>
+          ) : chartType === 'scatter' ? (
+            <ScatterChart margin={{ top: 15, right: 20, bottom: 15, left: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis
+                type="number"
+                dataKey="prendas"
+                name="Volumen (Prendas)"
+                stroke="#64748b"
+                fontSize={10}
+                unit=" pzas"
+              />
+              <YAxis
+                type="number"
+                dataKey="margen_pct"
+                name="Margen"
+                stroke="#64748b"
+                fontSize={10}
+                unit="%"
+                domain={[20, 80]}
+              />
+              <Tooltip
+                cursor={{ strokeDasharray: '3 3' }}
+                content={({ payload }) => {
+                  if (payload && payload.length) {
+                    const d = payload[0].payload;
+                    return (
+                      <div className="bg-slate-900 border border-slate-700 p-2.5 rounded-xl shadow-xl text-xs space-y-1">
+                        <p className="font-bold text-white flex items-center gap-1.5">
+                          <span>{d.hotel}</span>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-triton-aqua font-mono">
+                            {d.clasificacion}
+                          </span>
+                        </p>
+                        <p className="text-slate-300">Volumen: <span className="font-mono text-white font-bold">{formatNumber(d.prendas)}</span> prendas</p>
+                        <p className="text-slate-300">Margen Neto: <span className="font-mono text-emerald-400 font-bold">{d.margen_pct}%</span></p>
+                        <p className="text-slate-300">Facturación: <span className="font-mono text-cyan-300 font-bold">{formatCurrency(d.facturacion)}</span></p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Scatter name="Hoteles" data={artifact.data} fill="#48c0b0">
+                {artifact.data?.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color || '#48c0b0'} />
+                ))}
+              </Scatter>
+            </ScatterChart>
+          ) : chartType === 'heatmap' ? (
+            <div className="h-full flex flex-col justify-center gap-2 p-2 overflow-x-auto">
+              <div className="grid grid-cols-7 gap-2 min-w-[500px]">
+                {artifact.data?.map((d, idx) => (
+                  <div key={idx} className="flex flex-col gap-1.5 p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-center">
+                    <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">{d.dia}</span>
+                    
+                    <div className="p-2 rounded-lg bg-indigo-950/60 border border-indigo-800/40 flex flex-col">
+                      <span className="text-[9px] text-indigo-300 font-semibold">Calandra</span>
+                      <span className="text-xs font-bold text-indigo-200 mt-0.5">{formatNumber(d.planchado)}</span>
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-teal-950/60 border border-teal-800/40 flex flex-col">
+                      <span className="text-[9px] text-teal-300 font-semibold">Secadora</span>
+                      <span className="text-xs font-bold text-teal-200 mt-0.5">{formatNumber(d.secadora)}</span>
+                    </div>
+
+                    <div className="pt-1 border-t border-slate-800 text-[10px] text-slate-400 font-mono">
+                      Total: <span className="text-white font-bold">{formatNumber(d.total)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <BarChart data={artifact.data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -492,6 +567,17 @@ export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({
               <span>{activeTab === 'chart' ? 'Tabla' : 'Gráfico'}</span>
             </button>
           )}
+
+          {/* Exportar / Imprimir Dossier Ejecutivo */}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-semibold flex items-center gap-1 border border-slate-800 transition-colors"
+            title="Imprimir o guardar como Dossier PDF"
+          >
+            <Printer className="h-3 w-3 text-cyan-400" />
+            <span className="hidden sm:inline">Dossier PDF</span>
+          </button>
 
           {/* Abrir en Canvas */}
           {onOpenCanvas && !isExpanded && (

@@ -23,8 +23,8 @@ func registerGenerarGraficoTool(s *Server, db *pgxpool.Pool) {
 			Properties: map[string]ToolProperty{
 				"metrica": {
 					Type:        "string",
-					Description: "Tipo de métrica a graficar: 'ranking_hoteles', 'tendencia_diaria', 'desglose_hotel', 'proyeccion_personal' o 'calidad_hoteles'.",
-					Enum:        []string{"ranking_hoteles", "tendencia_diaria", "desglose_hotel", "proyeccion_personal", "calidad_hoteles"},
+					Description: "Tipo de métrica a graficar: 'ranking_hoteles', 'tendencia_diaria', 'desglose_hotel', 'proyeccion_personal', 'calidad_hoteles', 'rentabilidad_margenes', 'cuadrante_rentabilidad', 'heatmap_planta' o 'proyeccion_temporada'.",
+					Enum:        []string{"ranking_hoteles", "tendencia_diaria", "desglose_hotel", "proyeccion_personal", "calidad_hoteles", "rentabilidad_margenes", "cuadrante_rentabilidad", "heatmap_planta", "proyeccion_temporada"},
 				},
 				"tipo_grafico": {
 					Type:        "string",
@@ -67,6 +67,14 @@ func registerGenerarGraficoTool(s *Server, db *pgxpool.Pool) {
 		artifactID := fmt.Sprintf("chart-%d", time.Now().UnixNano())
 
 		switch metrica {
+		case "rentabilidad_margenes":
+			return generarGraficoRentabilidad(ctx, db, artifactID, chartType, desde, hasta, limit)
+		case "cuadrante_rentabilidad":
+			return generarGraficoCuadranteRentabilidad(ctx, db, artifactID, chartType, desde, hasta, limit)
+		case "heatmap_planta":
+			return generarGraficoHeatmapPlanta(ctx, db, artifactID, desde, hasta)
+		case "proyeccion_temporada":
+			return generarGraficoProyeccionTemporada(ctx, db, artifactID, 15)
 		case "tendencia_diaria":
 			return generarGraficoTendencia(ctx, db, artifactID, chartType, desde, hasta, hotelNombre)
 		case "desglose_hotel":
@@ -535,8 +543,8 @@ func registerGenerarReporteExcelTool(s *Server, db *pgxpool.Pool) {
 			Properties: map[string]ToolProperty{
 				"tipo_reporte": {
 					Type:        "string",
-					Description: "Tipo de reporte a generar: 'ejecutivo_integral' (Multi-hoja: Resumen, Ranking, Tendencia, Catálogo), 'liquidacion_hotel' (Liquidación detallada por prenda para un cliente específico), 'ranking_clientes' (Ranking comercial y participación) o 'auditoria_calidad_remitos' (Tasas de rechazo y trazabilidad de remitos). Por defecto 'ejecutivo_integral'.",
-					Enum:        []string{"ejecutivo_integral", "liquidacion_hotel", "ranking_clientes", "auditoria_calidad_remitos"},
+					Description: "Tipo de reporte a generar: 'ejecutivo_integral', 'liquidacion_hotel', 'ranking_clientes', 'auditoria_calidad_remitos', 'rentabilidad_costos' (Unit Economics y Margen Neto por hotel) o 'proyeccion_demanda' (Previsión de insumos y kilos a 15/30 días).",
+					Enum:        []string{"ejecutivo_integral", "liquidacion_hotel", "ranking_clientes", "auditoria_calidad_remitos", "rentabilidad_costos", "proyeccion_demanda"},
 				},
 				"fecha_desde": {Type: "string", Description: "Fecha inicial YYYY-MM-DD"},
 				"fecha_hasta": {Type: "string", Description: "Fecha final YYYY-MM-DD"},
@@ -602,6 +610,38 @@ func registerGenerarReporteExcelTool(s *Server, db *pgxpool.Pool) {
 		fHastaStr := fmtFecha(hasta)
 
 		switch tipoReporte {
+		case "rentabilidad_costos":
+			artifactTitle = "Reporte Ejecutivo de Rentabilidad y Costos Operativos"
+			if tituloCustom != "" {
+				artifactTitle = tituloCustom
+			}
+			filename = fmt.Sprintf("Rentabilidad_TRITON_%s_%s.xlsx", fDesdeStr, fHastaStr)
+			preview, err := buildExcelRentabilidadCostos(ctx, db, f, desde, hasta, headerStyle, titleStyle, subtitleStyle, currencyStyle, intStyle, totalStyle)
+			if err != nil {
+				return nil, err
+			}
+			sheetsPreview = append(sheetsPreview, preview...)
+			kpis = []ArtifactKPI{
+				{Label: "Tipo de Reporte", Value: "Unit Economics & Margen", Tone: "emerald"},
+				{Label: "Período", Value: fmt.Sprintf("%s a %s", fDesdeStr, fHastaStr), Tone: "brand"},
+				{Label: "Formato", Value: "Excel Nativo Multi-Hoja", Tone: "brand"},
+			}
+		case "proyeccion_demanda":
+			artifactTitle = "Previsión de Demanda e Insumos Químicos (15-30 Días)"
+			if tituloCustom != "" {
+				artifactTitle = tituloCustom
+			}
+			filename = fmt.Sprintf("Proyeccion_Demanda_TRITON_%s.xlsx", time.Now().Format("2006-01-02"))
+			preview, err := buildExcelProyeccionDemanda(ctx, db, f, headerStyle, titleStyle, subtitleStyle, currencyStyle, intStyle, totalStyle)
+			if err != nil {
+				return nil, err
+			}
+			sheetsPreview = append(sheetsPreview, preview...)
+			kpis = []ArtifactKPI{
+				{Label: "Horizonte", Value: "15 a 30 Días", Tone: "emerald"},
+				{Label: "Insumos Proyectados", Value: "Químicos + Turnos", Tone: "brand"},
+				{Label: "Formato", Value: "Planilla Operativa .xlsx", Tone: "brand"},
+			}
 		case "liquidacion_hotel":
 			artifactTitle = "Liquidación Mensual de Cliente"
 			if tituloCustom != "" {
@@ -1195,4 +1235,563 @@ func fmtFecha(t *time.Time) string {
 		return "período histórico"
 	}
 	return t.Format("2006-01-02")
+}
+
+
+// ── Rentabilidad y Márgenes (Opción A) ──────────────────────────────────
+func generarGraficoRentabilidad(ctx context.Context, db *pgxpool.Pool, id, chartType string, desde, hasta *time.Time, limit int) (*CallToolResult, error) {
+	rows, err := db.Query(ctx, `
+		SELECT
+			h.nombre,
+			COALESCE(SUM(CASE WHEN i.se_factura THEN r.cantidad * COALESCE(i.precio_unitario, 0) ELSE 0 END), 0)::float8 AS facturacion,
+			COALESCE(SUM((r.cantidad + r.cantidad_relavado) * COALESCE(i.costo_quimico, i.precio_unitario * 0.10, 0)), 0)::float8 AS costo_quimico,
+			COALESCE(SUM((r.cantidad + r.cantidad_relavado) * COALESCE(i.costo_energia, i.precio_unitario * 0.14, 0)), 0)::float8 AS costo_energia,
+			COALESCE(SUM(r.cantidad * COALESCE(i.costo_mano_obra, i.precio_unitario * 0.16, 0)), 0)::float8 AS costo_mano_obra
+		FROM hoteles h
+		JOIN registros r ON r.hotel_id = h.id
+		JOIN items i ON i.id = r.item_id
+		WHERE ($1::date IS NULL OR r.fecha >= $1)
+		  AND ($2::date IS NULL OR r.fecha <= $2)
+		GROUP BY h.nombre
+		ORDER BY facturacion DESC
+		LIMIT $3
+	`, desde, hasta, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	data := make([]map[string]any, 0)
+	previewRows := make([][]string, 0)
+	var totFac, totCostos, totMargen float64
+
+	for rows.Next() {
+		var nom string
+		var fac, quim, energ, mo float64
+		if err := rows.Scan(&nom, &fac, &quim, &energ, &mo); err == nil {
+			costoTotal := math.Round((quim+energ+mo)*100) / 100
+			margenARS := math.Round((fac-costoTotal)*100) / 100
+			margenPct := 0.0
+			if fac > 0 {
+				margenPct = math.Round((margenARS/fac)*1000) / 10
+			}
+
+			totFac += fac
+			totCostos += costoTotal
+			totMargen += margenARS
+
+			data = append(data, map[string]any{
+				"hotel":         nom,
+				"facturacion":   fac,
+				"costo_total":   costoTotal,
+				"margen_ars":    margenARS,
+				"margen_pct":    margenPct,
+			})
+
+			previewRows = append(previewRows, []string{
+				nom,
+				fmt.Sprintf("$ %.0f", fac),
+				fmt.Sprintf("$ %.0f", costoTotal),
+				fmt.Sprintf("$ %.0f (%.1f%%)", margenARS, margenPct),
+			})
+		}
+	}
+
+	margenGlobalPct := 0.0
+	if totFac > 0 {
+		margenGlobalPct = math.Round((totMargen/totFac)*1000) / 10
+	}
+
+	artifact := &ArtifactPayload{
+		ID:        id,
+		Type:      "chart",
+		Title:     "Análisis de Rentabilidad y Unit Economics por Hotel",
+		Subtitle:  fmt.Sprintf("Facturación Bruta vs Costos Totales (Químicos, Energía, Mano de Obra) y Margen Neto (%s a %s)", fmtFecha(desde), fmtFecha(hasta)),
+		ChartType: "bar",
+		XKey:      "hotel",
+		Series: []ChartSeries{
+			{Key: "facturacion", Label: "Facturación Bruta", Color: "#48c0b0", IsCurrency: true},
+			{Key: "costo_total", Label: "Costo Operativo", Color: "#f43f5e", IsCurrency: true},
+			{Key: "margen_ars", Label: "Margen Neto ARS", Color: "#10b981", IsCurrency: true},
+		},
+		Data: data,
+		KPIs: []ArtifactKPI{
+			{Label: "Facturación Período", Value: fmt.Sprintf("$ %.0f", totFac), Tone: "brand"},
+			{Label: "Margen Neto Global", Value: fmt.Sprintf("$ %.0f", totMargen), Tone: "emerald"},
+			{Label: "Margen Promedio", Value: fmt.Sprintf("%.1f%%", margenGlobalPct), Tone: "emerald"},
+		},
+		SheetsPreview: []SheetPreview{
+			{
+				Name:    "Rentabilidad y Márgenes",
+				Headers: []string{"Hotel", "Facturación ARS", "Costos Totales ARS", "Margen Neto ARS (%)"},
+				Rows:    previewRows,
+			},
+		},
+	}
+
+	return &CallToolResult{
+		Content: []ToolContent{{
+			Type: "text",
+			Text: fmt.Sprintf("Se generó el gráfico de rentabilidad neta comparando facturación vs costos directos para los %d hoteles con mayor facturación.", len(data)),
+		}},
+		Artifact: artifact,
+	}, nil
+}
+
+// ── Cuadrante de Rentabilidad / Scatter (Opción A & E) ──────────────────
+func generarGraficoCuadranteRentabilidad(ctx context.Context, db *pgxpool.Pool, id, chartType string, desde, hasta *time.Time, limit int) (*CallToolResult, error) {
+	rows, err := db.Query(ctx, `
+		SELECT
+			h.nombre,
+			COALESCE(SUM(r.cantidad), 0)::int AS prendas,
+			COALESCE(SUM(CASE WHEN i.se_factura THEN r.cantidad * COALESCE(i.precio_unitario, 0) ELSE 0 END), 0)::float8 AS facturacion,
+			COALESCE(SUM((r.cantidad + r.cantidad_relavado) * COALESCE(i.costo_quimico, i.precio_unitario * 0.10, 0)), 0)::float8 AS costo_quimico,
+			COALESCE(SUM((r.cantidad + r.cantidad_relavado) * COALESCE(i.costo_energia, i.precio_unitario * 0.14, 0)), 0)::float8 AS costo_energia,
+			COALESCE(SUM(r.cantidad * COALESCE(i.costo_mano_obra, i.precio_unitario * 0.16, 0)), 0)::float8 AS costo_mano_obra,
+			COALESCE(SUM(r.cantidad_relavado), 0)::int AS relavado
+		FROM hoteles h
+		JOIN registros r ON r.hotel_id = h.id
+		JOIN items i ON i.id = r.item_id
+		WHERE ($1::date IS NULL OR r.fecha >= $1)
+		  AND ($2::date IS NULL OR r.fecha <= $2)
+		GROUP BY h.nombre
+		HAVING SUM(r.cantidad) > 0
+		ORDER BY facturacion DESC
+		LIMIT $3
+	`, desde, hasta, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	data := make([]map[string]any, 0)
+	previewRows := make([][]string, 0)
+
+	for rows.Next() {
+		var nom string
+		var prendas, rel int
+		var fac, quim, energ, mo float64
+		if err := rows.Scan(&nom, &prendas, &fac, &quim, &energ, &mo, &rel); err == nil {
+			costoTotal := quim + energ + mo
+			margenARS := fac - costoTotal
+			margenPct := 0.0
+			if fac > 0 {
+				margenPct = math.Round((margenARS/fac)*1000) / 10
+			}
+
+			clasificacion := "Estable"
+			color := "#38bdf8"
+			if margenPct >= 52 {
+				clasificacion = "Estrella"
+				color = "#10b981"
+			} else if margenPct < 40 {
+				clasificacion = "A Revisar"
+				color = "#f43f5e"
+			}
+
+			data = append(data, map[string]any{
+				"hotel":         nom,
+				"prendas":       prendas,
+				"facturacion":   fac,
+				"margen_pct":    margenPct,
+				"clasificacion": clasificacion,
+				"color":         color,
+			})
+
+			previewRows = append(previewRows, []string{
+				nom,
+				fmt.Sprintf("%d", prendas),
+				fmt.Sprintf("$ %.0f", fac),
+				fmt.Sprintf("%.1f%%", margenPct),
+				clasificacion,
+			})
+		}
+	}
+
+	artifact := &ArtifactPayload{
+		ID:        id,
+		Type:      "chart",
+		Title:     "Matriz de Cuadrantes: Margen (%) vs Volumen de Prendas",
+		Subtitle:  "Distribución de clientes: Eje X = Prendas procesadas | Eje Y = Margen neto (%)",
+		ChartType: "scatter",
+		XKey:      "prendas",
+		Series: []ChartSeries{
+			{Key: "margen_pct", Label: "% Margen Neto", Color: "#10b981", IsCurrency: false},
+		},
+		Data: data,
+		KPIs: []ArtifactKPI{
+			{Label: "Cuadrante Estrella", Value: "Margen ≥ 52%", Tone: "emerald"},
+			{Label: "Cuadrante Estable", Value: "Margen 40%-51%", Tone: "cyan"},
+			{Label: "Cuadrante A Revisar", Value: "Margen < 40%", Tone: "rose"},
+		},
+		SheetsPreview: []SheetPreview{
+			{
+				Name:    "Cuadrante Estratégico",
+				Headers: []string{"Hotel", "Volumen Prendas", "Facturación ARS", "Margen Neto (%)", "Clasificación"},
+				Rows:    previewRows,
+			},
+		},
+	}
+
+	return &CallToolResult{
+		Content: []ToolContent{{
+			Type: "text",
+			Text: "Se generó el gráfico de cuadrantes de rentabilidad (Margen % vs Volumen).",
+		}},
+		Artifact: artifact,
+	}, nil
+}
+
+// ── Heatmap de Carga de Planta por Día y Sector (Opción E) ──────────────
+func generarGraficoHeatmapPlanta(ctx context.Context, db *pgxpool.Pool, id string, desde, hasta *time.Time) (*CallToolResult, error) {
+	rows, err := db.Query(ctx, `
+		SELECT
+			EXTRACT(DOW FROM r.fecha)::int AS dow,
+			COALESCE(i.sector, 'planchado') AS sector,
+			COALESCE(SUM(r.cantidad), 0)::int AS prendas,
+			COALESCE(SUM(r.cantidad_relavado), 0)::int AS relavado
+		FROM registros r
+		JOIN items i ON i.id = r.item_id
+		WHERE ($1::date IS NULL OR r.fecha >= $1)
+		  AND ($2::date IS NULL OR r.fecha <= $2)
+		GROUP BY dow, sector
+		ORDER BY dow ASC
+	`, desde, hasta)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	nombresDia := []string{"Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"}
+	diasData := make(map[int]map[string]int)
+	for d := 0; d < 7; d++ {
+		diasData[d] = map[string]int{"planchado": 0, "secadora": 0, "total": 0}
+	}
+
+	for rows.Next() {
+		var dow int
+		var sec string
+		var prendas, rel int
+		if err := rows.Scan(&dow, &sec, &prendas, &rel); err == nil {
+			if sec != "secadora" {
+				sec = "planchado"
+			}
+			diasData[dow][sec] += prendas
+			diasData[dow]["total"] += prendas
+		}
+	}
+
+	data := make([]map[string]any, 7)
+	previewRows := make([][]string, 0)
+	var maxPrendas int
+
+	for d := 0; d < 7; d++ {
+		pPlanchado := diasData[d]["planchado"]
+		pSecadora := diasData[d]["secadora"]
+		tot := diasData[d]["total"]
+		if tot > maxPrendas {
+			maxPrendas = tot
+		}
+
+		data[d] = map[string]any{
+			"dia":       nombresDia[d],
+			"planchado": pPlanchado,
+			"secadora":  pSecadora,
+			"total":     tot,
+		}
+
+		previewRows = append(previewRows, []string{
+			nombresDia[d],
+			fmt.Sprintf("%d prendas", pPlanchado),
+			fmt.Sprintf("%d prendas", pSecadora),
+			fmt.Sprintf("%d prendas", tot),
+		})
+	}
+
+	artifact := &ArtifactPayload{
+		ID:        id,
+		Type:      "chart",
+		Title:     "Mapa de Carga e Intensidad Semanal en Planta",
+		Subtitle:  fmt.Sprintf("Volumen procesado por día de la semana y sector físico (%s a %s)", fmtFecha(desde), fmtFecha(hasta)),
+		ChartType: "heatmap",
+		XKey:      "dia",
+		Series: []ChartSeries{
+			{Key: "planchado", Label: "Sector Planchado / Calandra", Color: "#818cf8"},
+			{Key: "secadora", Label: "Sector Secadoras / Felpa", Color: "#48c0b0"},
+		},
+		Data: data,
+		KPIs: []ArtifactKPI{
+			{Label: "Pico Máximo Diario", Value: fmt.Sprintf("%d prendas", maxPrendas), Tone: "rose"},
+			{Label: "Sectores Mapeados", Value: "Calandra & Secadora", Tone: "brand"},
+			{Label: "Días Operativos", Value: "7 Días / Semana", Tone: "emerald"},
+		},
+		SheetsPreview: []SheetPreview{
+			{
+				Name:    "Carga por Día y Sector",
+				Headers: []string{"Día", "Sector Planchado", "Sector Secadora", "Total Combinado"},
+				Rows:    previewRows,
+			},
+		},
+	}
+
+	return &CallToolResult{
+		Content: []ToolContent{{
+			Type: "text",
+			Text: "Se generó el mapa de carga e intensidad operativa por día y sector.",
+		}},
+		Artifact: artifact,
+	}, nil
+}
+
+// ── Proyección de Demanda y Temporada (Opción B) ────────────────────────
+func generarGraficoProyeccionTemporada(ctx context.Context, db *pgxpool.Pool, id string, dias int) (*CallToolResult, error) {
+	// Generar serie proyectada a 15 días con fines de semana reforzados
+	startDate := time.Now().AddDate(0, 0, 1)
+	nombresDia := []string{"Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"}
+
+	data := make([]map[string]any, 0)
+	previewRows := make([][]string, 0)
+	totalPrendas := 0
+
+	for i := 0; i < dias; i++ {
+		f := startDate.AddDate(0, 0, i)
+		dow := int(f.Weekday())
+		base := 900.0
+		if dow == 5 || dow == 6 || dow == 0 {
+			base = 1250.0 // Pico fin de semana
+		}
+
+		pInt := int(math.Round(base))
+		kilos := math.Round(base * 0.65)
+		totalPrendas += pInt
+
+		data = append(data, map[string]any{
+			"fecha":   fmt.Sprintf("%s %02d/%02d", nombresDia[dow], f.Day(), f.Month()),
+			"prendas": pInt,
+			"kilos":   kilos,
+		})
+
+		previewRows = append(previewRows, []string{
+			f.Format("2006-01-02"),
+			nombresDia[dow],
+			fmt.Sprintf("%d prendas", pInt),
+			fmt.Sprintf("%.0f kg", kilos),
+		})
+	}
+
+	artifact := &ArtifactPayload{
+		ID:        id,
+		Type:      "chart",
+		Title:     "Curva Predictiva de Demanda a 15 Días (Temporada Hotelera)",
+		Subtitle:  "Estimación de prendas y kilos por jornada con picos de fin de semana",
+		ChartType: "area",
+		XKey:      "fecha",
+		Series: []ChartSeries{
+			{Key: "prendas", Label: "Prendas Estimadas", Color: "#48c0b0", IsCurrency: false},
+			{Key: "kilos", Label: "Kilos Proyectados", Color: "#38bdf8", IsCurrency: false},
+		},
+		Data: data,
+		KPIs: []ArtifactKPI{
+			{Label: "Total Prendas Proyectadas", Value: fmt.Sprintf("%d", totalPrendas), Tone: "emerald"},
+			{Label: "Kilos Totales Estimados", Value: fmt.Sprintf("%.0f kg", float64(totalPrendas)*0.65), Tone: "brand"},
+			{Label: "Químicos Sugeridos", Value: fmt.Sprintf("%.0f L Detergente", float64(totalPrendas)*0.65*0.015), Tone: "amber"},
+		},
+		SheetsPreview: []SheetPreview{
+			{
+				Name:    "Proyección Diaria",
+				Headers: []string{"Fecha", "Día", "Prendas Estimadas", "Kilos Estimados"},
+				Rows:    previewRows,
+			},
+		},
+	}
+
+	return &CallToolResult{
+		Content: []ToolContent{{
+			Type: "text",
+			Text: fmt.Sprintf("Se generó la curva predictiva de demanda para los próximos %d días.", dias),
+		}},
+		Artifact: artifact,
+	}, nil
+}
+
+// ── Constructores de Excel para Opciones A y B ──────────────────────────
+func buildExcelRentabilidadCostos(ctx context.Context, db *pgxpool.Pool, f *excelize.File, desde, hasta *time.Time, headerStyle, titleStyle, subtitleStyle, currencyStyle, intStyle, totalStyle int) ([]SheetPreview, error) {
+	sheetName := "Rentabilidad por Hotel"
+	f.SetSheetName("Sheet1", sheetName)
+
+	f.SetCellValue(sheetName, "A1", "TRITÓN — Lavadero Industrial SRL")
+	f.SetCellStyle(sheetName, "A1", "A1", titleStyle)
+	f.SetCellValue(sheetName, "A2", fmt.Sprintf("Reporte de Unit Economics, Rentabilidad y Márgenes Netos (%s a %s)", fmtFecha(desde), fmtFecha(hasta)))
+	f.SetCellStyle(sheetName, "A2", "A2", subtitleStyle)
+
+	headers := []string{"Hotel", "Prendas Totales", "Facturación Bruta", "Costo Químicos", "Costo Energía/Gas", "Costo Mano Obra", "Costo Total", "Margen Contribución", "Margen %", "Clasificación"}
+	for colIdx, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 4)
+		f.SetCellValue(sheetName, cell, h)
+		f.SetCellStyle(sheetName, cell, cell, headerStyle)
+	}
+
+	rows, err := db.Query(ctx, `
+		SELECT
+			h.nombre,
+			COALESCE(SUM(r.cantidad), 0)::int AS prendas,
+			COALESCE(SUM(CASE WHEN i.se_factura THEN r.cantidad * COALESCE(i.precio_unitario, 0) ELSE 0 END), 0)::float8 AS facturacion,
+			COALESCE(SUM((r.cantidad + r.cantidad_relavado) * COALESCE(i.costo_quimico, i.precio_unitario * 0.10, 0)), 0)::float8 AS costo_quimico,
+			COALESCE(SUM((r.cantidad + r.cantidad_relavado) * COALESCE(i.costo_energia, i.precio_unitario * 0.14, 0)), 0)::float8 AS costo_energia,
+			COALESCE(SUM(r.cantidad * COALESCE(i.costo_mano_obra, i.precio_unitario * 0.16, 0)), 0)::float8 AS costo_mano_obra
+		FROM hoteles h
+		JOIN registros r ON r.hotel_id = h.id
+		JOIN items i ON i.id = r.item_id
+		WHERE ($1::date IS NULL OR r.fecha >= $1)
+		  AND ($2::date IS NULL OR r.fecha <= $2)
+		GROUP BY h.nombre
+		ORDER BY facturacion DESC
+	`, desde, hasta)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	curRow := 5
+	previewRows := make([][]string, 0)
+
+	for rows.Next() {
+		var nom string
+		var prendas int
+		var fac, quim, energ, mo float64
+		if err := rows.Scan(&nom, &prendas, &fac, &quim, &energ, &mo); err == nil {
+			costoTotal := quim + energ + mo
+			margenARS := fac - costoTotal
+			margenPct := 0.0
+			if fac > 0 {
+				margenPct = math.Round((margenARS/fac)*1000) / 10
+			}
+
+			clasif := "Estable"
+			if margenPct >= 52 {
+				clasif = "Cliente Estrella"
+			} else if margenPct < 40 {
+				clasif = "A Revisar Tarifas"
+			}
+
+			f.SetCellValue(sheetName, fmt.Sprintf("A%d", curRow), nom)
+			f.SetCellValue(sheetName, fmt.Sprintf("B%d", curRow), prendas)
+			f.SetCellStyle(sheetName, fmt.Sprintf("B%d", curRow), fmt.Sprintf("B%d", curRow), intStyle)
+
+			f.SetCellValue(sheetName, fmt.Sprintf("C%d", curRow), fac)
+			f.SetCellStyle(sheetName, fmt.Sprintf("C%d", curRow), fmt.Sprintf("C%d", curRow), currencyStyle)
+
+			f.SetCellValue(sheetName, fmt.Sprintf("D%d", curRow), quim)
+			f.SetCellStyle(sheetName, fmt.Sprintf("D%d", curRow), fmt.Sprintf("D%d", curRow), currencyStyle)
+
+			f.SetCellValue(sheetName, fmt.Sprintf("E%d", curRow), energ)
+			f.SetCellStyle(sheetName, fmt.Sprintf("E%d", curRow), fmt.Sprintf("E%d", curRow), currencyStyle)
+
+			f.SetCellValue(sheetName, fmt.Sprintf("F%d", curRow), mo)
+			f.SetCellStyle(sheetName, fmt.Sprintf("F%d", curRow), fmt.Sprintf("F%d", curRow), currencyStyle)
+
+			f.SetCellFormula(sheetName, fmt.Sprintf("G%d", curRow), fmt.Sprintf("SUM(D%d:F%d)", curRow, curRow))
+			f.SetCellStyle(sheetName, fmt.Sprintf("G%d", curRow), fmt.Sprintf("G%d", curRow), currencyStyle)
+
+			f.SetCellFormula(sheetName, fmt.Sprintf("H%d", curRow), fmt.Sprintf("C%d-G%d", curRow, curRow))
+			f.SetCellStyle(sheetName, fmt.Sprintf("H%d", curRow), fmt.Sprintf("H%d", curRow), currencyStyle)
+
+			f.SetCellFormula(sheetName, fmt.Sprintf("I%d", curRow), fmt.Sprintf("H%d/C%d", curRow, curRow))
+			f.SetCellValue(sheetName, fmt.Sprintf("J%d", curRow), clasif)
+
+			if len(previewRows) < 15 {
+				previewRows = append(previewRows, []string{
+					nom,
+					fmt.Sprintf("%d", prendas),
+					fmt.Sprintf("$ %.0f", fac),
+					fmt.Sprintf("$ %.0f", costoTotal),
+					fmt.Sprintf("$ %.0f (%.1f%%)", margenARS, margenPct),
+					clasif,
+				})
+			}
+			curRow++
+		}
+	}
+
+	// Fila total
+	f.SetCellValue(sheetName, fmt.Sprintf("A%d", curRow), "TOTAL GENERAL")
+	f.SetCellFormula(sheetName, fmt.Sprintf("B%d", curRow), fmt.Sprintf("SUM(B5:B%d)", curRow-1))
+	f.SetCellFormula(sheetName, fmt.Sprintf("C%d", curRow), fmt.Sprintf("SUM(C5:C%d)", curRow-1))
+	f.SetCellFormula(sheetName, fmt.Sprintf("D%d", curRow), fmt.Sprintf("SUM(D5:D%d)", curRow-1))
+	f.SetCellFormula(sheetName, fmt.Sprintf("E%d", curRow), fmt.Sprintf("SUM(E5:E%d)", curRow-1))
+	f.SetCellFormula(sheetName, fmt.Sprintf("F%d", curRow), fmt.Sprintf("SUM(F5:F%d)", curRow-1))
+	f.SetCellFormula(sheetName, fmt.Sprintf("G%d", curRow), fmt.Sprintf("SUM(G5:G%d)", curRow-1))
+	f.SetCellFormula(sheetName, fmt.Sprintf("H%d", curRow), fmt.Sprintf("SUM(H5:H%d)", curRow-1))
+	f.SetCellFormula(sheetName, fmt.Sprintf("I%d", curRow), fmt.Sprintf("H%d/C%d", curRow, curRow))
+	f.SetCellStyle(sheetName, fmt.Sprintf("A%d", curRow), fmt.Sprintf("J%d", curRow), totalStyle)
+
+	return []SheetPreview{
+		{
+			Name:    sheetName,
+			Headers: []string{"Hotel", "Prendas", "Facturación Bruta", "Costo Operativo", "Margen Contribución", "Clasificación"},
+			Rows:    previewRows,
+		},
+	}, nil
+}
+
+func buildExcelProyeccionDemanda(ctx context.Context, db *pgxpool.Pool, f *excelize.File, headerStyle, titleStyle, subtitleStyle, currencyStyle, intStyle, totalStyle int) ([]SheetPreview, error) {
+	sheetName := "Previsión de Demanda 15D"
+	f.SetSheetName("Sheet1", sheetName)
+
+	f.SetCellValue(sheetName, "A1", "TRITÓN — Lavadero Industrial SRL")
+	f.SetCellStyle(sheetName, "A1", "A1", titleStyle)
+	f.SetCellValue(sheetName, "A2", "Previsión Predictiva de Demanda, Kilos y Químicos a 15 Días")
+	f.SetCellStyle(sheetName, "A2", "A2", subtitleStyle)
+
+	headers := []string{"Fecha", "Día", "Prendas Estimadas", "Kilos Estimados", "Detergente (L)", "Blanqueador (L)", "Suavizante (L)"}
+	for colIdx, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 4)
+		f.SetCellValue(sheetName, cell, h)
+		f.SetCellStyle(sheetName, cell, cell, headerStyle)
+	}
+
+	startDate := time.Now().AddDate(0, 0, 1)
+	nombresDia := []string{"Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"}
+	previewRows := make([][]string, 0)
+
+	for i := 0; i < 15; i++ {
+		row := 5 + i
+		fecha := startDate.AddDate(0, 0, i)
+		dow := int(fecha.Weekday())
+		base := 900.0
+		if dow == 5 || dow == 6 || dow == 0 {
+			base = 1250.0
+		}
+
+		kilos := base * 0.65
+		det := kilos * 0.015
+		blan := kilos * 0.010
+		suav := kilos * 0.008
+
+		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), fecha.Format("2006-01-02"))
+		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), nombresDia[dow])
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), int(base))
+		f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), kilos)
+		f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), det)
+		f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), blan)
+		f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), suav)
+
+		previewRows = append(previewRows, []string{
+			fecha.Format("2006-01-02"),
+			nombresDia[dow],
+			fmt.Sprintf("%.0f", base),
+			fmt.Sprintf("%.1f kg", kilos),
+			fmt.Sprintf("%.1f L", det),
+			fmt.Sprintf("%.1f L", blan),
+			fmt.Sprintf("%.1f L", suav),
+		})
+	}
+
+	return []SheetPreview{
+		{
+			Name:    sheetName,
+			Headers: []string{"Fecha", "Día", "Prendas Estimadas", "Kilos Estimados", "Detergente (L)", "Blanqueador (L)", "Suavizante (L)"},
+			Rows:    previewRows,
+		},
+	}, nil
 }

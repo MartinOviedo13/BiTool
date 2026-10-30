@@ -25,6 +25,8 @@ func RegisterAllBITools(s *Server, db *pgxpool.Pool) {
 	registerPredictStaffingTool(s, db)
 	registerGenerarGraficoTool(s, db)
 	registerGenerarReporteExcelTool(s, db)
+	registerRentabilidadTool(s, db)
+	registerPrevisionDemandaTool(s, db)
 }
 
 func jsonResult(data any) (*CallToolResult, error) {
@@ -972,6 +974,290 @@ func registerPredictStaffingTool(s *Server, db *pgxpool.Pool) {
 			"total_horas_hombre_estimadas": math.Round(horasTotales*10) / 10,
 			"proyeccion_diaria":            proyecciones,
 			"recomendacion_operativa":      "Mantener dotación reforzada en días de cambio de sábanas y hotelería de fin de semana.",
+		})
+	})
+}
+
+
+// ── 12. get_rentabilidad_y_margenes (Opción A) ──────────────────────────
+func registerRentabilidadTool(s *Server, db *pgxpool.Pool) {
+	s.RegisterTool(Tool{
+		Name:        "get_rentabilidad_y_margenes",
+		Description: "Calcula los Unit Economics y el Margen de Contribución Neto por hotel en pesos argentinos (Facturación Bruta vs Costos de Insumos Químicos, Energía/Gas y Mano de Obra). Identifica clientes Estrella, Estables, En Riesgo (por exceso de relavado) y A Revisar Tarifas.",
+		InputSchema: ToolSchema{
+			Type: "object",
+			Properties: map[string]ToolProperty{
+				"fecha_desde":  {Type: "string", Description: "Fecha inicial YYYY-MM-DD"},
+				"fecha_hasta":  {Type: "string", Description: "Fecha final YYYY-MM-DD"},
+				"hotel_id":     {Type: "integer", Description: "ID opcional de hotel para filtrar"},
+			},
+			Required: []string{"fecha_desde", "fecha_hasta"},
+		},
+	}, func(ctx context.Context, args map[string]any) (*CallToolResult, error) {
+		desde := parseDateStr(args["fecha_desde"])
+		hasta := parseDateStr(args["fecha_hasta"])
+		hotelID := parseIntVal(args["hotel_id"])
+
+		rows, err := db.Query(ctx, `
+			SELECT
+				h.id,
+				h.nombre,
+				COALESCE(SUM(r.cantidad), 0)::int AS prendas_totales,
+				COALESCE(SUM(r.cantidad_relavado), 0)::int AS prendas_relavado,
+				COALESCE(SUM(r.cantidad_rota), 0)::int AS prendas_rotas,
+				COALESCE(SUM(CASE WHEN i.se_factura THEN r.cantidad * COALESCE(i.precio_unitario, 0) ELSE 0 END), 0)::float8 AS facturacion,
+				COALESCE(SUM((r.cantidad + r.cantidad_relavado) * COALESCE(i.costo_quimico, i.precio_unitario * 0.10, 0)), 0)::float8 AS costo_quimico,
+				COALESCE(SUM((r.cantidad + r.cantidad_relavado) * COALESCE(i.costo_energia, i.precio_unitario * 0.14, 0)), 0)::float8 AS costo_energia,
+				COALESCE(SUM(r.cantidad * COALESCE(i.costo_mano_obra, i.precio_unitario * 0.16, 0)), 0)::float8 AS costo_mano_obra
+			FROM hoteles h
+			JOIN registros r ON r.hotel_id = h.id
+			JOIN items i ON i.id = r.item_id
+			WHERE ($1::date IS NULL OR r.fecha >= $1)
+			  AND ($2::date IS NULL OR r.fecha <= $2)
+			  AND ($3::int IS NULL OR h.id = $3)
+			GROUP BY h.id, h.nombre
+			ORDER BY facturacion DESC
+		`, desde, hasta, hotelID)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+
+		type hotelMargen struct {
+			HotelID                 int     `json:"hotel_id"`
+			Hotel                   string  `json:"hotel"`
+			PrendasTotales          int     `json:"prendas_totales"`
+			PrendasRelavado         int     `json:"prendas_relavado"`
+			PrendasRotas            int     `json:"prendas_rotas"`
+			FacturacionBrutaARS     float64 `json:"facturacion_bruta_ars"`
+			CostoQuimicoARS         float64 `json:"costo_quimico_ars"`
+			CostoEnergiaARS         float64 `json:"costo_energia_ars"`
+			CostoManoObraARS        float64 `json:"costo_mano_obra_ars"`
+			CostoTotalOperativoARS  float64 `json:"costo_total_operativo_ars"`
+			MargenContribucionARS   float64 `json:"margen_contribucion_ars"`
+			MargenPorcentaje        float64 `json:"margen_porcentaje"`
+			TasaRelavadoPct         float64 `json:"tasa_relavado_pct"`
+			ClasificacionEstrategica string  `json:"clasificacion_estrategica"`
+		}
+
+		hoteles := []hotelMargen{}
+		var totFac, totQuim, totEnerg, totMo float64
+		var totPrendas int
+
+		for rows.Next() {
+			var h hotelMargen
+			if err := rows.Scan(&h.HotelID, &h.Hotel, &h.PrendasTotales, &h.PrendasRelavado, &h.PrendasRotas,
+				&h.FacturacionBrutaARS, &h.CostoQuimicoARS, &h.CostoEnergiaARS, &h.CostoManoObraARS); err == nil {
+				
+				h.CostoTotalOperativoARS = math.Round((h.CostoQuimicoARS + h.CostoEnergiaARS + h.CostoManoObraARS)*100) / 100
+				h.MargenContribucionARS = math.Round((h.FacturacionBrutaARS - h.CostoTotalOperativoARS)*100) / 100
+				
+				if h.FacturacionBrutaARS > 0 {
+					h.MargenPorcentaje = math.Round((h.MargenContribucionARS / h.FacturacionBrutaARS)*1000) / 10
+				}
+				if h.PrendasTotales > 0 {
+					h.TasaRelavadoPct = math.Round((float64(h.PrendasRelavado) / float64(h.PrendasTotales))*1000) / 10
+				}
+
+				// Clasificación de rentabilidad estratégica
+				if h.MargenPorcentaje >= 52 && h.TasaRelavadoPct <= 4.0 {
+					h.ClasificacionEstrategica = "Cliente Estrella (Alto Margen)"
+				} else if h.MargenPorcentaje >= 42 {
+					h.ClasificacionEstrategica = "Vaca Lechera (Estable)"
+				} else if h.TasaRelavadoPct > 5.0 {
+					h.ClasificacionEstrategica = "En Riesgo (Erosión por Relavado)"
+				} else {
+					h.ClasificacionEstrategica = "A Revisar Tarifas (Bajo Margen)"
+				}
+
+				totFac += h.FacturacionBrutaARS
+				totQuim += h.CostoQuimicoARS
+				totEnerg += h.CostoEnergiaARS
+				totMo += h.CostoManoObraARS
+				totPrendas += h.PrendasTotales
+
+				hoteles = append(hoteles, h)
+			}
+		}
+
+		costoTotalGlobal := totQuim + totEnerg + totMo
+		margenGlobalARS := totFac - costoTotalGlobal
+		margenGlobalPct := 0.0
+		if totFac > 0 {
+			margenGlobalPct = math.Round((margenGlobalARS / totFac)*1000) / 10
+		}
+
+		return jsonResult(map[string]any{
+			"resumen_rentabilidad_global": map[string]any{
+				"facturacion_total_ars":        math.Round(totFac*100) / 100,
+				"costo_total_operativo_ars":    math.Round(costoTotalGlobal*100) / 100,
+				"margen_contribucion_neto_ars": math.Round(margenGlobalARS*100) / 100,
+				"margen_global_porcentaje":     margenGlobalPct,
+				"desglose_costos": map[string]any{
+					"quimicos_ars":   math.Round(totQuim*100) / 100,
+					"energia_gas_ars": math.Round(totEnerg*100) / 100,
+					"mano_obra_ars":   math.Round(totMo*100) / 100,
+				},
+				"total_hoteles_evaluados": len(hoteles),
+				"total_prendas":           totPrendas,
+			},
+			"hoteles": hoteles,
+		})
+	})
+}
+
+// ── 13. predict_demanda_temporada (Opción B) ───────────────────────────
+func registerPrevisionDemandaTool(s *Server, db *pgxpool.Pool) {
+	s.RegisterTool(Tool{
+		Name:        "predict_demanda_temporada",
+		Description: "Proyecta la demanda de prendas, kilos de ropa, consumo de químicos (litros de detergente, blanqueador y suavizante) y turnos de calandra/secadora requeridos para los próximos 15 o 30 días, incorporando estacionalidad turística y fines de semana largos.",
+		InputSchema: ToolSchema{
+			Type: "object",
+			Properties: map[string]ToolProperty{
+				"horizonte_dias": {Type: "integer", Description: "Días a proyectar: 15 o 30 (default 15)"},
+				"temporada":      {Type: "string", Description: "Factor de estacionalidad: 'alta' (1.35x), 'media' (1.0x), 'baja' (0.85x) o 'auto'"},
+				"hotel_id":       {Type: "integer", Description: "ID opcional de hotel para filtrar la proyección"},
+			},
+		},
+	}, func(ctx context.Context, args map[string]any) (*CallToolResult, error) {
+		dias := 15
+		if h := parseIntVal(args["horizonte_dias"]); h != nil && (*h == 15 || *h == 30) {
+			dias = *h
+		}
+
+		temporada, _ := args["temporada"].(string)
+		factorEstacional := 1.0
+		switch strings.ToLower(temporada) {
+		case "alta":
+			factorEstacional = 1.35
+		case "baja":
+			factorEstacional = 0.85
+		default: // auto / media
+			now := time.Now()
+			month := now.Month()
+			if month == time.January || month == time.February || month == time.July || month == time.December {
+				factorEstacional = 1.30
+			} else {
+				factorEstacional = 1.05
+			}
+		}
+
+		hotelID := parseIntVal(args["hotel_id"])
+
+		// Obtener promedio histórico por día de la semana (últimos 45 días)
+		rows, err := db.Query(ctx, `
+			SELECT
+				EXTRACT(DOW FROM r.fecha)::int AS dow,
+				COALESCE(AVG(sub.diario), 0)::float8 AS prom_prendas,
+				COALESCE(AVG(sub.kilos_diarios), 0)::float8 AS prom_kilos
+			FROM (
+				SELECT
+					r.fecha,
+					SUM(r.cantidad) AS diario,
+					SUM(r.cantidad * CASE
+						WHEN i.sector = 'secadora' THEN 0.55
+						ELSE 0.75
+					END) AS kilos_diarios
+				FROM registros r
+				JOIN items i ON i.id = r.item_id
+				WHERE r.fecha >= CURRENT_DATE - INTERVAL '45 days'
+				  AND ($1::int IS NULL OR r.hotel_id = $1)
+				GROUP BY r.fecha
+			) sub
+			JOIN (SELECT DISTINCT fecha FROM registros) r ON r.fecha = sub.fecha
+			GROUP BY dow
+			ORDER BY dow ASC
+		`, hotelID)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+
+		promedios := make(map[int]struct {
+			prendas float64
+			kilos   float64
+		})
+		for rows.Next() {
+			var dow int
+			var pr, ki float64
+			if err := rows.Scan(&dow, &pr, &ki); err == nil {
+				promedios[dow] = struct {
+					prendas float64
+					kilos   float64
+				}{prendas: pr, kilos: ki}
+			}
+		}
+
+		type proyDia struct {
+			Fecha            string  `json:"fecha"`
+			DiaSemana        string  `json:"dia_semana"`
+			PrendasEstimadas int     `json:"prendas_estimadas"`
+			KilosEstimados   float64 `json:"kilos_estimados"`
+			EsFinDeSemana    bool    `json:"es_fin_de_semana"`
+		}
+
+		nombresDia := []string{"Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"}
+		proyecciones := []proyDia{}
+		totalPrendas := 0
+		totalKilos := 0.0
+
+		startDate := time.Now().AddDate(0, 0, 1)
+		for i := 0; i < dias; i++ {
+			f := startDate.AddDate(0, 0, i)
+			dow := int(f.Weekday())
+
+			baseP := promedios[dow].prendas
+			baseK := promedios[dow].kilos
+			if baseP <= 0 {
+				baseP = 850
+				baseK = 550
+			}
+
+			// Factor fin de semana en hotelería (+25%)
+			esFinde := (dow == 5 || dow == 6 || dow == 0)
+			multiplicador := factorEstacional
+			if esFinde {
+				multiplicador *= 1.25
+			}
+
+			pEstimadas := int(math.Round(baseP * multiplicador))
+			kEstimados := math.Round(baseK*multiplicador*10) / 10
+
+			totalPrendas += pEstimadas
+			totalKilos += kEstimados
+
+			proyecciones = append(proyecciones, proyDia{
+				Fecha:            f.Format("2006-01-02"),
+				DiaSemana:        nombresDia[dow],
+				PrendasEstimadas: pEstimadas,
+				KilosEstimados:   kEstimados,
+				EsFinDeSemana:    esFinde,
+			})
+		}
+
+		// Requerimientos industriales de químicos (Dosis estándar por kg de ropa procesada)
+		litrosDetergente := math.Round((totalKilos * 0.015) * 10) / 10 // 15 ml/kg
+		litrosBlanqueador := math.Round((totalKilos * 0.010) * 10) / 10 // 10 ml/kg
+		litrosSuavizante := math.Round((totalKilos * 0.008) * 10) / 10  // 8 ml/kg
+		turnosSugeridosCalandra := int(math.Ceil(float64(totalPrendas) * 0.55 / (450 * 8)))
+		turnosSugeridosSecadora := int(math.Ceil(float64(totalPrendas) * 0.45 / (380 * 8)))
+
+		return jsonResult(map[string]any{
+			"horizonte_dias":                 dias,
+			"factor_estacional_aplicado":     factorEstacional,
+			"total_prendas_proyectadas":      totalPrendas,
+			"total_kilos_proyectados":        math.Round(totalKilos*10) / 10,
+			"insumos_quimicos_requeridos": map[string]any{
+				"litros_detergente_industrial": litrosDetergente,
+				"litros_blanqueador_oxigeno":   litrosBlanqueador,
+				"litros_suavizante_textil":     litrosSuavizante,
+			},
+			"turnos_planta_sugeridos": map[string]any{
+				"turnos_calandra_planchado": turnosSugeridosCalandra,
+				"turnos_secadoras":          turnosSugeridosSecadora,
+			},
+			"proyeccion_diaria": proyecciones,
+			"alerta_capacidad": totalKilos/float64(dias) > 3500,
 		})
 	})
 }

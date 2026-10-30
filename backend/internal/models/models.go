@@ -14,6 +14,9 @@ type Item struct {
 	ID             int      `json:"id"`
 	Nombre         string   `json:"nombre"`
 	PrecioUnitario *float64 `json:"precio_unitario"`
+	CostoQuimico   *float64 `json:"costo_quimico,omitempty"`
+	CostoEnergia   *float64 `json:"costo_energia,omitempty"`
+	CostoManoObra  *float64 `json:"costo_mano_obra,omitempty"`
 	SeFactura      bool     `json:"se_factura"`
 	Sector         string   `json:"sector"`
 	Activo         bool     `json:"activo"`
