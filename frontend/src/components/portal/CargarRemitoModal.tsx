@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { Hotel, Item, Envio } from '../../types';
+import { CargaRemitosIAView } from './CargaRemitosIAView';
+import { Camera } from 'lucide-react';
 
 interface CargarRemitoModalProps {
   isOpen: boolean;
@@ -46,6 +48,8 @@ export const CargarRemitoModal: React.FC<CargarRemitoModalProps> = ({
   const [filtroPrenda, setFiltroPrenda] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [modoCarga, setModoCarga] = useState<'manual' | 'ia'>('manual');
+  const [ultimoConfirmadoIA, setUltimoConfirmadoIA] = useState<Envio | null>(null);
 
   // Cargar lista de hoteles e ítems
   useEffect(() => {
@@ -230,16 +234,72 @@ export const CargarRemitoModal: React.FC<CargarRemitoModalProps> = ({
           </button>
         </div>
 
-        {/* Mensaje de Error */}
-        {errorMsg && (
-          <div className="bg-rose-950/80 border-b border-rose-800 text-rose-300 text-xs px-4 py-3 flex items-center gap-2 shrink-0">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{errorMsg}</span>
+        {/* Selector de Modo: Manual vs IA */}
+        {!remitoParaEditar && (
+          <div className="flex border-b border-slate-800 bg-slate-950/90 px-4 pt-2 shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={() => setModoCarga('manual')}
+              className={`flex items-center gap-2 pb-2.5 px-3 text-xs font-semibold border-b-2 transition ${
+                modoCarga === 'manual'
+                  ? 'border-cyan-400 text-cyan-300'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Carga Manual de Planilla
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setModoCarga('ia')}
+              className={`flex items-center gap-2 pb-2.5 px-3 text-xs font-semibold border-b-2 transition ${
+                modoCarga === 'ia'
+                  ? 'border-cyan-400 text-cyan-300'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Camera className="w-4 h-4 text-cyan-400" />
+              <span>Digitalizar con Foto / IA (Gemini)</span>
+              <span className="text-[10px] px-1.5 py-0.2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded font-bold uppercase">
+                Nuevo
+              </span>
+            </button>
           </div>
         )}
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+        {modoCarga === 'ia' && !remitoParaEditar ? (
+          <div className="flex-1 overflow-y-auto">
+            <CargaRemitosIAView
+              onRemitoConfirmado={(info) => {
+                setUltimoConfirmadoIA({
+                  id: info.envio_id,
+                  hotel_id: info.hotel_id || hotelId,
+                  fecha: info.fecha || fecha,
+                  numero_remito: info.numero_remito || '',
+                } as Envio);
+              }}
+              onCerrar={() => {
+                if (ultimoConfirmadoIA) {
+                  onSuccess(ultimoConfirmadoIA);
+                } else {
+                  onClose();
+                }
+              }}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Mensaje de Error */}
+            {errorMsg && (
+              <div className="bg-rose-950/80 border-b border-rose-800 text-rose-300 text-xs px-4 py-3 flex items-center gap-2 shrink-0">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Formulario */}
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
           {/* Fila 1: Selección de Hotel, Fecha y Número de Remito */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             {/* Hotel */}
@@ -462,6 +522,8 @@ export const CargarRemitoModal: React.FC<CargarRemitoModalProps> = ({
             </button>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

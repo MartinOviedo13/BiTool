@@ -151,6 +151,44 @@ export const PortalHotelView: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-24 md:pb-6 max-w-5xl mx-auto">
+      {/* Stitch B2B Telemetry & Delivery Lifecycle Strip */}
+      <div className="stitch-panel p-4 bg-triton-navy/95 border border-triton-slate/50 shadow-md">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black uppercase tracking-wider text-triton-aqua">Circuito de Ropa & Lavandería</span>
+            <span className="stitch-telemetry-pill text-[9px] py-0.5">Trazabilidad En Vivo</span>
+          </div>
+          <span className="font-mono-tabular text-xs text-slate-300">Próxima Entrega: Turno Mañana (10:30 hs)</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-[11px]">
+          <div className="p-2 rounded-xl bg-triton-deep border border-triton-slate/40 flex flex-col items-center">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 mb-1"></span>
+            <span className="font-bold text-white">1. Retiro</span>
+            <span className="text-[10px] text-slate-400">Completado</span>
+          </div>
+          <div className="p-2 rounded-xl bg-triton-deep border border-triton-slate/40 flex flex-col items-center">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 mb-1"></span>
+            <span className="font-bold text-white">2. Recepción</span>
+            <span className="text-[10px] text-slate-400">Pesaje OK</span>
+          </div>
+          <div className="p-2 rounded-xl bg-secondary/20 border border-secondary/40 flex flex-col items-center">
+            <span className="w-2 h-2 rounded-full bg-secondary animate-pulse mb-1"></span>
+            <span className="font-bold text-triton-aqua">3. En Lavado</span>
+            <span className="text-[10px] text-triton-aqua">Túnel Activo</span>
+          </div>
+          <div className="p-2 rounded-xl bg-triton-deep/50 border border-triton-slate/40 flex flex-col items-center opacity-70">
+            <span className="w-2 h-2 rounded-full bg-slate-500 mb-1"></span>
+            <span className="font-bold text-slate-300">4. Calidad</span>
+            <span className="text-[10px] text-slate-400">Control & Doblado</span>
+          </div>
+          <div className="p-2 rounded-xl bg-triton-deep/50 border border-triton-slate/40 flex flex-col items-center opacity-70 col-span-2 sm:col-span-1">
+            <span className="w-2 h-2 rounded-full bg-slate-500 mb-1"></span>
+            <span className="font-bold text-slate-300">5. Entrega</span>
+            <span className="text-[10px] text-slate-400">Remito Salida</span>
+          </div>
+        </div>
+      </div>
+
       {/* Encabezado Mobile-Friendly */}
       <div className="bg-triton-navy/95 border border-triton-slate/40 rounded-2xl p-4 sm:p-6 shadow-xl backdrop-blur-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

@@ -342,6 +342,55 @@ html:not(.dark) .keep-white * {
   color: #ffffff !important;
 }
 
+/* ==========================================================================
+   STITCH: MARITIME INDUSTRIAL INTELLIGENCE UTILITIES & TOKENS
+   ========================================================================== */
+.font-mono-tabular {
+  font-family: 'Inter', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.stitch-panel {
+  border-radius: 0.75rem;
+  transition: all 0.2s ease-in-out;
+}
+
+html.dark .stitch-panel {
+  background-color: #111b2b;
+  border: 1px solid rgba(56, 189, 248, 0.15);
+}
+
+html:not(.dark) .stitch-panel {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 99, 152, 0.15);
+  box-shadow: 0 1px 4px rgba(11, 28, 48, 0.05);
+}
+
+.stitch-telemetry-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+html.dark .stitch-telemetry-pill {
+  background-color: rgba(0, 99, 152, 0.25);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+html:not(.dark) .stitch-telemetry-pill {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
 /* Reglas de impresión profesional para Liquidaciones y Remitos */
 @media print {
   @page {

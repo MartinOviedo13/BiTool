@@ -23,6 +23,10 @@ import {
   NotificacionOperativa,
   RetiroPendienteDTO,
   ConfirmarRetiroRequest,
+  RemitoBorrador,
+  LoteProcesamientoResponse,
+  ConfirmarLoteOKResponse,
+  UpdateRemitoBorradorRequest,
 } from '../types';
 
 const getApiBase = () => {
@@ -352,4 +356,78 @@ importPreview: (file: File) => {
         body: JSON.stringify(data || {}),
       }
     ),
+
+  // ── Digitalización de Remitos con IA (Fases 1 a 4) ────────────────────
+  uploadRemitoFoto: (file: File, hotelId?: number) => {
+    const formData = new FormData();
+    formData.append('imagen', file);
+    if (hotelId) formData.append('hotel_id', hotelId.toString());
+    return request<RemitoBorrador>('/api/remitos/ia/extraer', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  uploadRemitosLote: (files: File[]) => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('imagenes', f));
+    return request<{ lote_id: string; total_archivos: number; mensaje: string }>('/api/remitos/ia/lote', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  getLoteStatus: (loteId: string) =>
+    request<LoteProcesamientoResponse>(`/api/remitos/ia/lote/${encodeURIComponent(loteId)}`),
+
+  confirmarTodosOKLote: (loteId: string) =>
+    request<ConfirmarLoteOKResponse>(`/api/remitos/ia/lote/${encodeURIComponent(loteId)}/confirmar-todos-ok`, {
+      method: 'POST',
+    }),
+
+  deleteLote: (loteId: string) =>
+    request<{ success: boolean; mensaje: string }>(`/api/remitos/ia/lote/${encodeURIComponent(loteId)}`, {
+      method: 'DELETE',
+    }),
+
+  getRemitosBorradores: (params?: { estado?: string; lote_id?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.estado) searchParams.set('estado', params.estado);
+    if (params?.lote_id) searchParams.set('lote_id', params.lote_id);
+    const qs = searchParams.toString();
+    return request<RemitoBorrador[]>(`/api/remitos/ia/borradores${qs ? `?${qs}` : ''}`);
+  },
+
+  getRemitoBorrador: (id: number) =>
+    request<RemitoBorrador>(`/api/remitos/ia/borradores/${id}`),
+
+  getRemitoBorradorImagenUrl: (id: number) => {
+    const token = localStorage.getItem(TOKEN_KEY) || '';
+    return `${API_BASE}/api/remitos/ia/borradores/${id}/imagen?token=${encodeURIComponent(token)}`;
+  },
+
+  updateRemitoBorrador: (id: number, data: UpdateRemitoBorradorRequest) =>
+    request<RemitoBorrador>(`/api/remitos/ia/borradores/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  confirmarRemitoBorrador: (id: number) =>
+    request<{
+      success: boolean;
+      envio_id: number;
+      codigo_qr: string;
+      total_prendas: number;
+      hotel_id?: number;
+      fecha?: string;
+      numero_remito?: string;
+      mensaje: string;
+    }>(`/api/remitos/ia/borradores/${id}/confirmar`, {
+      method: 'POST',
+    }),
+
+  deleteRemitoBorrador: (id: number) =>
+    request<{ success: boolean; mensaje: string }>(`/api/remitos/ia/borradores/${id}`, {
+      method: 'DELETE',
+    }),
 };

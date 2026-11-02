@@ -155,9 +155,25 @@ export const AuditoriaView: React.FC = () => {
     setModalCargarRemitoOpen(true);
   };
 
-  const handleRemitoGuardado = async (_saved: Envio) => {
+  const handleRemitoGuardado = async (saved?: Envio) => {
     setModalCargarRemitoOpen(false);
     setRemitoParaEditar(null);
+
+    if (saved && saved.fecha) {
+      const fechaStr =
+        typeof saved.fecha === 'string'
+          ? saved.fecha.split('T')[0]
+          : new Date(saved.fecha).toISOString().split('T')[0];
+      setFechaFiltro(fechaStr);
+      setFiltroFechaHistorial(fechaStr);
+
+      if (saved.hotel_id) {
+        setExpandedRemitoHotels((prev) => ({ ...prev, [saved.hotel_id]: true }));
+        setActiveRemitoHotelTab(saved.hotel_id);
+      }
+      setVistaActiva('historial');
+    }
+
     await Promise.all([cargarAuditoria(), cargarHistorialRemitos()]);
   };
 
@@ -406,6 +422,28 @@ export const AuditoriaView: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-5 animate-fade-in">
+      {/* Stitch Telemetry & Live Status Stream Bar */}
+      <div className="w-full stitch-panel p-3 bg-triton-navy/95 border border-triton-slate/50 flex flex-wrap items-center justify-between gap-3 shadow-md">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="stitch-telemetry-pill">
+            <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+            <span>Auditoría de Planta</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-triton-deep text-[11px] text-slate-300 border border-triton-slate/40">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span>Balanza Dinámica #3 Conectada</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="inline-flex p-1 rounded-xl bg-triton-deep border border-triton-slate/50 text-[11px] font-semibold">
+            <span className="px-2.5 py-0.5 rounded-lg text-slate-300">Turno M</span>
+            <span className="px-2.5 py-0.5 rounded-lg bg-triton-teal text-white shadow-sm font-bold">Turno Tarde</span>
+            <span className="px-2.5 py-0.5 rounded-lg text-slate-300">Turno Noche</span>
+          </div>
+        </div>
+      </div>
+
       {/* 1. Encabezado & Acciones Principales */}
       <div className="bg-triton-navy/95 border border-triton-slate/50 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

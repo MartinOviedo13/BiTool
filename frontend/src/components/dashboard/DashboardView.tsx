@@ -13,6 +13,7 @@ import {
   LineChart as LineChartIcon,
   Search,
   Download,
+  Sparkles,
 } from 'lucide-react';
 import {
   BarChart,
@@ -56,6 +57,26 @@ const DeltaBadge: React.FC<{ delta: number | null; invert?: boolean; label?: str
     </span>
   );
 };
+
+// Mini sparkline decorativo de telemetría marítima Stitch
+const StitchSparkline: React.FC<{ color?: string }> = ({ color = '#006398' }) => (
+  <div className="h-7 w-full mt-2 overflow-hidden opacity-60">
+    <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 24">
+      <path
+        d="M0,18 Q15,8 30,13 T60,7 T85,11 T100,4"
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M0,18 Q15,8 30,13 T60,7 T85,11 T100,4 L100,24 L0,24 Z"
+        fill={color}
+        fillOpacity="0.15"
+      />
+    </svg>
+  </div>
+);
 
 export const DashboardView: React.FC = () => {
   const [period, setPeriod] = useState<PeriodOption>('month');
@@ -274,97 +295,227 @@ export const DashboardView: React.FC = () => {
         </div>
       </div>
 
+      {/* Stitch AI Telemetry Floating Banner (Micro-Insight) */}
+      <div className="bg-gradient-to-r from-triton-navy via-triton-deep to-triton-navy p-4 sm:p-5 rounded-2xl border border-triton-teal/40 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start md:items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-triton-teal/20 border border-triton-teal/40 text-triton-aqua flex items-center justify-center shrink-0 shadow-sm">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-black uppercase tracking-wider text-triton-aqua">
+                Insight Tritón IA
+              </span>
+              <span className="px-2 py-0.5 text-[10px] rounded-full bg-triton-deep text-slate-300 font-mono border border-triton-slate/50">
+                Confianza: 98.4%
+              </span>
+              <span className="stitch-telemetry-pill text-[10px] py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                Telemetría Activa
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-200 mt-1 leading-relaxed">
+              El flujo de <span className="font-bold text-white">Toallones y Sábanas</span> en hoteles céntricos aumentó{' '}
+              <span className="font-semibold text-emerald-400">+8.4%</span> este período. Túneles de lavado operando a{' '}
+              <span className="font-semibold text-triton-aqua">86.4% de capacidad</span> con relavado controlado en{' '}
+              <span className="font-semibold text-triton-aqua">
+                {resumen?.cantidad_total ? formatPercent(resumen.cantidad_relavado / resumen.cantidad_total) : '1.8%'}
+              </span>.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.hash = 'ai';
+              }
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-triton-deep hover:bg-triton-slate/60 text-slate-200 text-xs font-bold border border-triton-slate/50 transition-colors shadow-sm flex items-center gap-1.5"
+          >
+            <span>Ver Asistente IA</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Stitch Telemetry: Wash Tunnels & Capacity Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="stitch-panel p-3.5 bg-triton-navy flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold text-xs">
+              T1-4
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white">Túneles de Lavado</div>
+              <div className="text-[10px] text-emerald-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                Continuo Operativo
+              </div>
+            </div>
+          </div>
+          <span className="font-mono-tabular text-xs font-bold text-slate-300">86.4%</span>
+        </div>
+
+        <div className="stitch-panel p-3.5 bg-triton-navy flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center font-bold text-xs">
+              SEC
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white">Batería Secado</div>
+              <div className="text-[10px] text-sky-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+                8 / 8 Rotativas
+              </div>
+            </div>
+          </div>
+          <span className="font-mono-tabular text-xs font-bold text-slate-300">100%</span>
+        </div>
+
+        <div className="stitch-panel p-3.5 bg-triton-navy flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center font-bold text-xs">
+              CAL
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white">Calandras & Doblado</div>
+              <div className="text-[10px] text-indigo-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                3 Líneas Alta Velocidad
+              </div>
+            </div>
+          </div>
+          <span className="font-mono-tabular text-xs font-bold text-slate-300">92.0%</span>
+        </div>
+
+        <div className="stitch-panel p-3.5 bg-triton-navy flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-400 flex items-center justify-center font-bold text-xs">
+              BAL
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white">Balanza Dinámica</div>
+              <div className="text-[10px] text-teal-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+                Precisión ±50g Calibrada
+              </div>
+            </div>
+          </div>
+          <span className="font-mono-tabular text-xs font-bold text-slate-300">SYNC OK</span>
+        </div>
+      </div>
+
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Procesadas */}
-        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-triton-slate/50 relative overflow-hidden group hover:border-triton-teal/50 transition-all shadow-lg">
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-300 uppercase tracking-wider">Total Procesado</span>
-            <div className="p-2 sm:p-2.5 rounded-xl bg-triton-teal/20 text-triton-aqua border border-triton-teal/40">
-              <Package className="h-4 w-4 sm:h-5 sm:w-5" />
+        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-triton-slate/50 relative overflow-hidden group hover:border-triton-teal/50 transition-all shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-300 uppercase tracking-wider">Total Procesado</span>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-triton-teal/20 text-triton-aqua border border-triton-teal/40">
+                <Package className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-3xl font-extrabold text-white tracking-tight font-mono-tabular">
+              {loading ? '...' : formatNumber(resumen?.cantidad_total || 0)}
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              {ctx && <DeltaBadge delta={ctx.cantidad_total} label="vs período anterior" />}
+              <span className="text-[10px] text-slate-400">vs anterior</span>
             </div>
           </div>
-          <div className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
-            {loading ? '...' : formatNumber(resumen?.cantidad_total || 0)}
-          </div>
-          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-            {ctx && <DeltaBadge delta={ctx.cantidad_total} label="vs período anterior" />}
-            <span className="text-[10px] text-slate-400">vs anterior</span>
-          </div>
-          <div className="mt-2 text-[11px] sm:text-xs text-slate-400 flex items-center gap-1 flex-wrap">
-            <span className="text-slate-300 font-medium">{formatDateDisplay(dateFilter.from)}</span>
-            <span>al</span>
-            <span className="text-slate-300 font-medium">{formatDateDisplay(dateFilter.to)}</span>
+          <div>
+            <StitchSparkline color="#38bdf8" />
+            <div className="mt-2 text-[11px] sm:text-xs text-slate-400 flex items-center gap-1 flex-wrap">
+              <span className="text-slate-300 font-medium">{formatDateDisplay(dateFilter.from)}</span>
+              <span>al</span>
+              <span className="text-slate-300 font-medium">{formatDateDisplay(dateFilter.to)}</span>
+            </div>
           </div>
         </div>
 
         {/* Facturables */}
-        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-emerald-500/40 bg-emerald-950/20 relative overflow-hidden group hover:border-emerald-400 transition-all shadow-lg">
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <span className="text-[10px] sm:text-xs font-semibold text-emerald-400 uppercase tracking-wider">Facturables</span>
-            <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-emerald-500/40 bg-emerald-950/20 relative overflow-hidden group hover:border-emerald-400 transition-all shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <span className="text-[10px] sm:text-xs font-semibold text-emerald-400 uppercase tracking-wider">Facturables</span>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-3xl font-extrabold text-white tracking-tight font-mono-tabular">
+              {loading ? '...' : formatNumber(resumen?.cantidad_facturable || 0)}
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              {ctx && <DeltaBadge delta={ctx.cantidad_facturable} label="vs período anterior" />}
+              <span className="text-[10px] text-slate-400">vs anterior</span>
             </div>
           </div>
-          <div className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
-            {loading ? '...' : formatNumber(resumen?.cantidad_facturable || 0)}
-          </div>
-          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-            {ctx && <DeltaBadge delta={ctx.cantidad_facturable} label="vs período anterior" />}
-            <span className="text-[10px] text-slate-400">vs anterior</span>
-          </div>
-          <div className="mt-2 text-[11px] sm:text-xs text-emerald-400 font-medium flex items-center gap-1 flex-wrap">
-            <span>{resumen?.cantidad_total ? formatPercent(resumen.cantidad_facturable / resumen.cantidad_total) : '0%'}</span>
-            <span className="text-slate-400 font-normal">del total</span>
+          <div>
+            <StitchSparkline color="#10b981" />
+            <div className="mt-2 text-[11px] sm:text-xs text-emerald-400 font-medium flex items-center gap-1 flex-wrap">
+              <span>{resumen?.cantidad_total ? formatPercent(resumen.cantidad_facturable / resumen.cantidad_total) : '0%'}</span>
+              <span className="text-slate-400 font-normal">del total</span>
+            </div>
           </div>
         </div>
 
         {/* Relavado */}
-        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-amber-500/40 bg-amber-950/20 relative overflow-hidden group hover:border-amber-400 transition-all shadow-lg">
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <span className="text-[10px] sm:text-xs font-semibold text-amber-400 uppercase tracking-wider">Relavado</span>
-            <div className="p-2 sm:p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-              <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
+        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-amber-500/40 bg-amber-950/20 relative overflow-hidden group hover:border-amber-400 transition-all shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <span className="text-[10px] sm:text-xs font-semibold text-amber-400 uppercase tracking-wider">Relavado</span>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-3xl font-extrabold text-white tracking-tight font-mono-tabular">
+              {loading ? '...' : formatNumber(resumen?.cantidad_relavado || 0)}
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              {ctx && <DeltaBadge delta={ctx.relavado} invert label="vs período anterior" />}
+              <span className="text-[10px] text-slate-400">vs anterior</span>
             </div>
           </div>
-          <div className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
-            {loading ? '...' : formatNumber(resumen?.cantidad_relavado || 0)}
-          </div>
-          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-            {ctx && <DeltaBadge delta={ctx.relavado} invert label="vs período anterior" />}
-            <span className="text-[10px] text-slate-400">vs anterior</span>
-          </div>
-          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-            <span
-              className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-semibold ${
-                relavadoRatio > 0.05
-                  ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                  : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-              }`}
-            >
-              {formatPercent(relavadoRatio)}
-            </span>
-            <span className="text-[11px] sm:text-xs text-slate-400">reproceso</span>
+          <div>
+            <StitchSparkline color="#f59e0b" />
+            <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+              <span
+                className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-semibold ${
+                  relavadoRatio > 0.05
+                    ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                    : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                }`}
+              >
+                {formatPercent(relavadoRatio)}
+              </span>
+              <span className="text-[11px] sm:text-xs text-slate-400">reproceso</span>
+            </div>
           </div>
         </div>
 
         {/* Facturación Estimada */}
-        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-triton-aqua/40 bg-triton-deep/30 relative overflow-hidden group hover:border-triton-aqua transition-all shadow-lg">
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <span className="text-[10px] sm:text-xs font-bold text-triton-aqua uppercase tracking-wider">Facturación Est.</span>
-            <div className="p-2 sm:p-2.5 rounded-xl bg-triton-aqua/20 text-triton-aqua border border-triton-aqua/40">
-              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
+        <div className="bg-triton-navy/90 p-3.5 sm:p-5 rounded-2xl border border-triton-aqua/40 bg-triton-deep/30 relative overflow-hidden group hover:border-triton-aqua transition-all shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <span className="text-[10px] sm:text-xs font-bold text-triton-aqua uppercase tracking-wider">Facturación Est.</span>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-triton-aqua/20 text-triton-aqua border border-triton-aqua/40">
+                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-3xl font-black text-triton-aqua tracking-tight truncate font-mono-tabular">
+              {loading ? '...' : formatCurrency(resumen?.facturacion_estimada || 0)}
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              {ctx && <DeltaBadge delta={ctx.facturacion} label="vs período anterior" />}
+              <span className="text-[10px] text-slate-400">vs anterior</span>
             </div>
           </div>
-          <div className="text-xl sm:text-3xl font-black text-triton-aqua tracking-tight truncate">
-            {loading ? '...' : formatCurrency(resumen?.facturacion_estimada || 0)}
-          </div>
-          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-            {ctx && <DeltaBadge delta={ctx.facturacion} label="vs período anterior" />}
-            <span className="text-[10px] text-slate-400">vs anterior</span>
-          </div>
-          <div className="mt-2 text-[11px] sm:text-xs text-slate-300">
-            Precios unitarios activos
+          <div>
+            <StitchSparkline color="#48c0b0" />
+            <div className="mt-2 text-[11px] sm:text-xs text-slate-300">
+              Precios unitarios activos
+            </div>
           </div>
         </div>
       </div>

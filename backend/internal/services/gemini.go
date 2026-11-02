@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"lavadero-bi/backend/internal/mcp"
+	"lavadero-bi/backend/internal/models"
 )
 
 var (
@@ -185,6 +186,205 @@ func (c *GeminiClient) ExtractFile(ctx context.Context, data []byte, mimeType, f
 	}
 
 	return &result, nil
+}
+
+// ExtractRemitoImage analiza una fotografía o escaneo de un remito diario y extrae sus campos
+// (hotel, fecha, número de remito, prendas y cantidades) mapeándolos contra los catálogos del lavadero.
+// Retorna el resultado estructurado, el JSON crudo de Gemini y el posible error.
+func (c *GeminiClient) ExtractRemitoImage(ctx context.Context, data []byte, mimeType string, hoteles []models.Hotel, items []models.Item) (*models.ExtractedRemitoIA, string, error) {
+	if c.APIKey == "" {
+		return nil, "", ErrNoAPIKey
+	}
+
+	// Serializar catálogo de hoteles para el prompt
+	var bHoteles strings.Builder
+	for _, h := range hoteles {
+		if h.Activo {
+			fmt.Fprintf(&bHoteles, "- ID %d: %s\n", h.ID, h.Nombre)
+		}
+	}
+
+	// Serializar catálogo de prendas para el prompt
+	var bItems strings.Builder
+	for _, it := range items {
+		if it.Activo {
+			fmt.Fprintf(&bItems, "- ID %d: %s (sector: %s)\n", it.ID, it.Nombre, it.Sector)
+		}
+	}
+
+	schema := map[string]any{
+		"type": "OBJECT",
+		"properties": map[string]any{
+			"hotel_detectado": map[string]any{
+				"type":        "STRING",
+				"description": "Nombre del cliente u hotel tal como figura escrito en el remito.",
+			},
+			"hotel_id": map[string]any{
+				"type":        "INTEGER",
+				"description": "ID numérico del hotel correspondiente según la lista oficial proporcionada, o 0 si no coincide con ninguno.",
+			},
+			"fecha": map[string]any{
+				"type":        "STRING",
+				"description": "Fecha del remito en formato YYYY-MM-DD. Si no se puede deducir el año, usar el año actual. Si es ilegible, devolver cadena vacía.",
+			},
+			"numero_remito": map[string]any{
+				"type":        "STRING",
+				"description": "Número de remito impreso o manuscrito (ej: '0001-0004523' o '4523'), o cadena vacía si no figura.",
+			},
+			"observaciones": map[string]any{
+				"type":        "STRING",
+				"description": "Notas, aclaraciones o texto libre escrito en el remito si las hay, o cadena vacía.",
+			},
+			"confianza_general": map[string]any{
+				"type":        "NUMBER",
+				"description": "Puntaje de legibilidad general de la imagen entre 0.0 (completamente borrosa/ilegible) y 1.0 (excelente nitidez).",
+			},
+			"items": map[string]any{
+				"type":        "ARRAY",
+				"description": "Lista de todas las prendas detectadas en el remito que tengan cantidad anotada mayor a 0.",
+				"items": map[string]any{
+					"type": "OBJECT",
+					"properties": map[string]any{
+						"item_nombre_detectado": map[string]any{
+							"type":        "STRING",
+							"description": "Nombre de la prenda tal como aparece escrito en el remito.",
+						},
+						"item_id": map[string]any{
+							"type":        "INTEGER",
+							"description": "ID numérico de la prenda que mejor coincide con el catálogo oficial proporcionado, o 0 si no coincide.",
+						},
+						"cantidad": map[string]any{
+							"type":        "INTEGER",
+							"description": "Cantidad de prendas indicadas en el remito (número entero positivo).",
+						},
+						"cantidad_relavado": map[string]any{
+							"type":        "INTEGER",
+							"description": "Cantidad de prendas de relavado si está especificado en el remito, o 0.",
+						},
+						"cantidad_rota": map[string]any{
+							"type":        "INTEGER",
+							"description": "Cantidad de prendas rotas o dañadas si está especificado, o 0.",
+						},
+						"confianza": map[string]any{
+							"type":        "NUMBER",
+							"description": "Nivel de confianza en la lectura de este renglón entre 0.0 y 1.0.",
+						},
+						"dudoso": map[string]any{
+							"type":        "BOOLEAN",
+							"description": "True si el número o la letra es difícil de leer, está tachado, manchado o ambiguo; False si es claro.",
+						},
+						"nota": map[string]any{
+							"type":        "STRING",
+							"description": "Aclaración corta si es dudoso (ej: 'número 1 o 7 tachado', 'escritura poco clara'), o vacía.",
+						},
+					},
+					"required": []string{"item_nombre_detectado", "item_id", "cantidad", "confianza", "dudoso"},
+				},
+			},
+		},
+		"required": []string{"hotel_detectado", "hotel_id", "fecha", "numero_remito", "confianza_general", "items"},
+	}
+
+	system := fmt.Sprintf(`Sos un perito experto en procesamiento y digitalización de remitos diarios para lavanderías industriales.
+Tu función es extraer con máxima precisión los datos de la fotografía o escaneo del remito, que puede ser impreso o manuscrito.
+
+CATÁLOGO OFICIAL DE HOTELES (Usa el ID que corresponda):
+%s
+
+CATÁLOGO OFICIAL DE PRENDAS (Usa el ID que corresponda):
+%s
+
+INSTRUCCIONES CLAVE:
+1. Mapea cada nombre al ID correspondiente de las listas de arriba. Si el nombre escrito en el remito tiene abreviaturas (ej: 'Toall' -> 'Toallas', 'Sab. 1 pza' -> '1 PZ', 'Fund.' -> 'Fundas'), asócialo al ID correcto.
+2. Si un hotel o prenda no coincide con el catálogo, asigna 0 como ID pero conserva el nombre detectado original.
+3. Evalúa cuidadosamente si los números están claros o si son dudosos (por tachaduras, manchas, números que parecen 1 vs 7 o 3 vs 8, etc.). Si tenés dudas, marca 'dudoso': true y describe la razón en 'nota'.
+4. En 'confianza_general' y en 'confianza' por ítem, indica un valor entre 0.0 y 1.0 según la nitidez.
+5. Si no figura fecha, devuelve fecha vacía "". Si figura formato dd/mm/aaaa o dd/mm, conviértelo a YYYY-MM-DD.`, bHoteles.String(), bItems.String())
+
+	parts := []map[string]any{
+		{"text": "Por favor analiza esta fotografía de remito y extrae los datos estructurados según el esquema."},
+	}
+	if len(data) > 0 {
+		if mimeType == "" {
+			mimeType = "image/jpeg"
+		}
+		parts = append(parts, map[string]any{
+			"inline_data": map[string]any{
+				"mime_type": mimeType,
+				"data":      base64.StdEncoding.EncodeToString(data),
+			},
+		})
+	}
+
+	body := map[string]any{
+		"systemInstruction": map[string]any{"parts": []map[string]any{{"text": system}}},
+		"contents": []map[string]any{
+			{
+				"role":  "user",
+				"parts": parts,
+			},
+		},
+		"generationConfig": map[string]any{
+			"responseMimeType": "application/json",
+			"responseSchema":   schema,
+			"temperature":      0.1,
+		},
+	}
+
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return nil, "", fmt.Errorf("%w: %v", ErrExtract, err)
+	}
+
+	url := fmt.Sprintf(geminiBaseURL, c.Model) + "?key=" + c.APIKey
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	if err != nil {
+		return nil, "", fmt.Errorf("%w: %v", ErrExtract, err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-goog-api-key", c.APIKey)
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("%w: %v", ErrExtract, err)
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("%w: %v", ErrExtract, err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("%w (la API respondió %d): %s", ErrExtract, resp.StatusCode, firstN(string(respBytes), 250))
+	}
+
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+	if err := json.Unmarshal(respBytes, &geminiResp); err != nil {
+		return nil, "", fmt.Errorf("%w: respuesta inválida: %v", ErrExtract, err)
+	}
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return nil, "", ErrExtract
+	}
+
+	rawText := strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text)
+	var result models.ExtractedRemitoIA
+	if err := json.Unmarshal([]byte(rawText), &result); err != nil {
+		return nil, rawText, fmt.Errorf("%w: el modelo no devolvió JSON válido: %v", ErrExtract, err)
+	}
+	if result.Items == nil {
+		result.Items = []models.ExtractedRemitoItemIA{}
+	}
+
+	return &result, rawText, nil
 }
 
 // Complete implementa LLMProvider (un solo turno de texto plano).

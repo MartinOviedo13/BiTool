@@ -416,4 +416,80 @@ export interface NotificacionOperativa {
   created_at: string;
 }
 
+// ── Remitos con IA (Fases 1 a 4) ────────────────────────────────────
+
+export interface RemitoBorradorItem {
+  id: number;
+  borrador_id: number;
+  item_id: number | null;
+  item_nombre_detectado: string;
+  item?: Item;
+  cantidad: number;
+  cantidad_relavado: number;
+  cantidad_rota: number;
+  confianza: number;
+  dudoso: boolean;
+  nota?: string | null;
+}
+
+export interface RemitoBorrador {
+  id: number;
+  lote_id?: string | null;
+  hotel_id?: number | null;
+  hotel_nombre_detectado?: string | null;
+  hotel?: Hotel;
+  fecha?: string | null;
+  numero_remito?: string | null;
+  observaciones?: string | null;
+  estado: 'procesando' | 'pendiente_revision' | 'confirmado' | 'descartado' | 'error';
+  confianza_promedio: number;
+  imagen_path?: string | null;
+  imagen_mime?: string | null;
+  gemini_raw_json?: string | null;
+  error_mensaje?: string | null;
+  envio_id?: number | null;
+  creado_por_id?: number | null;
+  creado_en: string;
+  actualizado_en: string;
+  items: RemitoBorradorItem[];
+}
+
+export interface LoteProcesamientoResponse {
+  lote_id: string;
+  total: number;
+  procesados: number;
+  pendientes: number;
+  con_error: number;
+  completado: boolean;
+  borradores: RemitoBorrador[];
+}
+
+export interface ConfirmarLoteOKResponse {
+  lote_id: string;
+  confirmados: number;
+  omitidos: number;
+  mensaje: string;
+}
+
+export interface UpdateRemitoBorradorItemDTO {
+  id?: number;
+  item_id: number | null;
+  item_nombre_detectado: string;
+  cantidad: number;
+  cantidad_relavado: number;
+  cantidad_rota: number;
+  confianza: number;
+  dudoso: boolean;
+  nota?: string | null;
+}
+
+export interface UpdateRemitoBorradorRequest {
+  hotel_id: number | null;
+  fecha: string | null;
+  numero_remito: string | null;
+  observaciones: string | null;
+  items: UpdateRemitoBorradorItemDTO[];
+}
+
+
 

@@ -363,3 +363,103 @@ type NotificacionOperativa struct {
 	CreatedAt    time.Time                 `json:"created_at"`
 }
 
+// ── Modelos para Remitos con Análisis de IA (Fase 1) ─────────────────
+
+type RemitoBorrador struct {
+	ID                   int                  `json:"id"`
+	LoteID               *string              `json:"lote_id,omitempty"`
+	HotelID              *int                 `json:"hotel_id,omitempty"`
+	HotelNombreDetectado *string              `json:"hotel_nombre_detectado,omitempty"`
+	Hotel                *Hotel               `json:"hotel,omitempty"`
+	Fecha                *string              `json:"fecha,omitempty"` // YYYY-MM-DD
+	NumeroRemito         *string              `json:"numero_remito,omitempty"`
+	Observaciones        *string              `json:"observaciones,omitempty"`
+	Estado               string               `json:"estado"` // procesando, pendiente_revision, confirmado, descartado, error
+	ConfianzaPromedio    float64              `json:"confianza_promedio"`
+	ImagenPath           *string              `json:"imagen_path,omitempty"`
+	ImagenMime           *string              `json:"imagen_mime,omitempty"`
+	GeminiRawJSON        *string              `json:"gemini_raw_json,omitempty"`
+	ErrorMensaje         *string              `json:"error_mensaje,omitempty"`
+	EnvioID              *int                 `json:"envio_id,omitempty"`
+	CreadoPorID          *int                 `json:"creado_por_id,omitempty"`
+	CreadoEn             time.Time            `json:"creado_en"`
+	ActualizadoEn        time.Time            `json:"actualizado_en"`
+	Items                []RemitoBorradorItem `json:"items"`
+}
+
+type RemitoBorradorItem struct {
+	ID                  int     `json:"id"`
+	BorradorID          int     `json:"borrador_id"`
+	ItemID              *int    `json:"item_id,omitempty"`
+	ItemNombreDetectado string  `json:"item_nombre_detectado"`
+	Item                *Item   `json:"item,omitempty"`
+	Cantidad            int     `json:"cantidad"`
+	CantidadRelavado    int     `json:"cantidad_relavado"`
+	CantidadRota        int     `json:"cantidad_rota"`
+	Confianza           float64 `json:"confianza"` // 0.0 - 1.0
+	Dudoso              bool    `json:"dudoso"`
+	Nota                *string `json:"nota,omitempty"`
+}
+
+// ExtractedRemitoIA representa la salida directa de Gemini Structured Outputs
+type ExtractedRemitoIA struct {
+	HotelDetectado   string                  `json:"hotel_detectado"`
+	HotelID          int                     `json:"hotel_id"`
+	Fecha            string                  `json:"fecha"`
+	NumeroRemito     string                  `json:"numero_remito"`
+	Observaciones    string                  `json:"observaciones"`
+	ConfianzaGeneral float64                 `json:"confianza_general"`
+	Items            []ExtractedRemitoItemIA `json:"items"`
+}
+
+type ExtractedRemitoItemIA struct {
+	ItemNombreDetectado string  `json:"item_nombre_detectado"`
+	ItemID              int     `json:"item_id"`
+	Cantidad            int     `json:"cantidad"`
+	CantidadRelavado    int     `json:"cantidad_relavado"`
+	CantidadRota        int     `json:"cantidad_rota"`
+	Confianza           float64 `json:"confianza"`
+	Dudoso              bool    `json:"dudoso"`
+	Nota                string  `json:"nota"`
+}
+
+type UpdateRemitoBorradorRequest struct {
+	HotelID       *int                          `json:"hotel_id"`
+	Fecha         *string                       `json:"fecha"`
+	NumeroRemito  *string                       `json:"numero_remito"`
+	Observaciones *string                       `json:"observaciones"`
+	Items         []UpdateRemitoBorradorItemDTO `json:"items"`
+}
+
+type UpdateRemitoBorradorItemDTO struct {
+	ID                  *int    `json:"id,omitempty"`
+	ItemID              *int    `json:"item_id"`
+	ItemNombreDetectado string  `json:"item_nombre_detectado"`
+	Cantidad            int     `json:"cantidad"`
+	CantidadRelavado    int     `json:"cantidad_relavado"`
+	CantidadRota        int     `json:"cantidad_rota"`
+	Confianza           float64 `json:"confianza"`
+	Dudoso              bool    `json:"dudoso"`
+	Nota                *string `json:"nota,omitempty"`
+}
+
+// Modelos para procesamiento de lotes masivos (Fase 2)
+type LoteProcesamientoResponse struct {
+	LoteID     string           `json:"lote_id"`
+	Total      int              `json:"total"`
+	Procesados int              `json:"procesados"`
+	Pendientes int              `json:"pendientes"`
+	ConError   int              `json:"con_error"`
+	Completado bool             `json:"completado"`
+	Borradores []RemitoBorrador `json:"borradores"`
+}
+
+type ConfirmarLoteOKResponse struct {
+	LoteID      string `json:"lote_id"`
+	Confirmados int    `json:"confirmados"`
+	Omitidos    int    `json:"omitidos"` // Aquellos que requieren revisión manual
+	Mensaje     string `json:"mensaje"`
+}
+
+
+

@@ -154,7 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
           {/* Logo Oficial TRITÓN */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-triton-deep border border-triton-teal/40 p-0.5 flex items-center justify-center shadow-md shadow-black/40 shrink-0 overflow-hidden">
               <img src="/logo-triton.jpg" alt="Logo Tritón" className="h-full w-full object-contain rounded-lg" />
             </div>
@@ -169,10 +169,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
               </div>
               <p className="text-[10px] sm:text-xs text-slate-300 font-medium truncate">Lavadero Industrial</p>
             </div>
+
+
           </div>
 
           {/* Navigation Tabs (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-1 bg-triton-deep/60 p-1 rounded-xl border border-triton-slate/50">
+          <nav className="hidden lg:flex items-center gap-1 bg-triton-deep/60 p-1 rounded-xl border border-triton-slate/50 mx-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -180,7 +182,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
                 <button
                   key={item.id}
                   onClick={() => onTabChange(item.id)}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 ${
                     isActive
                       ? 'bg-triton-aqua text-triton-navy font-bold shadow-md shadow-triton-aqua/25'
                       : 'text-slate-300 hover:text-white hover:bg-triton-deep/90'

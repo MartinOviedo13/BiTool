@@ -20,8 +20,10 @@ import {
   ChevronUp,
   Building2,
   Shirt,
+  Camera,
 } from 'lucide-react';
 import { api } from '../../api/client';
+import { CargaRemitosIAView } from '../portal/CargaRemitosIAView';
 import {
   Hotel,
   Item,
@@ -43,6 +45,7 @@ export const MatrixEntryView: React.FC = () => {
   const [validatingHotelId, setValidatingHotelId] = useState<number | null>(null);
   const [modalDespacho, setModalDespacho] = useState<DespachoConciliacion | null>(null);
   const [reopenedHotels, setReopenedHotels] = useState<Set<number>>(new Set());
+  const [modalRemitosIAOpen, setModalRemitosIAOpen] = useState<boolean>(false);
 
   // Estados mobile-first para navegación y carga táctil por hotel e ítem
   const [expandedMobileHotels, setExpandedMobileHotels] = useState<Record<number, boolean>>({});
@@ -507,6 +510,32 @@ export const MatrixEntryView: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-5 animate-fade-in pb-20 md:pb-0">
+            {/* Stitch Intelligent Parser Banner */}
+      <div className="stitch-panel p-3.5 sm:p-4 bg-triton-navy/95 border border-triton-slate/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-triton-teal/20 border border-triton-teal/40 text-triton-aqua flex items-center justify-center shrink-0">
+            <Layers className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-black uppercase text-triton-aqua">Mapeador Inteligente de Carga Diaria</span>
+              <span className="stitch-telemetry-pill text-[9px] py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                Matriz Activa
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Normalización automática de celdas por cliente y categoría sin desajuste de columnas.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 self-end sm:self-center">
+          <span className="font-mono-tabular text-xs text-slate-300 bg-triton-deep px-2.5 py-1 rounded-lg border border-triton-slate/40">
+            Auto-Sync en Tiempo Real
+          </span>
+        </div>
+      </div>
+
       {/* Top Header & Controles de Operación */}
       <div className="bg-triton-navy/90 p-4 sm:p-5 rounded-2xl border border-triton-slate/50 shadow-xl shadow-black/20 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
@@ -648,6 +677,17 @@ export const MatrixEntryView: React.FC = () => {
               />
             </div>
           </div>
+
+          {/* Botón Digitalizar Remito con IA */}
+          <button
+            type="button"
+            onClick={() => setModalRemitosIAOpen(true)}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 sm:py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-cyan-950 active:scale-95"
+            title="Subir fotos o fotografiar remitos con IA (Gemini)"
+          >
+            <Camera className="h-3.5 w-3.5 text-cyan-200" />
+            <span>Digitalizar con Foto (IA)</span>
+          </button>
 
           {/* Botón manual de Sincronización Total (Fallback) */}
           <button
@@ -1623,6 +1663,23 @@ export const MatrixEntryView: React.FC = () => {
                 Entendido
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Carga Digital de Remitos con Gemini */}
+      {modalRemitosIAOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden">
+            <CargaRemitosIAView
+              onRemitoConfirmado={(info) => {
+                if (info.fecha) {
+                  setSelectedDate(info.fecha);
+                }
+                loadMatrix(info.fecha || selectedDate);
+              }}
+              onCerrar={() => setModalRemitosIAOpen(false)}
+            />
           </div>
         </div>
       )}

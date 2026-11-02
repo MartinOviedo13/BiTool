@@ -121,6 +121,32 @@ export const CatalogView: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Stitch Client & Garment Directory Header */}
+      <div className="stitch-panel p-3.5 sm:p-4 bg-triton-navy/95 border border-triton-slate/50 flex flex-wrap items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-triton-teal/20 border border-triton-teal/40 text-triton-aqua flex items-center justify-center shrink-0">
+            <Building2 className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase text-triton-aqua">Catálogo & Directorio B2B</span>
+              <span className="stitch-telemetry-pill text-[9px] py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                Clientes Activos
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Gestión de convenios comerciales, listas de precios unitarios y tara estándar por prenda.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 font-mono-tabular text-xs text-slate-300 bg-triton-deep px-3 py-1.5 rounded-lg border border-triton-slate/40">
+          <span>{hoteles.filter(h => h.activo).length} Hoteles Activos</span>
+          <span className="text-slate-500">•</span>
+          <span>{items.length} Prendas Normalizadas</span>
+        </div>
+      </div>
+
       {/* Top Header & Sub-Tabs */}
       <div className="bg-triton-navy/90 p-4 sm:p-5 rounded-2xl border border-triton-slate/50 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-2 w-full sm:w-auto">

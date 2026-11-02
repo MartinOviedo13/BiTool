@@ -8,6 +8,35 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Stitch "Maritime Industrial Intelligence" Design Tokens
+        stitch: {
+          surface: '#f8f9ff',
+          'surface-dim': '#cbdbf5',
+          'surface-bright': '#f8f9ff',
+          'surface-lowest': '#ffffff',
+          'surface-low': '#eff4ff',
+          'surface-mid': '#e5eeff',
+          'surface-high': '#dce9ff',
+          'surface-highest': '#d3e4fe',
+          primary: '#0f172a',
+          'primary-container': '#131b2e',
+          'on-primary': '#ffffff',
+          'on-primary-container': '#7c839b',
+          secondary: '#006398',
+          'secondary-container': '#5bb8fe',
+          'secondary-fixed': '#cce5ff',
+          'on-secondary': '#ffffff',
+          'on-secondary-container': '#00476e',
+          tertiary: '#009668',
+          'tertiary-container': '#002113',
+          'tertiary-fixed': '#6ffbbe',
+          'tertiary-fixed-dim': '#4edea3',
+          'on-tertiary-container': '#009668',
+          outline: '#76777d',
+          'outline-variant': '#c6c6cd',
+          'on-surface': '#0b1c30',
+          'on-surface-variant': '#45464d',
+        },
         brand: {
           50: '#f0fdfa',
           100: '#ccfbf1',
@@ -29,9 +58,9 @@ export default {
           700: '#262c38',
           600: '#343c4c',
         },
-        // Neutral Dark/Light surfaces + Official Triton Landing Accent Palette
+        // Neutral Dark/Light surfaces + Official Triton Landing Accent Palette + Stitch Mappings
         triton: {
-          navy: '#141820',        // Neutral dark graphite card surface (white in light mode)
+          navy: '#141820',        // Neutral dark graphite card surface
           'navy-dark': '#080a0e', // Deep obsidian footer surface
           deep: '#1d222d',        // Neutral secondary charcoal surface
           mid: '#007888',         // Landing petrol blue accent
@@ -45,6 +74,10 @@ export default {
           mist: '#f4f6f9',        // Light mode background
           ink: '#082048',         // Landing deep navy ink for high-contrast text on aqua
         }
+      },
+      fontFamily: {
+        sans: ['Inter', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       }
     },
   },

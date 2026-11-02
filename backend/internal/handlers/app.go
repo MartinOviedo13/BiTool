@@ -117,6 +117,20 @@ func (a *App) RoutesWithAllowedOrigins(allowedOrigins []string) http.Handler {
 		// B2B: Ajuste de conteo fisico en planta y validacion de conciliacion
 		r.Post("/api/auditoria/conteo", a.registrarConteoAuditoria)
 		r.Post("/api/conciliacion/validar", a.validarConciliacion)
+
+		// Remitos con Análisis de IA (Fase 1 y Fase 2 - Lotes)
+		r.Post("/api/remitos/ia/extraer", a.extractRemitoIA)
+		r.Post("/api/remitos/ia/lote", a.uploadRemitosLote)
+		r.Get("/api/remitos/ia/lote/{id}", a.getLoteStatus)
+		r.Post("/api/remitos/ia/lote/{id}/confirmar-todos-ok", a.confirmarTodosOKLote)
+		r.Delete("/api/remitos/ia/lote/{id}", a.deleteLote)
+		r.Get("/api/remitos/ia/borradores", a.listRemitosBorradores)
+		r.Get("/api/remitos/ia/borradores/{id}", a.getRemitoBorrador)
+		r.Get("/api/remitos/ia/borradores/{id}/imagen", a.serveRemitoBorradorImagen)
+		r.Put("/api/remitos/ia/borradores/{id}", a.updateRemitoBorrador)
+		r.Patch("/api/remitos/ia/borradores/{id}", a.updateRemitoBorrador)
+		r.Post("/api/remitos/ia/borradores/{id}/confirmar", a.confirmarRemitoBorrador)
+		r.Delete("/api/remitos/ia/borradores/{id}", a.deleteRemitoBorrador)
 	})
 
 	// ── Solo Admin ───────────────────────────────────────────────

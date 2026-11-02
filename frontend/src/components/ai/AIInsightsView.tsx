@@ -71,6 +71,34 @@ export const AIInsightsView: React.FC = () => {
         </div>
       </div>
 
+      {/* Stitch Copilot Quick Prompts Strip */}
+      <div className="stitch-panel p-4 bg-triton-navy/95 border border-triton-slate/50 shadow-md">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black uppercase tracking-wider text-triton-aqua">Acciones Rápidas Copilot</span>
+            <span className="stitch-telemetry-pill text-[9px] py-0.5">Gemini 3.8 Flash • MCP Conectado</span>
+          </div>
+          <span className="font-mono-tabular text-xs text-slate-400">9 Herramientas de Auditoría Disponibles</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div className="p-3 rounded-xl bg-triton-deep border border-triton-slate/40 flex flex-col justify-between hover:border-triton-aqua/50 transition-colors">
+            <div className="text-xs font-bold text-white mb-1">Previsión Predictiva de Demanda</div>
+            <p className="text-[11px] text-slate-300">Proyección de prendas y dotación de personal para el próximo fin de semana.</p>
+            <span className="text-[10px] text-triton-aqua font-bold mt-2 flex items-center gap-1">Preguntar en chat &rarr;</span>
+          </div>
+          <div className="p-3 rounded-xl bg-triton-deep border border-triton-slate/40 flex flex-col justify-between hover:border-triton-aqua/50 transition-colors">
+            <div className="text-xs font-bold text-white mb-1">Unit Economics & Margen Neto</div>
+            <p className="text-[11px] text-slate-300">Análisis de rentabilidad por cliente deduciendo costos de gas, agua y flete.</p>
+            <span className="text-[10px] text-triton-aqua font-bold mt-2 flex items-center gap-1">Preguntar en chat &rarr;</span>
+          </div>
+          <div className="p-3 rounded-xl bg-triton-deep border border-triton-slate/40 flex flex-col justify-between hover:border-triton-aqua/50 transition-colors">
+            <div className="text-xs font-bold text-white mb-1">Dossier Ejecutivo & Heatmaps</div>
+            <p className="text-[11px] text-slate-300">Generación interactiva de gráficos en Canvas y exportación a PDF / Excel.</p>
+            <span className="text-[10px] text-triton-aqua font-bold mt-2 flex items-center gap-1">Preguntar en chat &rarr;</span>
+          </div>
+        </div>
+      </div>
+
       {/* Automated Diagnostic Cards */}
       {loading ? (
         <div className="p-12 text-center text-slate-500 text-sm">Cargando diagnóstico inteligente...</div>

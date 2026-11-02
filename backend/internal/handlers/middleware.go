@@ -68,7 +68,7 @@ func withCORSOrigins(allowedOrigins []string) func(http.Handler) http.Handler {
 
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, Cache-Control, Last-Event-ID, mcp-session-id, Mcp-Session-Id, mcp-protocol-version, x-goog-api-key, x-mcp-api-key")
 			w.Header().Set("Access-Control-Expose-Headers", "Mcp-Session-Id, mcp-session-id")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)

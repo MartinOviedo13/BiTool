@@ -3,7 +3,9 @@ backend/.env
 backend/api.exe
 backend/api
 backend/bin/
+backend/uploads/
 *.exe
+*.exe~
 *.test
 *.out
 vendor/
