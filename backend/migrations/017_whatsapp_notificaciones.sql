@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_mensajes_log (
     usuario_id INT REFERENCES usuarios(id) ON DELETE SET NULL,
     tipo_evento VARCHAR(50) NOT NULL,
     mensaje TEXT NOT NULL,
-    estado VARCHAR(20) NOT NULL DEFAULT 'enviado' CHECK (estado IN ('pendiente', 'enviado', 'fallido', 'recibido')),
+    estado VARCHAR(20) NOT NULL DEFAULT 'enviado' CHECK (estado IN ('pendiente', 'enviado', 'fallido', 'recibido', 'simulado')),
     error_detalle TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

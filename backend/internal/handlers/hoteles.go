@@ -22,7 +22,7 @@ func (a *App) listHoteles(w http.ResponseWriter, r *http.Request) {
 		ORDER BY nombre
 	`)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "No se pudieron listar los hoteles.")
+		writeDBError(w, err, "No se pudieron listar los hoteles.")
 		return
 	}
 	defer rows.Close()
@@ -31,7 +31,7 @@ func (a *App) listHoteles(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var hotel models.Hotel
 		if err := rows.Scan(&hotel.ID, &hotel.Nombre, &hotel.Activo, &hotel.TelefonoWhatsApp, &hotel.WhatsAppActivo); err != nil {
-			writeError(w, http.StatusInternalServerError, "No se pudo leer un hotel.")
+			writeDBError(w, err, "No se pudo leer un hotel.")
 			return
 		}
 		hoteles = append(hoteles, hotel)

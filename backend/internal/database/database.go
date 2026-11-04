@@ -53,6 +53,11 @@ func Open(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 
+	if err := ensureWhatsAppSchema(ctx, db); err != nil {
+		db.Close()
+		return nil, err
+	}
+
 	return db, nil
 }
 
@@ -208,6 +213,38 @@ func ensureRemitosIABorradoresSchema(ctx context.Context, db *pgxpool.Pool) erro
 		CREATE INDEX IF NOT EXISTS idx_remito_borrador_hotel_fecha ON remito_borrador(hotel_id, fecha);
 		CREATE INDEX IF NOT EXISTS idx_remito_borrador_creado_en ON remito_borrador(creado_en DESC);
 		CREATE INDEX IF NOT EXISTS idx_remito_borrador_item_borrador ON remito_borrador_item(borrador_id);
+	`)
+	return err
+}
+
+func ensureWhatsAppSchema(ctx context.Context, db *pgxpool.Pool) error {
+	_, err := db.Exec(ctx, `
+		ALTER TABLE hoteles
+			ADD COLUMN IF NOT EXISTS telefono_whatsapp VARCHAR(30),
+			ADD COLUMN IF NOT EXISTS whatsapp_activo BOOLEAN NOT NULL DEFAULT true;
+
+		ALTER TABLE usuarios
+			ADD COLUMN IF NOT EXISTS telefono_whatsapp VARCHAR(30);
+
+		CREATE TABLE IF NOT EXISTS whatsapp_mensajes_log (
+			id SERIAL PRIMARY KEY,
+			direccion VARCHAR(10) NOT NULL CHECK (direccion IN ('saliente', 'entrante')),
+			telefono VARCHAR(30) NOT NULL,
+			hotel_id INT REFERENCES hoteles(id) ON DELETE SET NULL,
+			usuario_id INT REFERENCES usuarios(id) ON DELETE SET NULL,
+			tipo_evento VARCHAR(50) NOT NULL,
+			mensaje TEXT NOT NULL,
+			estado VARCHAR(20) NOT NULL DEFAULT 'enviado',
+			error_detalle TEXT,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
+
+		ALTER TABLE whatsapp_mensajes_log DROP CONSTRAINT IF EXISTS whatsapp_mensajes_log_estado_check;
+		ALTER TABLE whatsapp_mensajes_log ADD CONSTRAINT whatsapp_mensajes_log_estado_check 
+			CHECK (estado IN ('pendiente', 'enviado', 'fallido', 'recibido', 'simulado'));
+
+		CREATE INDEX IF NOT EXISTS idx_whatsapp_log_telefono_created ON whatsapp_mensajes_log(telefono, created_at DESC);
+		CREATE INDEX IF NOT EXISTS idx_whatsapp_log_hotel_created ON whatsapp_mensajes_log(hotel_id, created_at DESC);
 	`)
 	return err
 }
