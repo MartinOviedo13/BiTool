@@ -5,9 +5,11 @@ import (
 )
 
 type Hotel struct {
-	ID     int    `json:"id"`
-	Nombre string `json:"nombre"`
-	Activo bool   `json:"activo"`
+	ID               int     `json:"id"`
+	Nombre           string  `json:"nombre"`
+	Activo           bool    `json:"activo"`
+	TelefonoWhatsApp *string `json:"telefono_whatsapp,omitempty"`
+	WhatsAppActivo   bool    `json:"whatsapp_activo"`
 }
 
 type Item struct {
@@ -103,12 +105,13 @@ type TendenciaRegistro struct {
 
 // Usuario representa un usuario del sistema con su rol.
 type Usuario struct {
-	ID          int     `json:"id"`
-	Username    string  `json:"username"`
-	Rol         string  `json:"rol"`
-	HotelID     *int    `json:"hotel_id,omitempty"`
-	HotelNombre *string `json:"hotel_nombre,omitempty"`
-	Activo      bool    `json:"activo"`
+	ID               int     `json:"id"`
+	Username         string  `json:"username"`
+	Rol              string  `json:"rol"`
+	HotelID          *int    `json:"hotel_id,omitempty"`
+	HotelNombre      *string `json:"hotel_nombre,omitempty"`
+	Activo           bool    `json:"activo"`
+	TelefonoWhatsApp *string `json:"telefono_whatsapp,omitempty"`
 }
 
 // LoginRequest es el cuerpo del POST /auth/login.
@@ -460,6 +463,22 @@ type ConfirmarLoteOKResponse struct {
 	Omitidos    int    `json:"omitidos"` // Aquellos que requieren revisión manual
 	Mensaje     string `json:"mensaje"`
 }
+
+// WhatsAppMensajeLog registra cada notificación y mensaje entrante/saliente de WhatsApp.
+type WhatsAppMensajeLog struct {
+	ID           int       `json:"id"`
+	Direccion    string    `json:"direccion"` // saliente, entrante
+	Telefono     string    `json:"telefono"`
+	HotelID      *int      `json:"hotel_id,omitempty"`
+	HotelNombre  *string   `json:"hotel_nombre,omitempty"`
+	UsuarioID    *int      `json:"usuario_id,omitempty"`
+	TipoEvento   string    `json:"tipo_evento"`
+	Mensaje      string    `json:"mensaje"`
+	Estado       string    `json:"estado"` // pendiente, enviado, fallido, recibido
+	ErrorDetalle *string   `json:"error_detalle,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
 
 
 

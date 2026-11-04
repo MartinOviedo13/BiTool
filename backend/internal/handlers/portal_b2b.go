@@ -177,6 +177,11 @@ func (a *App) createEnvio(w http.ResponseWriter, r *http.Request) {
 		"hotel_nombre":  hotelNombre,
 	})
 
+	// Notificar automáticamente a choferes por WhatsApp
+	if a.whatsapp != nil {
+		a.whatsapp.NotificarRemitoEmitido(r.Context(), hotelID, hotelNombre, codigoQR, totalPrendasDeclaradas, fecha.Format("2006-01-02"), numeroRemito)
+	}
+
 	envioCompleto, err := a.getEnvioByIDInternal(r.Context(), envioID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Error recuperando el envio creado.")

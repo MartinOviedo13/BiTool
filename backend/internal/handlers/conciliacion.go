@@ -255,6 +255,21 @@ func (a *App) validarConciliacion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if a.whatsapp != nil {
+		a.whatsapp.NotificarConciliacion(
+			context.Background(),
+			req.HotelID,
+			hotelNombre,
+			req.Fecha,
+			eval.Estado,
+			eval.TotalRemitoPrendas,
+			eval.TotalProcesadoPrendas,
+			eval.TotalProcesadoKilos,
+			eval.DiferenciaPrendas,
+			eval.Muestra,
+		)
+	}
+
 	despacho, err := a.getDespachoByID(ctx, despachoID)
 	if err != nil {
 		writeDBError(w, err, "Despacho no encontrado.")
@@ -454,6 +469,10 @@ func (a *App) entregarDespachoConciliacion(w http.ResponseWriter, r *http.Reques
 	if err := tx.Commit(ctx); err != nil {
 		writeError(w, http.StatusInternalServerError, "Error confirmando entrega de despacho.")
 		return
+	}
+
+	if a.whatsapp != nil {
+		a.whatsapp.NotificarDespachoEntregado(context.Background(), hotelID, hotelNombre, fechaStr, claims.Username, obsTrimmed)
 	}
 
 	despacho, err := a.getDespachoByID(ctx, despachoID)

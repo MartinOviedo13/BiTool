@@ -10,19 +10,24 @@ import (
 )
 
 type App struct {
-	db  *pgxpool.Pool
-	ia  *services.IAService
-	mcp *mcp.Server
+	db       *pgxpool.Pool
+	ia       *services.IAService
+	mcp      *mcp.Server
+	whatsapp *services.WhatsAppService
 }
 
 func NewApp(db *pgxpool.Pool) *App {
 	mcpServer := mcp.NewServer("lavadero-bi-mcp", "1.0.0")
 	mcp.RegisterAllBITools(mcpServer, db)
 	mcp.RegisterAllResources(mcpServer, db)
+	mcp.RegisterWhatsAppTools(mcpServer, db)
+
+	waService := services.NewWhatsAppService(db)
 
 	app := &App{
-		db:  db,
-		mcp: mcpServer,
+		db:       db,
+		mcp:      mcpServer,
+		whatsapp: waService,
 	}
 	if services.ResolveGeminiAPIKey() != "" {
 		app.ia = services.NewIAService(db, services.NewGeminiClient(), mcpServer)
@@ -42,6 +47,9 @@ func (a *App) RoutesWithAllowedOrigins(allowedOrigins []string) http.Handler {
 	router.Get("/", a.handleRoot)
 	router.Get("/health", a.handleHealth)
 	router.Post("/auth/login", a.login)
+
+	// Webhook entrante de WhatsApp (Evolution API)
+	router.Post("/api/webhooks/whatsapp", a.handleWhatsAppWebhook)
 
 	// Endpoint estándar MCP (Streamable HTTP + SSE + JSON-RPC 2.0) para Gemini y clientes externos
 	router.Get("/api/mcp", a.handleMCP)
@@ -141,6 +149,11 @@ func (a *App) RoutesWithAllowedOrigins(allowedOrigins []string) http.Handler {
 		// Hoteles: edicion solo admin
 		r.Patch("/hoteles/{id}", a.updateHotel)
 
+		// Usuarios / Personal y Choferes
+		r.Get("/api/usuarios", a.listUsuarios)
+		r.Post("/api/usuarios", a.createUsuario)
+		r.Patch("/api/usuarios/{id}", a.updateUsuario)
+
 		// Items: creacion y edicion solo admin
 		r.Post("/items", a.createItem)
 		r.Patch("/items/{id}", a.updateItem)
@@ -167,6 +180,12 @@ func (a *App) RoutesWithAllowedOrigins(allowedOrigins []string) http.Handler {
 		// Alertas e IA
 		r.Get("/alertas", a.alertas)
 		r.Post("/ia/ask", a.askIA)
+
+		// WhatsApp Admin & Monitor
+		r.Get("/api/whatsapp/status", a.getWhatsAppStatus)
+		r.Get("/api/whatsapp/qr", a.getWhatsAppQR)
+		r.Post("/api/whatsapp/test", a.testWhatsAppMessage)
+		r.Get("/api/whatsapp/logs", a.listWhatsAppLogs)
 	})
 
 	return router

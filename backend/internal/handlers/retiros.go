@@ -176,6 +176,11 @@ func (a *App) confirmarRetiroEnvio(w http.ResponseWriter, r *http.Request) {
 		"retirado_en":  now.Format(time.RFC3339),
 	})
 
+	// Notificar automáticamente al hotel por WhatsApp que sus prendas van a planta
+	if a.whatsapp != nil {
+		a.whatsapp.NotificarRetiroConfirmado(r.Context(), hotelID, codigoQR, claims.Username, obs)
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success":     true,
 		"envio_id":    envioID,
@@ -183,4 +188,3 @@ func (a *App) confirmarRetiroEnvio(w http.ResponseWriter, r *http.Request) {
 		"retirado_en": now.Format(time.RFC3339),
 	})
 }
-

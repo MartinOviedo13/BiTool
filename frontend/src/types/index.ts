@@ -2,6 +2,8 @@ export interface Hotel {
   id: number;
   nombre: string;
   activo: boolean;
+  telefono_whatsapp?: string | null;
+  whatsapp_activo?: boolean;
 }
 
 export interface Item {
@@ -129,6 +131,8 @@ export interface User {
   rol: UserRole;
   hotel_id?: number | null;
   hotel_nombre?: string | null;
+  telefono_whatsapp?: string | null;
+  activo?: boolean;
 }
 
 export interface EnvioDetalle {
@@ -490,6 +494,39 @@ export interface UpdateRemitoBorradorRequest {
   observaciones: string | null;
   items: UpdateRemitoBorradorItemDTO[];
 }
+
+export interface WhatsAppStatus {
+  habilitado: boolean;
+  gateway_configurado: boolean;
+  mensajes_enviados_24h: number;
+  mensajes_recibidos_24h: number;
+  fallidos_24h: number;
+}
+
+export interface WhatsAppLogEntry {
+  id: number;
+  direccion: 'saliente' | 'entrante';
+  telefono: string;
+  hotel_id?: number | null;
+  hotel_nombre?: string | null;
+  usuario_id?: number | null;
+  usuario_nombre?: string | null;
+  tipo_evento: string;
+  mensaje: string;
+  estado: 'pendiente' | 'enviado' | 'fallido' | 'recibido' | 'simulado';
+  error_detalle?: string | null;
+  created_at: string;
+}
+
+export interface WhatsAppQRCodeResponse {
+  estado: string;
+  conectado: boolean;
+  qrcode?: string;
+  numero?: string;
+  instancia: string;
+  mensaje?: string;
+}
+
 
 
 

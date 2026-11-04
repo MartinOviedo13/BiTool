@@ -33,9 +33,32 @@ services:
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}"
       GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
       GEMINI_MODEL: "${GEMINI_MODEL:-gemini-2.5-flash}"
+      WHATSAPP_ENABLED: "${WHATSAPP_ENABLED:-true}"
+      WHATSAPP_GATEWAY_URL: "${WHATSAPP_GATEWAY_URL:-http://whatsapp-gateway:8080}"
+      WHATSAPP_API_KEY: "${WHATSAPP_API_KEY:-triton_secret_wa_api_key_2026}"
+      WHATSAPP_INSTANCE_NAME: "${WHATSAPP_INSTANCE_NAME:-triton}"
     ports:
       - "8000:8000"
 
+  whatsapp-gateway:
+    image: atendai/evolution-api:v2.2.3
+    container_name: lavadero-bi-evolution-api
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: "8080"
+      AUTHENTICATION_API_KEY: "${WHATSAPP_API_KEY:-triton_secret_wa_api_key_2026}"
+      DATABASE_ENABLED: "false"
+      CONFIG_SESSION_PHONE_CLIENT: "TRITÓN Lavadero"
+      CONFIG_SESSION_PHONE_NAME: "Chrome"
+      WEBHOOK_GLOBAL_URL: "http://backend:8000/api/webhooks/whatsapp"
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_EVENTS_MESSAGES_UPSERT: "true"
+    ports:
+      - "8080:8080"
+    volumes:
+      - evolution_instances:/evolution/instances
+
 volumes:
   pgdata:
+  evolution_instances:
 

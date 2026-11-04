@@ -1,5 +1,6 @@
 import {
   Hotel,
+  User,
   Item,
   Registro,
   BatchRegistroItem,
@@ -27,6 +28,9 @@ import {
   LoteProcesamientoResponse,
   ConfirmarLoteOKResponse,
   UpdateRemitoBorradorRequest,
+  WhatsAppStatus,
+  WhatsAppLogEntry,
+  WhatsAppQRCodeResponse,
 } from '../types';
 
 const getApiBase = () => {
@@ -91,13 +95,42 @@ export const api = {
 
   // Hoteles
   getHoteles: () => request<Hotel[]>('/hoteles'),
-  createHotel: (nombre: string) =>
-    request<Hotel>('/hoteles', {
+  createHotel: (data: { nombre: string; telefono_whatsapp?: string; whatsapp_activo?: boolean } | string) => {
+    const payload = typeof data === 'string' ? { nombre: data } : data;
+    return request<Hotel>('/hoteles', {
       method: 'POST',
-      body: JSON.stringify({ nombre }),
-    }),
-  updateHotel: (id: number, data: { nombre?: string; activo?: boolean }) =>
+      body: JSON.stringify(payload),
+    });
+  },
+  updateHotel: (id: number, data: { nombre?: string; activo?: boolean; telefono_whatsapp?: string; whatsapp_activo?: boolean }) =>
     request<Hotel>(`/hoteles/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  // Usuarios / Personal y Choferes
+  getUsuarios: () => request<User[]>('/api/usuarios'),
+  createUsuario: (data: {
+    username: string;
+    password: string;
+    rol?: string;
+    hotel_id?: number | null;
+    telefono_whatsapp?: string;
+  }) =>
+    request<User>('/api/usuarios', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateUsuario: (
+    id: number,
+    data: {
+      rol?: string;
+      activo?: boolean;
+      telefono_whatsapp?: string;
+      password?: string;
+    }
+  ) =>
+    request<User>(`/api/usuarios/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
@@ -430,4 +463,20 @@ importPreview: (file: File) => {
     request<{ success: boolean; mensaje: string }>(`/api/remitos/ia/borradores/${id}`, {
       method: 'DELETE',
     }),
+
+  // WhatsApp & Notificaciones
+  getWhatsAppStatus: () => request<WhatsAppStatus>('/api/whatsapp/status'),
+  getWhatsAppQR: () => request<WhatsAppQRCodeResponse>('/api/whatsapp/qr'),
+  testWhatsAppMessage: (data: { telefono?: string; hotel_id?: number; mensaje: string }) =>
+    request<{ status: string; telefono: string; mensaje: string }>('/api/whatsapp/test', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getWhatsAppLogs: (hotelId?: number, limite?: number) => {
+    const params = new URLSearchParams();
+    if (hotelId) params.append('hotel_id', hotelId.toString());
+    if (limite) params.append('limite', limite.toString());
+    const qs = params.toString();
+    return request<WhatsAppLogEntry[]>(`/api/whatsapp/logs${qs ? `?${qs}` : ''}`);
+  },
 };
