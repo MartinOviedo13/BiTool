@@ -31,12 +31,16 @@ type WhatsAppService struct {
 func NewWhatsAppService(db *pgxpool.Pool) *WhatsAppService {
 	gatewayURL := strings.TrimRight(strings.TrimSpace(os.Getenv("WHATSAPP_GATEWAY_URL")), "/")
 	if gatewayURL == "" {
-		gatewayURL = "http://localhost:8080"
+		if os.Getenv("RENDER") != "" {
+			gatewayURL = "https://triton-whatsapp-gateway.onrender.com"
+		} else {
+			gatewayURL = "http://localhost:8080"
+		}
 	}
 
 	apiKey := strings.TrimSpace(os.Getenv("WHATSAPP_API_KEY"))
 	if apiKey == "" {
-		apiKey = "triton_secret_wa_api_key_2026"
+		apiKey = "triton_whatsapp_secret_key_2026"
 	}
 
 	instanceName := strings.TrimSpace(os.Getenv("WHATSAPP_INSTANCE_NAME"))
@@ -59,6 +63,31 @@ func NewWhatsAppService(db *pgxpool.Pool) *WhatsAppService {
 	}
 }
 
+// GatewayURL obtiene la URL activa del gateway de WhatsApp con fallback a Render.
+func (s *WhatsAppService) GatewayURL() string {
+	if val := strings.TrimRight(strings.TrimSpace(os.Getenv("WHATSAPP_GATEWAY_URL")), "/"); val != "" {
+		return val
+	}
+	if s.gatewayURL != "" && s.gatewayURL != "http://localhost:8080" {
+		return s.gatewayURL
+	}
+	if os.Getenv("RENDER") != "" {
+		return "https://triton-whatsapp-gateway.onrender.com"
+	}
+	return "http://localhost:8080"
+}
+
+// APIKey obtiene la clave de autenticación con fallback al secreto estándar.
+func (s *WhatsAppService) APIKey() string {
+	if val := strings.TrimSpace(os.Getenv("WHATSAPP_API_KEY")); val != "" {
+		return val
+	}
+	if s.apiKey != "" && s.apiKey != "triton_secret_wa_api_key_2026" {
+		return s.apiKey
+	}
+	return "triton_whatsapp_secret_key_2026"
+}
+
 // IsEnabled indica si el canal de WhatsApp está habilitado operativamente.
 func (s *WhatsAppService) IsEnabled() bool {
 	return s.enabled
@@ -75,6 +104,9 @@ type EstadoConexionWhatsApp struct {
 
 // ObtenerEstadoConexion consulta a Evolution API el estado de la sesión o solicita el código QR.
 func (s *WhatsAppService) ObtenerEstadoConexion(ctx context.Context) EstadoConexionWhatsApp {
+	gwURL := s.GatewayURL()
+	apiKey := s.APIKey()
+
 	res := EstadoConexionWhatsApp{
 		Instancia: s.instanceName,
 	}
@@ -87,19 +119,19 @@ func (s *WhatsAppService) ObtenerEstadoConexion(ctx context.Context) EstadoConex
 	}
 
 	// 1. Probar consultar el estado de la instancia en Evolution API
-	stateURL := fmt.Sprintf("%s/instance/connectionState/%s", s.gatewayURL, s.instanceName)
+	stateURL := fmt.Sprintf("%s/instance/connectionState/%s", gwURL, s.instanceName)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, stateURL, nil)
 	if err != nil {
 		res.Estado = "no_gateway"
 		res.Mensaje = "Error construyendo petición al Gateway."
 		return res
 	}
-	req.Header.Set("apikey", s.apiKey)
+	req.Header.Set("apikey", apiKey)
 
 	resp, err := s.client.Do(req)
 	if err != nil {
 		res.Estado = "no_gateway"
-		res.Mensaje = "El contenedor de WhatsApp no está iniciado en " + s.gatewayURL + " (ejecutar: docker compose up -d whatsapp-gateway)"
+		res.Mensaje = "El contenedor de WhatsApp no está iniciado en " + gwURL + " (ejecutar: docker compose up -d whatsapp-gateway)"
 		return res
 	}
 	defer resp.Body.Close()
@@ -119,7 +151,7 @@ func (s *WhatsAppService) ObtenerEstadoConexion(ctx context.Context) EstadoConex
 		}
 	} else if resp.StatusCode == http.StatusNotFound {
 		// Crear la instancia si todavía no existe en Evolution API
-		createURL := fmt.Sprintf("%s/instance/create", s.gatewayURL)
+		createURL := fmt.Sprintf("%s/instance/create", gwURL)
 		createPayload := map[string]any{
 			"instanceName": s.instanceName,
 			"token":        s.instanceName,
@@ -129,7 +161,7 @@ func (s *WhatsAppService) ObtenerEstadoConexion(ctx context.Context) EstadoConex
 		b, _ := json.Marshal(createPayload)
 		cReq, _ := http.NewRequestWithContext(ctx, http.MethodPost, createURL, bytes.NewReader(b))
 		cReq.Header.Set("Content-Type", "application/json")
-		cReq.Header.Set("apikey", s.apiKey)
+		cReq.Header.Set("apikey", apiKey)
 		cResp, cErr := s.client.Do(cReq)
 		if cErr == nil {
 			defer cResp.Body.Close()
@@ -153,21 +185,31 @@ func (s *WhatsAppService) ObtenerEstadoConexion(ctx context.Context) EstadoConex
 	}
 
 	// Si la instancia ya existía pero no está 'open', pedir el QR fresco para conectar
-	connectURL := fmt.Sprintf("%s/instance/connect/%s", s.gatewayURL, s.instanceName)
+	connectURL := fmt.Sprintf("%s/instance/connect/%s", gwURL, s.instanceName)
 	connReq, _ := http.NewRequestWithContext(ctx, http.MethodGet, connectURL, nil)
-	connReq.Header.Set("apikey", s.apiKey)
+	connReq.Header.Set("apikey", apiKey)
 	connResp, connErr := s.client.Do(connReq)
 	if connErr == nil {
 		defer connResp.Body.Close()
-		var connData struct {
-			Base64 string `json:"base64"`
-			Code   string `json:"code"`
-		}
+		var connData map[string]any
 		_ = json.NewDecoder(connResp.Body).Decode(&connData)
-		if connData.Base64 != "" {
-			res.QRCode = connData.Base64
+		if b64, ok := connData["base64"].(string); ok && b64 != "" {
+			res.QRCode = b64
 			res.Estado = "connecting"
 			res.Mensaje = "Escaneá el código QR con WhatsApp en Dispositivos Vinculados."
+			return res
+		}
+		if qro, ok := connData["qrcode"].(map[string]any); ok {
+			if b64, ok := qro["base64"].(string); ok && b64 != "" {
+				res.QRCode = b64
+				res.Estado = "connecting"
+				res.Mensaje = "Escaneá el código QR con WhatsApp en Dispositivos Vinculados."
+				return res
+			}
+		}
+		if pairing, ok := connData["pairingCode"].(string); ok && pairing != "" {
+			res.Estado = "connecting"
+			res.Mensaje = fmt.Sprintf("Código de emparejamiento: %s (ingresalo en WhatsApp > Dispositivos vinculados)", pairing)
 			return res
 		}
 	}
@@ -218,7 +260,9 @@ func (s *WhatsAppService) EnviarTexto(ctx context.Context, telefono string, mens
 		log.Printf("[WhatsApp][SIMULADO] Para: %s | Evento: %s | Mensaje:\n%s", telNormalizado, tipoEvento, mensaje)
 		estado = "simulado"
 	} else {
-		endpoint := fmt.Sprintf("%s/message/sendText/%s", s.gatewayURL, s.instanceName)
+		gwURL := s.GatewayURL()
+		apiKey := s.APIKey()
+		endpoint := fmt.Sprintf("%s/message/sendText/%s", gwURL, s.instanceName)
 		payload := map[string]any{
 			"number": telNormalizado,
 			"text":   mensaje,
@@ -241,7 +285,7 @@ func (s *WhatsAppService) EnviarTexto(ctx context.Context, telefono string, mens
 				estado = "fallido"
 			} else {
 				req.Header.Set("Content-Type", "application/json")
-				req.Header.Set("apikey", s.apiKey)
+				req.Header.Set("apikey", apiKey)
 
 				resp, err := s.client.Do(req)
 				if err != nil {
