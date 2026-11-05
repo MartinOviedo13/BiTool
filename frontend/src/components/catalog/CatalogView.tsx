@@ -98,17 +98,33 @@ export const CatalogView: React.FC = () => {
     setLoading(true);
     try {
       const [hotelesData, itemsData, usuariosData, waData] = await Promise.all([
-        api.getHoteles(),
-        api.getItems(),
-        api.getUsuarios().catch(() => []),
+        api.getHoteles().catch((err) => {
+          console.error('Error cargando hoteles:', err);
+          return [] as Hotel[];
+        }),
+        api.getItems().catch((err) => {
+          console.error('Error cargando prendas:', err);
+          return [] as Item[];
+        }),
+        api.getUsuarios().catch(() => [] as User[]),
         api.getWhatsAppStatus().catch(() => null),
       ]);
       setHoteles(hotelesData);
       setItems(itemsData);
       setUsuarios(usuariosData);
       if (waData) setWaStatus(waData);
+      if (hotelesData.length === 0 && itemsData.length === 0) {
+        setStatusMessage({
+          type: 'error',
+          text: 'El servidor en Render se estaba reiniciando. Presiona "Refrescar" para volver a cargar los datos.',
+        });
+      }
     } catch (err) {
       console.error('Error cargando catálogos:', err);
+      setStatusMessage({
+        type: 'error',
+        text: 'Error conectando con la base de datos. Por favor presiona "Refrescar".',
+      });
     } finally {
       setLoading(false);
     }
@@ -467,16 +483,18 @@ export const CatalogView: React.FC = () => {
             </button>
           )}
 
-          {tab === 'whatsapp_logs' && (
-            <button
-              onClick={loadWhatsAppLogs}
-              disabled={loadingLogs}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-triton-deep hover:bg-slate-700 text-slate-200 border border-triton-slate/50 rounded-xl text-xs font-bold transition-all shrink-0"
-            >
-              <RefreshCw className={`h-4 w-4 ${loadingLogs ? 'animate-spin text-triton-aqua' : ''}`} />
-              <span>Refrescar</span>
-            </button>
-          )}
+          <button
+            onClick={() => {
+              loadCatalogs();
+              if (tab === 'whatsapp_logs') loadWhatsAppLogs();
+            }}
+            disabled={loading || loadingLogs}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-triton-deep hover:bg-slate-700 text-slate-200 border border-triton-slate/50 rounded-xl text-xs font-bold transition-all shrink-0"
+            title="Recargar datos del catálogo y servidor"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading || loadingLogs ? 'animate-spin text-triton-aqua' : ''}`} />
+            <span>Refrescar</span>
+          </button>
         </div>
       </div>
 
