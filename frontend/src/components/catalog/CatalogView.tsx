@@ -1495,22 +1495,59 @@ export const CatalogView: React.FC = () => {
                   </button>
                 </div>
               </div>
+            ) : qrData?.estado === 'connecting' || qrData?.estado === 'close' ? (
+              <div className="text-center py-6 space-y-4">
+                <div className="w-14 h-14 mx-auto rounded-full bg-cyan-950/60 border border-cyan-800/60 flex items-center justify-center text-cyan-400">
+                  <RefreshCw className={`w-7 h-7 ${loadingQR ? 'animate-spin' : ''}`} />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white">Gateway Conectado — Preparando Sesión</h4>
+                  <p className="text-xs text-slate-300 mt-1">
+                    {qrData?.mensaje || 'El servidor de WhatsApp en la nube está en línea y preparando el código QR.'}
+                  </p>
+                </div>
+                {qrData?.instancia && (
+                  <p className="text-[11px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/50 py-1 px-3 rounded-full inline-block">
+                    Instancia: {qrData.instancia} (Online en Render)
+                  </p>
+                )}
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    onClick={fetchQRCode}
+                    disabled={loadingQR}
+                    className="w-full py-2.5 bg-triton-aqua hover:bg-triton-aqua-hover active:bg-[#48c0b0] text-triton-navy font-black text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loadingQR ? 'animate-spin' : ''}`} />
+                    <span>{loadingQR ? 'Consultando código QR...' : 'Generar / Refrescar Código QR'}</span>
+                  </button>
+                  <button
+                    onClick={() => setConnectModalOpen(false)}
+                    className="w-full py-2 bg-triton-deep hover:bg-slate-700 text-slate-300 text-xs rounded-xl"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="text-center py-6 space-y-3">
                 <div className="w-12 h-12 mx-auto rounded-full bg-amber-950/60 border border-amber-800/60 flex items-center justify-center text-amber-400">
                   <AlertCircle className="w-6 h-6" />
                 </div>
-                <h4 className="text-sm font-bold text-white">Gateway Local Pendiente</h4>
+                <h4 className="text-sm font-bold text-white">Gateway de WhatsApp Pendiente</h4>
                 <p className="text-xs text-slate-300">
-                  {qrData?.mensaje || 'El contenedor local de WhatsApp no está iniciado en Docker.'}
+                  {qrData?.mensaje || 'El servicio de WhatsApp aún no está listo o respondiendo.'}
                 </p>
-                <div className="bg-triton-deep border border-triton-slate/50 p-2.5 rounded-xl font-mono text-[10px] text-emerald-400 text-left select-all">
-                  docker compose up -d whatsapp-gateway
-                </div>
                 <p className="text-[10px] text-slate-400">
                   Mientras tanto, el sistema funciona en <b>Modo Simulación</b> (los mensajes se guardan en el log de auditoría sin fallar).
                 </p>
-                <div className="pt-2">
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    onClick={fetchQRCode}
+                    disabled={loadingQR}
+                    className="w-full py-2.5 bg-triton-aqua hover:bg-triton-aqua-hover text-triton-navy font-bold text-xs rounded-xl"
+                  >
+                    Reintentar conexión
+                  </button>
                   <button
                     onClick={() => setConnectModalOpen(false)}
                     className="w-full py-2 bg-triton-deep hover:bg-slate-700 text-slate-300 text-xs rounded-xl"
