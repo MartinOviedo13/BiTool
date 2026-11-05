@@ -22,8 +22,12 @@ const AuthContext = createContext<AuthContextType | null>(null);
 const TOKEN_KEY = 'lavadero_bi_token';
 const getApiBase = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  if (typeof window !== 'undefined' && window.location.hostname) {
-    return `http://${window.location.hostname}:8000`;
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return `http://${host}:8000`;
+    }
+    return 'https://triton-91bd.onrender.com';
   }
   return 'http://localhost:8000';
 };

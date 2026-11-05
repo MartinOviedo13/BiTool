@@ -20,8 +20,10 @@ export function useRealtime(onEvent?: (evt: EventoRealtime) => void) {
     const token = localStorage.getItem('lavadero_bi_token') || localStorage.getItem('token');
     const apiBase =
       import.meta.env.VITE_API_URL ||
-      (typeof window !== 'undefined' && window.location.hostname
-        ? `http://${window.location.hostname}:8000`
+      (typeof window !== 'undefined'
+        ? window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? `http://${window.location.hostname}:8000`
+          : 'https://triton-91bd.onrender.com'
         : '');
 
     // Conectar a SSE
