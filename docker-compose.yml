@@ -41,7 +41,7 @@ services:
       - "8000:8000"
 
   whatsapp-gateway:
-    image: atendai/evolution-api:v2.2.3
+    image: evoapicloud/evolution-api:v2.2.3
     container_name: lavadero-bi-evolution-api
     restart: unless-stopped
     environment:
