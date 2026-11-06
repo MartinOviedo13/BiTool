@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { RemitoPrintableModal } from '../hotel360/RemitoPrintableModal';
 import { CargarRemitoModal } from './CargarRemitoModal';
+import { ModalAuditarRemito } from './ModalAuditarRemito';
 
 interface HotelAuditoriaGroup {
   hotel_id: number;
@@ -104,6 +105,7 @@ export const AuditoriaView: React.FC = () => {
   const [rotasInput, setRotasInput] = useState<number>(0);
   const [savingConteo, setSavingConteo] = useState(false);
   const [remitoParaImprimir, setRemitoParaImprimir] = useState<Envio | null>(null);
+  const [remitoParaAuditar, setRemitoParaAuditar] = useState<Envio | null>(null);
 
   useEffect(() => {
     cargarAuditoria();
@@ -859,6 +861,27 @@ export const AuditoriaView: React.FC = () => {
 
                   {/* Badges de Estado y Acciones Rápidas */}
                   <div className="flex items-center justify-between md:justify-end gap-2 sm:gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-triton-slate/50/50">
+                    {(() => {
+                      const remitoDelHotel = remitos.find((r) => r.hotel_id === group.hotel_id);
+                      if (remitoDelHotel) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRemitoParaAuditar(remitoDelHotel);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-brand-600/30 hover:bg-brand-600 text-brand-300 hover:text-white border border-brand-700/60 text-[11px] font-bold flex items-center gap-1 transition-all"
+                            title="Auditar conteo de lavadero contra el remito del hotel"
+                          >
+                            <ClipboardCheck className="w-3 h-3" />
+                            <span>Auditar Remito</span>
+                          </button>
+                        );
+                      }
+                      return null;
+                    })()}
+
                     <button
                       type="button"
                       onClick={(e) => {
@@ -1512,17 +1535,10 @@ export const AuditoriaView: React.FC = () => {
 
                                   <button
                                     onClick={() => {
-                                      const fStr =
-                                        typeof rem.fecha === 'string'
-                                          ? rem.fecha.split('T')[0]
-                                          : new Date(rem.fecha).toISOString().split('T')[0];
-                                      setFechaFiltro(fStr);
-                                      setActiveHotelTab(rem.hotel_id);
-                                      setExpandedHotels({ [rem.hotel_id]: true });
-                                      setVistaActiva('auditoria');
+                                      setRemitoParaAuditar(rem);
                                     }}
                                     className="px-2.5 py-1.5 rounded-xl bg-brand-600/30 hover:bg-brand-600 text-brand-300 hover:text-white border border-brand-700/60 text-xs font-bold flex items-center gap-1 transition-colors"
-                                    title="Auditar conteo contra este remito"
+                                    title="Auditar conteo de lavadero contra este remito"
                                   >
                                     <ClipboardCheck className="w-3.5 h-3.5" />
                                     <span>Auditar</span>
@@ -1774,6 +1790,20 @@ export const AuditoriaView: React.FC = () => {
           initialHotelId={hotelPreseleccionado}
           initialFecha={fechaFiltro || undefined}
           remitoParaEditar={remitoParaEditar}
+        />
+      )}
+
+      {/* Modal de Auditoría Específica de Remito */}
+      {remitoParaAuditar && (
+        <ModalAuditarRemito
+          remitoId={remitoParaAuditar.id}
+          remito={remitoParaAuditar}
+          onClose={() => setRemitoParaAuditar(null)}
+          onSuccess={() => {
+            setRemitoParaAuditar(null);
+            cargarAuditoria();
+            cargarHistorialRemitos();
+          }}
         />
       )}
     </div>

@@ -13,6 +13,8 @@ import {
   Envio,
   CreateEnvioRequest,
   AuditoriaItem,
+  AuditoriaRemitoResponse,
+  GuardarAuditoriaRemitoRequest,
   PortalHotelDashboard,
   ConteoRequest,
   FichaHotel360,
@@ -311,14 +313,27 @@ importPreview: (file: File) => {
     const qs = hotelId ? `?hotel_id=${hotelId}` : '';
     return request<PortalHotelDashboard>(`/api/portal/dashboard${qs}`);
   },
-  getAuditoria: (params?: { fecha?: string; hotel_id?: number; remito?: string }) => {
+  getAuditoria: (params?: { fecha?: string; hotel_id?: number; remito?: string; remito_id?: number }) => {
     const searchParams = new URLSearchParams();
     if (params?.fecha) searchParams.set('fecha', params.fecha);
     if (params?.hotel_id) searchParams.set('hotel_id', params.hotel_id.toString());
     if (params?.remito) searchParams.set('remito', params.remito);
+    if (params?.remito_id) searchParams.set('remito_id', params.remito_id.toString());
     const qs = searchParams.toString();
     return request<AuditoriaItem[]>(`/api/auditoria${qs ? `?${qs}` : ''}`);
   },
+  getAuditoriaRemito: (remitoId: number, fechaConteo?: string) => {
+    const qs = fechaConteo ? `?fecha_conteo=${encodeURIComponent(fechaConteo)}` : '';
+    return request<AuditoriaRemitoResponse>(`/api/remitos/${remitoId}/auditar${qs}`);
+  },
+  guardarAuditoriaRemito: (remitoId: number, data: GuardarAuditoriaRemitoRequest) =>
+    request<{ success: boolean; mensaje: string; remito_id: number; fecha_conteo: string }>(
+      `/api/remitos/${remitoId}/auditar`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    ),
   registrarConteo: (data: ConteoRequest) =>
     request<{ success: boolean }>('/api/auditoria/conteo', {
       method: 'POST',

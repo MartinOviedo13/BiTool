@@ -582,6 +582,13 @@ func (a *App) auditoriaComparacion(w http.ResponseWriter, r *http.Request) {
 	if remitoParam == "" {
 		remitoParam = strings.TrimSpace(r.URL.Query().Get("q"))
 	}
+	remitoIDParam := strings.TrimSpace(r.URL.Query().Get("remito_id"))
+	var remitoIDFilter *int
+	if remitoIDParam != "" {
+		if id, err := strconv.Atoi(remitoIDParam); err == nil {
+			remitoIDFilter = &id
+		}
+	}
 
 	var hotelID *int
 	if hotelParam != "" {
@@ -602,6 +609,7 @@ func (a *App) auditoriaComparacion(w http.ResponseWriter, r *http.Request) {
 			WHERE ($1::date IS NULL OR e.fecha = $1::date)
 			  AND ($2::int IS NULL OR e.hotel_id = $2)
 			  AND ($3::text IS NULL OR e.numero_remito ILIKE '%' || $3 || '%' OR e.codigo_qr ILIKE '%' || $3 || '%')
+			  AND ($4::int IS NULL OR e.id = $4)
 		),
 		declarados AS (
 			SELECT rb.fecha, rb.hotel_id, ed.item_id, SUM(ed.cantidad_declarada)::int AS declarada
@@ -628,7 +636,7 @@ func (a *App) auditoriaComparacion(w http.ResponseWriter, r *http.Request) {
 			FROM registros r
 			WHERE ($1::date IS NULL OR r.fecha = $1::date)
 			  AND ($2::int IS NULL OR r.hotel_id = $2)
-			  AND ($3::text IS NULL OR EXISTS (SELECT 1 FROM remitos_base rb WHERE rb.hotel_id = r.hotel_id AND rb.fecha = r.fecha))
+			  AND ($3::text IS NULL OR $4::int IS NOT NULL OR EXISTS (SELECT 1 FROM remitos_base rb WHERE rb.hotel_id = r.hotel_id AND rb.fecha = r.fecha))
 			GROUP BY r.fecha, r.hotel_id, r.item_id
 		),
 		unidos AS (
@@ -642,7 +650,7 @@ func (a *App) auditoriaComparacion(w http.ResponseWriter, r *http.Request) {
 				COALESCE(p.rota, 0) AS rota
 			FROM declarados d
 			FULL OUTER JOIN procesados p
-			  ON d.fecha = p.fecha AND d.hotel_id = p.hotel_id AND d.item_id = p.item_id
+			  ON d.hotel_id = p.hotel_id AND d.item_id = p.item_id AND ($4::int IS NOT NULL OR d.fecha = p.fecha)
 		)
 		SELECT
 			u.fecha::text,
@@ -664,7 +672,7 @@ func (a *App) auditoriaComparacion(w http.ResponseWriter, r *http.Request) {
 		ORDER BY u.fecha DESC, h.nombre ASC, i.nombre ASC
 	`
 
-	rows, err := a.db.Query(r.Context(), query, nullableString(fechaParam), hotelID, nullableString(remitoParam))
+	rows, err := a.db.Query(r.Context(), query, nullableString(fechaParam), hotelID, nullableString(remitoParam), remitoIDFilter)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Error ejecutando auditoria: %v", err))
 		return
@@ -742,6 +750,226 @@ func (a *App) registrarConteoAuditoria(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"success": true})
+}
+
+// getAuditoriaRemito devuelve la auditoría comparativa de un remito específico contra el conteo de planta en una fecha determinada.
+func (a *App) getAuditoriaRemito(w http.ResponseWriter, r *http.Request) {
+	remitoID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || remitoID <= 0 {
+		writeError(w, http.StatusBadRequest, "ID de remito inválido.")
+		return
+	}
+
+	fechaConteo := strings.TrimSpace(r.URL.Query().Get("fecha_conteo"))
+	if fechaConteo == "" {
+		fechaConteo = time.Now().Format("2006-01-02")
+	}
+
+	ctx := r.Context()
+
+	// Obtener cabecera del remito
+	var resp models.AuditoriaRemitoResponse
+	var numRemito, obs *string
+	err = a.db.QueryRow(ctx, `
+		SELECT e.id, e.hotel_id, h.nombre, COALESCE(e.numero_remito, ''), e.fecha::text, COALESCE(e.observaciones, '')
+		FROM envios e
+		JOIN hoteles h ON h.id = e.hotel_id
+		WHERE e.id = $1
+	`, remitoID).Scan(&resp.RemitoID, &resp.HotelID, &resp.HotelNombre, &numRemito, &resp.FechaRemito, &obs)
+	if err != nil {
+		writeDBError(w, err, "Remito no encontrado.")
+		return
+	}
+	if numRemito != nil {
+		resp.NumeroRemito = *numRemito
+	}
+	if obs != nil {
+		resp.Observaciones = *obs
+	}
+	resp.FechaConteo = fechaConteo
+
+	// Consultar prendas declaradas en este remito cruzadas con registros de la fecha de conteo
+	rows, err := a.db.Query(ctx, `
+		WITH remito_items AS (
+			SELECT ed.item_id, SUM(ed.cantidad_declarada)::int AS declarada
+			FROM envio_detalles ed
+			WHERE ed.envio_id = $1
+			GROUP BY ed.item_id
+		),
+		conteo_items AS (
+			SELECT r.item_id,
+			       SUM(r.cantidad)::int AS limpia,
+			       SUM(COALESCE(r.cantidad_relavado, 0))::int AS relavado,
+			       SUM(COALESCE(r.cantidad_rota, 0))::int AS rota
+			FROM registros r
+			WHERE r.hotel_id = $2 AND r.fecha = $3::date
+			GROUP BY r.item_id
+		),
+		unidos AS (
+			SELECT
+				COALESCE(ri.item_id, ci.item_id) AS item_id,
+				COALESCE(ri.declarada, 0) AS declarada,
+				COALESCE(ci.limpia, 0) AS limpia,
+				COALESCE(ci.relavado, 0) AS relavado,
+				COALESCE(ci.rota, 0) AS rota
+			FROM remito_items ri
+			FULL OUTER JOIN conteo_items ci ON ri.item_id = ci.item_id
+		)
+		SELECT
+			u.item_id,
+			i.nombre AS item_nombre,
+			COALESCE(i.sector, 'planchado') AS sector,
+			u.declarada,
+			u.limpia,
+			u.relavado,
+			u.rota,
+			(u.limpia + u.relavado + u.rota) AS total_contado,
+			((u.limpia + u.relavado + u.rota) - u.declarada) AS diferencia
+		FROM unidos u
+		JOIN items i ON i.id = u.item_id
+		WHERE u.declarada > 0 OR (u.limpia + u.relavado + u.rota) > 0
+		ORDER BY i.nombre ASC
+	`, remitoID, resp.HotelID, fechaConteo)
+	if err != nil {
+		writeDBError(w, err, "Error consultando auditoría del remito.")
+		return
+	}
+	defer rows.Close()
+
+	resp.Items = make([]models.ItemAuditoriaRemito, 0)
+	for rows.Next() {
+		var it models.ItemAuditoriaRemito
+		if err := rows.Scan(
+			&it.ItemID,
+			&it.ItemNombre,
+			&it.Sector,
+			&it.CantidadDeclarada,
+			&it.CantidadLimpia,
+			&it.CantidadRelavado,
+			&it.CantidadRota,
+			&it.TotalContado,
+			&it.Diferencia,
+		); err != nil {
+			writeError(w, http.StatusInternalServerError, "Error leyendo items auditados.")
+			return
+		}
+
+		if it.CantidadDeclarada > 0 && it.TotalContado == 0 {
+			it.Estado = "PENDIENTE_LAVADERO"
+		} else if it.Diferencia == 0 {
+			it.Estado = "OK"
+		} else if it.Diferencia < 0 {
+			it.Estado = "FALTANTE"
+		} else {
+			it.Estado = "SOBRANTE"
+		}
+
+		resp.TotalDeclaradas += it.CantidadDeclarada
+		resp.TotalLimpias += it.CantidadLimpia
+		resp.TotalRelavado += it.CantidadRelavado
+		resp.TotalRotas += it.CantidadRota
+		resp.TotalContado += it.TotalContado
+		resp.DiferenciaTotal += it.Diferencia
+
+		resp.Items = append(resp.Items, it)
+	}
+
+	if resp.DiferenciaTotal == 0 && resp.TotalContado > 0 {
+		resp.EstadoConciliacion = "OK"
+	} else if resp.TotalContado == 0 && resp.TotalDeclaradas > 0 {
+		resp.EstadoConciliacion = "PENDIENTE"
+	} else {
+		resp.EstadoConciliacion = "DIFERENCIA"
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// guardarAuditoriaRemito persiste el conteo de lavadero para un remito y actualiza la conciliación.
+func (a *App) guardarAuditoriaRemito(w http.ResponseWriter, r *http.Request) {
+	remitoID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || remitoID <= 0 {
+		writeError(w, http.StatusBadRequest, "ID de remito inválido.")
+		return
+	}
+
+	var req models.GuardarAuditoriaRemitoRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Cuerpo JSON inválido.")
+		return
+	}
+
+	req.FechaConteo = strings.TrimSpace(req.FechaConteo)
+	if req.FechaConteo == "" {
+		req.FechaConteo = time.Now().Format("2006-01-02")
+	}
+
+	ctx := r.Context()
+	tx, err := a.db.Begin(ctx)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Error iniciando transacción.")
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	var hotelID int
+	var hotelNombre string
+	if err := tx.QueryRow(ctx, "SELECT e.hotel_id, h.nombre FROM envios e JOIN hoteles h ON h.id = e.hotel_id WHERE e.id = $1", remitoID).Scan(&hotelID, &hotelNombre); err != nil {
+		writeDBError(w, err, "Remito no encontrado.")
+		return
+	}
+
+	// Persistir conteos en registros
+	for _, it := range req.Conteo {
+		if it.ItemID <= 0 {
+			continue
+		}
+		_, err = tx.Exec(ctx, `
+			INSERT INTO registros (fecha, hotel_id, item_id, cantidad, cantidad_relavado, cantidad_rota)
+			VALUES ($1, $2, $3, $4, $5, $6)
+			ON CONFLICT (fecha, hotel_id, item_id)
+			DO UPDATE SET
+				cantidad = EXCLUDED.cantidad,
+				cantidad_relavado = EXCLUDED.cantidad_relavado,
+				cantidad_rota = EXCLUDED.cantidad_rota
+		`, req.FechaConteo, hotelID, it.ItemID, it.CantidadLimpia, it.CantidadRelavado, it.CantidadRota)
+		if err != nil {
+			writeDBError(w, err, "Error guardando conteo en registros.")
+			return
+		}
+	}
+
+	// Marcar remito como auditado
+	_, err = tx.Exec(ctx, "UPDATE envios SET estado = 'auditado' WHERE id = $1", remitoID)
+	if err != nil {
+		writeDBError(w, err, "Error actualizando estado del remito.")
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		writeError(w, http.StatusInternalServerError, "Error al confirmar auditoría.")
+		return
+	}
+
+	// Re-validar conciliación vinculando explícitamente este remito
+	go func() {
+		defer func() { _ = recover() }()
+		bgCtx := context.Background()
+		bgTx, err := a.db.Begin(bgCtx)
+		if err == nil {
+			defer bgTx.Rollback(bgCtx)
+			// Actualizar despacho de conciliación
+			_ = a.actualizarDespachoConciliacionDirecto(bgCtx, bgTx, hotelID, hotelNombre, req.FechaConteo, remitoID)
+			_ = bgTx.Commit(bgCtx)
+		}
+	}()
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"success":      true,
+		"mensaje":      "Auditoría y conteo registrados exitosamente.",
+		"remito_id":    remitoID,
+		"fecha_conteo": req.FechaConteo,
+	})
 }
 
 func nullableString(s string) *string {

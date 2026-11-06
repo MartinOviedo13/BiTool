@@ -131,8 +131,21 @@ func (a *App) validarConciliacion(w http.ResponseWriter, r *http.Request) {
 
 	var remitoID *int
 	var idEnvio int
-	if err := tx.QueryRow(ctx, "SELECT id FROM envios WHERE hotel_id = $1 AND fecha = $2::date ORDER BY id DESC LIMIT 1", req.HotelID, req.Fecha).Scan(&idEnvio); err == nil {
-		remitoID = &idEnvio
+	if req.RemitoID != nil && *req.RemitoID > 0 {
+		if err := tx.QueryRow(ctx, "SELECT id FROM envios WHERE id = $1 AND hotel_id = $2", *req.RemitoID, req.HotelID).Scan(&idEnvio); err == nil {
+			remitoID = &idEnvio
+		}
+	}
+	if remitoID == nil {
+		if err := tx.QueryRow(ctx, "SELECT id FROM envios WHERE hotel_id = $1 AND fecha = $2::date ORDER BY id DESC LIMIT 1", req.HotelID, req.Fecha).Scan(&idEnvio); err == nil {
+			remitoID = &idEnvio
+		}
+	}
+	// Fallback inteligente: si no hay remito en la fecha exacta, buscar el remito más reciente del hotel
+	if remitoID == nil {
+		if err := tx.QueryRow(ctx, "SELECT id FROM envios WHERE hotel_id = $1 ORDER BY fecha DESC, id DESC LIMIT 1", req.HotelID).Scan(&idEnvio); err == nil {
+			remitoID = &idEnvio
+		}
 	}
 
 	rows, err := tx.Query(ctx, `
@@ -140,7 +153,7 @@ func (a *App) validarConciliacion(w http.ResponseWriter, r *http.Request) {
 			SELECT ed.item_id, SUM(ed.cantidad_declarada)::int AS cant_remito
 			FROM envios e
 			JOIN envio_detalles ed ON ed.envio_id = e.id
-			WHERE e.hotel_id = $1 AND e.fecha = $2::date
+			WHERE ($1::int IS NOT NULL AND e.id = $1::int)
 			GROUP BY ed.item_id
 		),
 		procesado_items AS (
@@ -149,7 +162,7 @@ func (a *App) validarConciliacion(w http.ResponseWriter, r *http.Request) {
 				SUM(r.cantidad + COALESCE(r.cantidad_relavado, 0) + COALESCE(r.cantidad_rota, 0))::int AS cant_procesada_prendas,
 				0::float8 AS cant_procesada_kilos
 			FROM registros r
-			WHERE r.hotel_id = $1 AND r.fecha = $2::date
+			WHERE r.hotel_id = $2 AND r.fecha = $3::date
 			GROUP BY r.item_id
 		),
 		unidos AS (
@@ -171,7 +184,7 @@ func (a *App) validarConciliacion(w http.ResponseWriter, r *http.Request) {
 		JOIN items i ON i.id = u.item_id
 		WHERE u.cant_remito > 0 OR u.cant_procesada_prendas > 0
 		ORDER BY i.nombre ASC
-	`, req.HotelID, req.Fecha)
+	`, remitoID, req.HotelID, req.Fecha)
 	if err != nil {
 		writeDBError(w, err, "Error comparando remito con procesado.")
 		return
@@ -303,7 +316,9 @@ func (a *App) listarDespachosConciliacion(w http.ResponseWriter, r *http.Request
 			dc.entregado_por_id,
 			ue.username AS entregado_por_username,
 			dc.entregado_en,
-			dc.observacion_entrega
+			dc.observacion_entrega,
+			e.numero_remito,
+			e.fecha::text AS fecha_remito
 		FROM despachos_conciliacion dc
 		JOIN hoteles h ON h.id = dc.hotel_id
 		LEFT JOIN envios e ON e.id = dc.remito_id
@@ -608,6 +623,8 @@ func scanDespachoRow(s despachoScanner) (models.DespachoConciliacion, error) {
 		&d.EntregadoPorUsername,
 		&d.EntregadoEn,
 		&d.ObservacionEntrega,
+		&d.NumeroRemito,
+		&d.FechaRemito,
 	)
 	if err != nil {
 		return d, err
@@ -640,7 +657,9 @@ func (a *App) getDespachoByID(ctx context.Context, despachoID int) (models.Despa
 			dc.entregado_por_id,
 			ue.username AS entregado_por_username,
 			dc.entregado_en,
-			dc.observacion_entrega
+			dc.observacion_entrega,
+			e.numero_remito,
+			e.fecha::text AS fecha_remito
 		FROM despachos_conciliacion dc
 		JOIN hoteles h ON h.id = dc.hotel_id
 		LEFT JOIN envios e ON e.id = dc.remito_id
@@ -650,4 +669,115 @@ func (a *App) getDespachoByID(ctx context.Context, despachoID int) (models.Despa
 	`, despachoID)
 	return scanDespachoRow(row)
 }
+
+// actualizarDespachoConciliacionDirecto recalcula y persiste el despacho de conciliación vinculando un remito directo.
+func (a *App) actualizarDespachoConciliacionDirecto(ctx context.Context, tx pgx.Tx, hotelID int, hotelNombre, fecha string, remitoID int) error {
+	rows, err := tx.Query(ctx, `
+		WITH remito_items AS (
+			SELECT ed.item_id, SUM(ed.cantidad_declarada)::int AS cant_remito
+			FROM envios e
+			JOIN envio_detalles ed ON ed.envio_id = e.id
+			WHERE e.id = $1::int
+			GROUP BY ed.item_id
+		),
+		procesado_items AS (
+			SELECT
+				r.item_id,
+				SUM(r.cantidad + COALESCE(r.cantidad_relavado, 0) + COALESCE(r.cantidad_rota, 0))::int AS cant_procesada_prendas,
+				0::float8 AS cant_procesada_kilos
+			FROM registros r
+			WHERE r.hotel_id = $2 AND r.fecha = $3::date
+			GROUP BY r.item_id
+		),
+		unidos AS (
+			SELECT
+				COALESCE(ri.item_id, pi.item_id) AS item_id,
+				COALESCE(ri.cant_remito, 0) AS cant_remito,
+				COALESCE(pi.cant_procesada_prendas, 0) AS cant_procesada_prendas,
+				COALESCE(pi.cant_procesada_kilos, 0)::float8 AS cant_procesada_kilos
+			FROM remito_items ri
+			FULL OUTER JOIN procesado_items pi ON ri.item_id = pi.item_id
+		)
+		SELECT
+			u.item_id,
+			i.nombre AS item_nombre,
+			u.cant_remito,
+			u.cant_procesada_prendas,
+			u.cant_procesada_kilos
+		FROM unidos u
+		JOIN items i ON i.id = u.item_id
+		WHERE u.cant_remito > 0 OR u.cant_procesada_prendas > 0
+		ORDER BY i.nombre ASC
+	`, remitoID, hotelID, fecha)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var rawItems []models.MuestraItemConciliacion
+	for rows.Next() {
+		var it models.MuestraItemConciliacion
+		if err := rows.Scan(&it.ItemID, &it.ItemNombre, &it.CantRemito, &it.CantProcesadaPrendas, &it.CantProcesadaKilos); err != nil {
+			return err
+		}
+		rawItems = append(rawItems, it)
+	}
+	rows.Close()
+
+	eval := evaluarConciliacionDespacho(hotelNombre, fecha, rawItems)
+	muestraJSON, err := json.Marshal(eval.Muestra)
+	if err != nil {
+		return err
+	}
+
+	var despachoID int
+	err = tx.QueryRow(ctx, `
+		INSERT INTO despachos_conciliacion (
+			hotel_id, remito_id, fecha, estado,
+			total_remito_prendas, total_procesado_prendas, total_procesado_kilos, diferencia_prendas,
+			muestra_procesado, validado_en
+		) VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9::jsonb, NOW())
+		ON CONFLICT (hotel_id, fecha)
+		DO UPDATE SET
+			remito_id = EXCLUDED.remito_id,
+			estado = EXCLUDED.estado,
+			total_remito_prendas = EXCLUDED.total_remito_prendas,
+			total_procesado_prendas = EXCLUDED.total_procesado_prendas,
+			total_procesado_kilos = EXCLUDED.total_procesado_kilos,
+			diferencia_prendas = EXCLUDED.diferencia_prendas,
+			muestra_procesado = EXCLUDED.muestra_procesado,
+			validado_en = NOW()
+		RETURNING id
+	`,
+		hotelID,
+		remitoID,
+		fecha,
+		eval.Estado,
+		eval.TotalRemitoPrendas,
+		eval.TotalProcesadoPrendas,
+		eval.TotalProcesadoKilos,
+		eval.DiferenciaPrendas,
+		string(muestraJSON),
+	).Scan(&despachoID)
+	if err != nil {
+		return err
+	}
+
+	_, _ = tx.Exec(ctx, `
+		INSERT INTO notificaciones_operativas (
+			rol_destino, hotel_id, despacho_id, tipo, severidad, titulo, mensaje, muestra_datos
+		) VALUES ('repartidor', $1, $2, $3, $4, $5, $6, $7::jsonb)
+	`,
+		hotelID,
+		despachoID,
+		eval.TipoNotificacion,
+		eval.SeveridadNotificacion,
+		eval.TituloNotificacion,
+		eval.MensajeNotificacion,
+		string(muestraJSON),
+	)
+
+	return nil
+}
+
 

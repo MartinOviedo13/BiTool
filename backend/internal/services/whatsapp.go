@@ -564,13 +564,18 @@ func (s *WhatsAppService) ProcesarMensajeEntrante(ctx context.Context, telRemite
 	var usuarioNombre string
 	var rolUsuario string
 
+	last8 := telNormalizado
+	if len(telNormalizado) >= 8 {
+		last8 = telNormalizado[len(telNormalizado)-8:]
+	}
+
 	// Buscar si el teléfono pertenece a un hotel
 	_ = s.db.QueryRow(ctx, `
 		SELECT id, nombre FROM hoteles
 		WHERE telefono_whatsapp IS NOT NULL
 		  AND (telefono_whatsapp = $1 OR telefono_whatsapp = $2 OR REPLACE(REPLACE(telefono_whatsapp, ' ', ''), '-', '') LIKE '%' || $3)
 		LIMIT 1
-	`, telRemitente, telNormalizado, telNormalizado[len(telNormalizado)-8:]).Scan(&hotelID, &hotelNombre)
+	`, telRemitente, telNormalizado, last8).Scan(&hotelID, &hotelNombre)
 
 	// Buscar si pertenece a un usuario (chofer/admin)
 	_ = s.db.QueryRow(ctx, `
@@ -578,7 +583,7 @@ func (s *WhatsAppService) ProcesarMensajeEntrante(ctx context.Context, telRemite
 		WHERE telefono_whatsapp IS NOT NULL
 		  AND (telefono_whatsapp = $1 OR telefono_whatsapp = $2 OR REPLACE(REPLACE(telefono_whatsapp, ' ', ''), '-', '') LIKE '%' || $3)
 		LIMIT 1
-	`, telRemitente, telNormalizado, telNormalizado[len(telNormalizado)-8:]).Scan(&usuarioID, &usuarioNombre, &rolUsuario)
+	`, telRemitente, telNormalizado, last8).Scan(&usuarioID, &usuarioNombre, &rolUsuario)
 
 	// Guardar log entrante
 	_, _ = s.db.Exec(ctx, `
@@ -613,16 +618,20 @@ func (s *WhatsAppService) ProcesarMensajeEntrante(ctx context.Context, telRemite
 		contextoRemitente, texto,
 	)
 
-	ahora := time.Now()
-	iaRes, err := ia.AskWithMCP(ctx, promptIA, &ahora, &ahora, nil)
+	iaRes, err := ia.AskWithMCP(ctx, promptIA, nil, nil, nil)
 	if err != nil {
 		log.Printf("[WhatsApp][IA Error] Error procesando consulta con Gemini: %v", err)
-		fallback := "Hola, recibimos tu mensaje pero tuvimos una demora consultando el sistema. Te responderemos en instantes."
+		fallback := "Hola! Recibimos tu consulta. En este momento estamos procesando tus remitos en planta. Podés consultar el detalle en vivo en tu Portal B2B o te responderemos a la brevedad."
 		s.EnviarAsincrono(telNormalizado, fallback, "respuesta_fallback", hotelID, usuarioID)
 		return fallback, err
 	}
 
+	textoRespuesta := strings.TrimSpace(iaRes.Respuesta)
+	if textoRespuesta == "" {
+		textoRespuesta = "Hola! Recibimos tu consulta. En este momento estamos procesando tus remitos en planta. Podés consultar el detalle en vivo en tu Portal B2B o te responderemos a la brevedad."
+	}
+
 	// Responder de vuelta por WhatsApp
-	s.EnviarAsincrono(telNormalizado, iaRes.Respuesta, "respuesta_ia_whatsapp", hotelID, usuarioID)
-	return iaRes.Respuesta, nil
+	s.EnviarAsincrono(telNormalizado, textoRespuesta, "respuesta_ia_whatsapp", hotelID, usuarioID)
+	return textoRespuesta, nil
 }

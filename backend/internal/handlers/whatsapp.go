@@ -41,7 +41,7 @@ func (a *App) handleWhatsAppWebhook(w http.ResponseWriter, r *http.Request) {
 
 	// Procesar de manera asíncrona para responder de inmediato 200 OK a Evolution API
 	go func(telRemitente string, textoMensaje string) {
-		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 		defer cancel()
 
 		log.Printf("[WhatsApp Webhook] Mensaje entrante de %s: %q", telRemitente, textoMensaje)

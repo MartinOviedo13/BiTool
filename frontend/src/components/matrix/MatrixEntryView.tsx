@@ -1483,11 +1483,23 @@ export const MatrixEntryView: React.FC = () => {
                     Conciliación: {modalDespacho.hotel_nombre}
                   </h3>
                   <p className="text-[11px] sm:text-xs text-slate-400 truncate">
-                    Fecha: <span className="text-slate-200 font-semibold">{formatDateDisplay(modalDespacho.fecha)}</span>
+                    Fecha Carga: <span className="text-slate-200 font-semibold">{formatDateDisplay(modalDespacho.fecha)}</span>
+                    {modalDespacho.numero_remito && (
+                      <>
+                        {' '}
+                        &bull; Remito: <span className="font-mono text-cyan-300 font-bold">N° {modalDespacho.numero_remito}</span>
+                      </>
+                    )}
+                    {modalDespacho.fecha_remito && modalDespacho.fecha_remito !== modalDespacho.fecha && (
+                      <>
+                        {' '}
+                        <span className="text-slate-400 text-[10px]">(del {formatDateDisplay(modalDespacho.fecha_remito)})</span>
+                      </>
+                    )}
                     {modalDespacho.codigo_qr && (
                       <>
                         {' '}
-                        &bull; Remito QR: <span className="font-mono text-triton-aqua-light">{modalDespacho.codigo_qr}</span>
+                        &bull; QR: <span className="font-mono text-triton-aqua-light">{modalDespacho.codigo_qr}</span>
                       </>
                     )}
                   </p>

@@ -125,6 +125,8 @@ func (a *App) RoutesWithAllowedOrigins(allowedOrigins []string) http.Handler {
 		// B2B: Ajuste de conteo fisico en planta y validacion de conciliacion
 		r.Post("/api/auditoria/conteo", a.registrarConteoAuditoria)
 		r.Post("/api/conciliacion/validar", a.validarConciliacion)
+		r.Get("/api/remitos/{id}/auditar", a.getAuditoriaRemito)
+		r.Post("/api/remitos/{id}/auditar", a.guardarAuditoriaRemito)
 
 		// Remitos con Análisis de IA (Fase 1 y Fase 2 - Lotes)
 		r.Post("/api/remitos/ia/extraer", a.extractRemitoIA)

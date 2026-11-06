@@ -379,6 +379,8 @@ export interface DespachoConciliacion {
   hotel_nombre: string;
   remito_id: number | null;
   codigo_qr?: string | null;
+  numero_remito?: string | null;
+  fecha_remito?: string | null;
   fecha: string;
   estado: EstadoConciliacion;
   total_remito_prendas: number;
@@ -398,6 +400,48 @@ export interface DespachoConciliacion {
 export interface ValidarConciliacionRequest {
   hotel_id: number;
   fecha: string;
+  remito_id?: number | null;
+}
+
+export interface ItemAuditoriaRemito {
+  item_id: number;
+  item_nombre: string;
+  cantidad_declarada: number;
+  cantidad_limpia: number;
+  cantidad_relavado: number;
+  cantidad_rota: number;
+  total_contado: number;
+  diferencia: number;
+  estado: 'OK' | 'FALTANTE' | 'SOBRANTE' | 'PENDIENTE_LAVADERO';
+}
+
+export interface AuditoriaRemitoResponse {
+  remito_id: number;
+  numero_remito?: string | null;
+  fecha_remito: string;
+  hotel_id: number;
+  hotel_nombre: string;
+  fecha_conteo: string;
+  total_declaradas: number;
+  total_limpias: number;
+  total_relavado: number;
+  total_rotas: number;
+  total_contado: number;
+  diferencia_total: number;
+  estado_conciliacion: 'OK' | 'DIFERENCIA' | 'PENDIENTE';
+  items: ItemAuditoriaRemito[];
+}
+
+export interface ItemConteoAuditoria {
+  item_id: number;
+  cantidad_limpia: number;
+  cantidad_relavado: number;
+  cantidad_rota: number;
+}
+
+export interface GuardarAuditoriaRemitoRequest {
+  fecha_conteo: string;
+  conteo: ItemConteoAuditoria[];
 }
 
 export interface EntregarDespachoRequest {

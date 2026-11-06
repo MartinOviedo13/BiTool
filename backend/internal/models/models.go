@@ -325,6 +325,8 @@ type DespachoConciliacion struct {
 	HotelNombre           string                    `json:"hotel_nombre"`
 	RemitoID              *int                      `json:"remito_id"`
 	CodigoQR              *string                   `json:"codigo_qr,omitempty"`
+	NumeroRemito          *string                   `json:"numero_remito,omitempty"`
+	FechaRemito           *string                   `json:"fecha_remito,omitempty"`
 	Fecha                 string                    `json:"fecha"`
 	Estado                string                    `json:"estado"` // pendiente, validado_ok, validado_con_diferencia, entregado
 	TotalRemitoPrendas    int                       `json:"total_remito_prendas"`
@@ -342,8 +344,56 @@ type DespachoConciliacion struct {
 }
 
 type ValidarConciliacionRequest struct {
-	HotelID int    `json:"hotel_id"`
-	Fecha   string `json:"fecha"` // YYYY-MM-DD
+	HotelID  int    `json:"hotel_id"`
+	Fecha    string `json:"fecha"` // YYYY-MM-DD
+	RemitoID *int   `json:"remito_id,omitempty"`
+}
+
+// ItemAuditoriaRemito representa un item comparado en la auditoría directa de un remito.
+type ItemAuditoriaRemito struct {
+	ItemID            int    `json:"item_id"`
+	ItemNombre        string `json:"item_nombre"`
+	Sector            string `json:"sector"`
+	CantidadDeclarada int    `json:"cantidad_declarada"`
+	CantidadLimpia    int    `json:"cantidad_limpia"`
+	CantidadRelavado  int    `json:"cantidad_relavado"`
+	CantidadRota      int    `json:"cantidad_rota"`
+	TotalContado      int    `json:"total_contado"`
+	Diferencia        int    `json:"diferencia"`
+	Estado            string `json:"estado"` // OK, FALTANTE, SOBRANTE, PENDIENTE_LAVADERO
+}
+
+// AuditoriaRemitoResponse es la estructura devuelta por GET /api/remitos/{id}/auditar.
+type AuditoriaRemitoResponse struct {
+	RemitoID          int                   `json:"remito_id"`
+	HotelID           int                   `json:"hotel_id"`
+	HotelNombre       string                `json:"hotel_nombre"`
+	NumeroRemito      string                `json:"numero_remito"`
+	FechaRemito       string                `json:"fecha_remito"`
+	FechaConteo       string                `json:"fecha_conteo"`
+	Observaciones     string                `json:"observaciones,omitempty"`
+	Items             []ItemAuditoriaRemito `json:"items"`
+	TotalDeclaradas   int                   `json:"total_declaradas"`
+	TotalLimpias      int                   `json:"total_limpias"`
+	TotalRelavado     int                   `json:"total_relavado"`
+	TotalRotas        int                   `json:"total_rotas"`
+	TotalContado      int                   `json:"total_contado"`
+	DiferenciaTotal   int                   `json:"diferencia_total"`
+	EstadoConciliacion string               `json:"estado_conciliacion"` // OK, DIFERENCIA, PENDIENTE
+}
+
+// ItemConteoAuditoria es la entrada de conteo para guardar en un remito auditado.
+type ItemConteoAuditoria struct {
+	ItemID           int `json:"item_id"`
+	CantidadLimpia   int `json:"cantidad_limpia"`
+	CantidadRelavado int `json:"cantidad_relavado"`
+	CantidadRota     int `json:"cantidad_rota"`
+}
+
+// GuardarAuditoriaRemitoRequest es el payload para POST /api/remitos/{id}/auditar.
+type GuardarAuditoriaRemitoRequest struct {
+	FechaConteo string                `json:"fecha_conteo"` // YYYY-MM-DD
+	Conteo      []ItemConteoAuditoria `json:"conteo"`
 }
 
 type EntregarDespachoRequest struct {

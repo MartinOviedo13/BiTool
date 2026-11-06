@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -40,10 +41,11 @@ REGLAS DE ACTUACIÓN:
 2. Si el usuario pide un GRÁFICO, visualización, comparativa visual, ranking visual o evolución temporal, INVOCÁ la herramienta 'generar_grafico_bi'. Esto creará un artefacto interactivo en el chat con gráficos interactivos y tablas de datos.
 3. Si el usuario pide un EXCEL, reporte descargable, planilla, liquidación en archivo o exportar datos, INVOCÁ la herramienta 'generar_reporte_excel'. Esto creará un archivo .xlsx profesional multi-hoja con botón de descarga inmediata y vista previa en el chat.
 4. Si la pregunta requiere datos de negocio (ej. qué hotel facturó menos, tasa de relavado, quién es el principal cliente, estado de remitos con diferencias, o dotación de personal), INVOCÁ la herramienta correspondiente.
-5. Respondé en español argentino, con tono profesional y ejecutivo, claro y conciso para los directores y operarios del lavadero.
-6. Cuando cites cantidades monetarias, expresalas en pesos argentinos (ARS).
-7. Si detectás tasas de relavado > 5% o roturas > 2%, mencioná la recomendación de control de calidad correspondiente.
-8. Si una pregunta no puede responderse con ninguna de las herramientas disponibles, explicalo amablemente.`
+5. EFICIENCIA DE HERRAMIENTAS: Una vez obtenida la información suficiente de las herramientas MCP, NO realices consultas redundantes ni repitas búsquedas. Redactá de inmediato la respuesta final clara y completa.
+6. Respondé en español argentino, con tono profesional y ejecutivo, claro y conciso para los directores y operarios del lavadero.
+7. Cuando cites cantidades monetarias, expresalas en pesos argentinos (ARS).
+8. Si detectás tasas de relavado > 5% o roturas > 2%, mencioná la recomendación de control de calidad correspondiente.
+9. Si una pregunta no puede responderse con ninguna de las herramientas disponibles, explicalo amablemente.`
 
 // IAResponse agrupa la respuesta generada, las herramientas MCP utilizadas y los artefactos visuales/descargables.
 type IAResponse struct {
@@ -101,12 +103,16 @@ func (s *IAService) AskWithMCP(ctx context.Context, pregunta string, desde, hast
 
 		// Si el modelo no solicitó ninguna tool call, tenemos la respuesta final
 		if len(resp.ToolCalls) == 0 {
+			resText := strings.TrimSpace(resp.Text)
+			if resText == "" {
+				resText = "Recibimos tu consulta. La información fue procesada y podés consultar los detalles completos en vivo en tu Portal B2B o con nuestro equipo de atención."
+			}
 			toolsList := make([]string, 0, len(toolsUsadasMap))
 			for t := range toolsUsadasMap {
 				toolsList = append(toolsList, t)
 			}
 			return &IAResponse{
-				Respuesta:   resp.Text,
+				Respuesta:   resText,
 				ToolsUsadas: toolsList,
 				Artifacts:   artifactsList,
 			}, nil
@@ -164,10 +170,18 @@ func (s *IAService) AskWithMCP(ctx context.Context, pregunta string, desde, hast
 		}
 	}
 
-	// Si se alcanzó el límite de rondas, forzar síntesis final
-	finalResp, err := s.provider.Complete(ctx, systemInstruction, conversation)
-	if err != nil {
-		return nil, err
+	// Si se alcanzó el límite de rondas, forzar síntesis final usando las herramientas declaradas
+	conversation = append(conversation, Message{
+		Role:    "user",
+		Content: "Con toda la información obtenida de las herramientas anteriores, redactá tu respuesta final completa, clara y directa para el usuario. No invoques más herramientas.",
+	})
+	finalRespObj, err := s.provider.GenerateWithTools(ctx, systemInstruction, conversation, availableTools)
+	finalText := ""
+	if err == nil && finalRespObj != nil {
+		finalText = strings.TrimSpace(finalRespObj.Text)
+	}
+	if finalText == "" {
+		finalText = "Recibimos tu consulta. La información fue procesada en el sistema de planta y podés consultar los detalles completos en vivo en tu Portal B2B o contactar al equipo de planta."
 	}
 
 	toolsList := make([]string, 0, len(toolsUsadasMap))
@@ -176,7 +190,7 @@ func (s *IAService) AskWithMCP(ctx context.Context, pregunta string, desde, hast
 	}
 
 	return &IAResponse{
-		Respuesta:   finalResp,
+		Respuesta:   finalText,
 		ToolsUsadas: toolsList,
 		Artifacts:   artifactsList,
 	}, nil
