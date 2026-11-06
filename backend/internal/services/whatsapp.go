@@ -266,10 +266,7 @@ func (s *WhatsAppService) EnviarTexto(ctx context.Context, telefono string, mens
 		payload := map[string]any{
 			"number": telNormalizado,
 			"text":   mensaje,
-			"options": map[string]any{
-				"delay":   1200,
-				"presence": "composing",
-			},
+			"delay":  1200,
 		}
 
 		bodyBytes, err := json.Marshal(payload)
